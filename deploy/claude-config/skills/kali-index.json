@@ -1,0 +1,262 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-12",
+  "description": "Kali MCP 工具知识索引 - 机器可解析的工具映射和决策树",
+
+  "attack_scenarios": {
+    "sql_injection": {
+      "description": "SQL注入攻击场景",
+      "primary_tools": ["sqlmap_scan", "intelligent_sql_injection_payloads"],
+      "support_tools": ["gobuster_scan", "whatweb_scan", "wafw00f_scan"],
+      "skill_sections": ["L2.2.7", "L3.1.2", "L5.1.1"],
+      "success_indicators": ["database dump", "table names", "user credentials", "flag"],
+      "failure_fallbacks": ["manual injection", "time-based blind", "error-based", "waf_bypass"],
+      "waf_bypass_tool": "generate_waf_bypass_payload"
+    },
+    "xss_attack": {
+      "description": "跨站脚本攻击场景",
+      "primary_tools": ["intelligent_xss_payloads"],
+      "support_tools": ["nuclei_scan", "whatweb_scan"],
+      "skill_sections": ["L2.2.20", "L3.1.3"],
+      "success_indicators": ["alert triggered", "cookie stolen", "dom manipulation"],
+      "failure_fallbacks": ["different context", "encoding bypass", "filter evasion"]
+    },
+    "command_injection": {
+      "description": "命令注入攻击场景",
+      "primary_tools": ["intelligent_command_injection_payloads"],
+      "support_tools": ["nuclei_scan"],
+      "skill_sections": ["L2.2.21", "L3.1.4"],
+      "success_indicators": ["command output", "reverse shell", "file read"],
+      "failure_fallbacks": ["blind injection", "time-based", "out-of-band"]
+    },
+    "web_recon": {
+      "description": "Web应用侦察场景",
+      "primary_tools": ["whatweb_scan", "gobuster_scan", "nuclei_technology_detection"],
+      "support_tools": ["wafw00f_scan", "nikto_scan"],
+      "skill_sections": ["L1.1", "L2.1", "L2.2.1-6"],
+      "workflow": "sequential",
+      "next_scenario_mapping": {
+        "wordpress_detected": "wordpress_attack",
+        "php_detected": "php_vulnerabilities",
+        "login_page_found": "authentication_attack",
+        "upload_found": "file_upload_attack"
+      }
+    },
+    "network_recon": {
+      "description": "网络侦察场景",
+      "primary_tools": ["nmap_scan", "masscan_fast_scan"],
+      "support_tools": ["arp_scan", "fping_scan", "netdiscover_scan"],
+      "skill_sections": ["L2.1.1-7", "L3.2.1"],
+      "next_scenario_mapping": {
+        "port_80_443": "web_recon",
+        "port_22": "ssh_attack",
+        "port_21": "ftp_attack",
+        "port_445": "smb_attack",
+        "port_3306": "mysql_attack"
+      }
+    },
+    "wordpress_attack": {
+      "description": "WordPress攻击场景",
+      "primary_tools": ["wpscan_scan"],
+      "support_tools": ["nuclei_scan", "gobuster_scan"],
+      "skill_sections": ["L2.2.11", "L3.1.5"],
+      "success_indicators": ["vulnerable plugin", "weak password", "admin access"]
+    },
+    "password_attack": {
+      "description": "密码攻击场景",
+      "primary_tools": ["hydra_attack", "john_crack", "hashcat_crack"],
+      "support_tools": ["medusa_bruteforce", "ncrack_attack"],
+      "skill_sections": ["L2.3.1-8"],
+      "success_indicators": ["valid credentials", "cracked hash"]
+    },
+    "pwn_binary": {
+      "description": "PWN二进制利用场景",
+      "primary_tools": ["quick_pwn_check", "pwnpasi_auto_pwn"],
+      "support_tools": ["auto_reverse_analyze", "radare2_analyze_binary"],
+      "skill_sections": ["L2.5.1-10", "L3.1.6"],
+      "success_indicators": ["shell obtained", "flag read", "rce achieved"]
+    },
+    "ctf_web": {
+      "description": "CTF Web题目场景",
+      "primary_tools": ["intelligent_ctf_solve", "ctf_web_comprehensive_solver"],
+      "support_tools": ["enable_ctf_mode", "get_detected_flags"],
+      "skill_sections": ["L1.1", "L3.1"],
+      "workflow": "ctf_web_flow"
+    },
+    "apt_simulation": {
+      "description": "APT攻击模拟场景",
+      "primary_tools": ["intelligent_apt_campaign", "apt_comprehensive_attack"],
+      "support_tools": ["start_adaptive_apt_attack", "comprehensive_recon"],
+      "skill_sections": ["L4.1", "L3.2.10-15"],
+      "workflow": "apt_attack_chain"
+    }
+  },
+
+  "decision_trees": {
+    "web_attack_flow": {
+      "start": "identify_target",
+      "nodes": {
+        "identify_target": {
+          "action": "whatweb_scan + wafw00f_scan",
+          "conditions": {
+            "waf_detected": "bypass_waf",
+            "cms_detected": "cms_specific_attack",
+            "default": "directory_scan"
+          }
+        },
+        "bypass_waf": {
+          "action": "generate_waf_bypass_payload",
+          "next": "directory_scan"
+        },
+        "directory_scan": {
+          "action": "gobuster_scan",
+          "conditions": {
+            "admin_found": "authentication_attack",
+            "upload_found": "file_upload_attack",
+            "api_found": "api_testing",
+            "default": "vulnerability_scan"
+          }
+        },
+        "vulnerability_scan": {
+          "action": "nuclei_web_scan + nikto_scan",
+          "conditions": {
+            "sqli_found": "sql_injection_attack",
+            "xss_found": "xss_attack",
+            "rce_found": "rce_exploitation",
+            "default": "manual_testing"
+          }
+        },
+        "sql_injection_attack": {
+          "action": "sqlmap_scan",
+          "conditions": {
+            "success": "extract_data",
+            "waf_blocked": "bypass_waf_sqli",
+            "failure": "try_alternative"
+          }
+        }
+      }
+    },
+    "ctf_web_flow": {
+      "start": "enable_ctf_mode",
+      "nodes": {
+        "enable_ctf_mode": {
+          "action": "enable_ctf_mode()",
+          "next": "quick_scan"
+        },
+        "quick_scan": {
+          "action": "ctf_quick_scan",
+          "next": "analyze_results"
+        },
+        "analyze_results": {
+          "action": "识别漏洞类型",
+          "conditions": {
+            "sqli": "sqli_exploit",
+            "upload": "upload_exploit",
+            "ssti": "ssti_exploit",
+            "default": "comprehensive_attack"
+          }
+        },
+        "comprehensive_attack": {
+          "action": "ctf_web_comprehensive_solver",
+          "next": "extract_flag"
+        },
+        "extract_flag": {
+          "action": "get_detected_flags()",
+          "end": true
+        }
+      }
+    },
+    "apt_attack_chain": {
+      "start": "reconnaissance",
+      "phases": [
+        {"name": "reconnaissance", "tools": ["comprehensive_recon", "theharvester_osint"]},
+        {"name": "weaponization", "tools": ["ai_smart_payload_generation"]},
+        {"name": "delivery", "tools": ["intelligent_parallel_attack"]},
+        {"name": "exploitation", "tools": ["apt_comprehensive_attack"]},
+        {"name": "installation", "tools": ["metasploit_run"]},
+        {"name": "command_control", "tools": []},
+        {"name": "actions_on_objectives", "tools": ["generate_poc_from_current_session"]}
+      ]
+    }
+  },
+
+  "tool_categories": {
+    "reconnaissance": {
+      "network": ["nmap_scan", "masscan_fast_scan", "arp_scan", "fping_scan", "netdiscover_scan", "zmap_scan"],
+      "dns": ["subfinder_scan", "amass_enum", "sublist3r_scan", "dnsrecon_scan", "dnsenum_scan", "fierce_scan", "dnsmap_scan"],
+      "web": ["whatweb_scan", "httpx_probe", "wafw00f_scan", "nuclei_technology_detection"],
+      "osint": ["theharvester_osint", "sherlock_search", "recon_ng_run"]
+    },
+    "vulnerability_scanning": {
+      "general": ["nuclei_scan", "nuclei_cve_scan", "nuclei_web_scan", "nuclei_network_scan"],
+      "web_specific": ["nikto_scan", "wpscan_scan", "joomscan_scan"]
+    },
+    "exploitation": {
+      "web": ["sqlmap_scan", "intelligent_sql_injection_payloads", "intelligent_xss_payloads", "intelligent_command_injection_payloads"],
+      "network": ["metasploit_run", "searchsploit_search"],
+      "password": ["hydra_attack", "john_crack", "hashcat_crack", "medusa_bruteforce"]
+    },
+    "pwn_reverse": {
+      "analysis": ["quick_pwn_check", "auto_reverse_analyze", "radare2_analyze_binary", "ghidra_analyze_binary", "binwalk_analysis"],
+      "exploitation": ["pwnpasi_auto_pwn", "pwn_comprehensive_attack"]
+    },
+    "intelligent": {
+      "ctf": ["intelligent_ctf_solve", "ctf_web_comprehensive_solver", "ctf_pwn_solver", "ctf_crypto_solver", "ctf_misc_solver", "ctf_reverse_solver"],
+      "apt": ["intelligent_apt_campaign", "apt_comprehensive_attack", "start_adaptive_apt_attack"],
+      "ai_assisted": ["ai_intelligent_target_analysis", "ai_smart_payload_generation", "ai_adaptive_attack_execution", "ai_strategic_decision_making"]
+    }
+  },
+
+  "context_triggers": {
+    "url_patterns": {
+      "ctf_platforms": ["ctf.", "challenge.", "pwn.", "web.", "crypto.", "misc.", "hack."],
+      "wordpress": ["/wp-admin", "/wp-content", "/wp-includes"],
+      "api": ["/api/", "/v1/", "/v2/", "/graphql"],
+      "admin": ["/admin", "/administrator", "/manage", "/dashboard"]
+    },
+    "port_mappings": {
+      "21": {"service": "FTP", "tools": ["hydra_attack"], "scenario": "ftp_attack"},
+      "22": {"service": "SSH", "tools": ["hydra_attack", "ncrack_attack"], "scenario": "ssh_attack"},
+      "80": {"service": "HTTP", "tools": ["whatweb_scan", "gobuster_scan"], "scenario": "web_recon"},
+      "443": {"service": "HTTPS", "tools": ["whatweb_scan", "gobuster_scan"], "scenario": "web_recon"},
+      "445": {"service": "SMB", "tools": ["enum4linux_scan"], "scenario": "smb_attack"},
+      "3306": {"service": "MySQL", "tools": ["hydra_attack"], "scenario": "mysql_attack"},
+      "5432": {"service": "PostgreSQL", "tools": ["hydra_attack"], "scenario": "postgresql_attack"},
+      "6379": {"service": "Redis", "tools": ["hydra_attack"], "scenario": "redis_attack"},
+      "27017": {"service": "MongoDB", "tools": [], "scenario": "mongodb_attack"}
+    },
+    "file_extensions": {
+      ".php": {"type": "PHP", "vulnerabilities": ["lfi", "rce", "sqli"]},
+      ".asp": {"type": "ASP", "vulnerabilities": ["sqli", "rce"]},
+      ".jsp": {"type": "JSP", "vulnerabilities": ["sqli", "rce", "xxe"]},
+      ".py": {"type": "Python", "vulnerabilities": ["ssti", "rce"]}
+    }
+  },
+
+  "success_patterns": {
+    "flag_formats": [
+      "flag\\{[^}]+\\}",
+      "FLAG\\{[^}]+\\}",
+      "ctf\\{[^}]+\\}",
+      "CTF\\{[^}]+\\}",
+      "DASCTF\\{[^}]+\\}",
+      "[a-f0-9]{32}",
+      "[a-f0-9]{64}"
+    ],
+    "shell_indicators": [
+      "uid=\\d+",
+      "www-data",
+      "root@",
+      "$ ",
+      "# ",
+      "meterpreter"
+    ],
+    "credential_patterns": [
+      "password[=:]",
+      "passwd[=:]",
+      "pwd[=:]",
+      "secret[=:]",
+      "token[=:]"
+    ]
+  }
+}
