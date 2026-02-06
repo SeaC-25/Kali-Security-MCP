@@ -2744,25 +2744,6 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_tool_with_data("gobuster", data)
 
     @mcp.tool()
-    def dirb_scan(url: str, wordlist: str = "/usr/share/wordlists/dirb/common.txt", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute Dirb web content scanner.
-        
-        Args:
-            url: The target URL
-            wordlist: Path to wordlist file
-            additional_args: Additional Dirb arguments
-            
-        Returns:
-            Scan results
-        """
-        data = {
-            "url": url,
-            "wordlist": wordlist,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("dirb", data)
-
     @mcp.tool()
     def nikto_scan(target: str, additional_args: str = "") -> Dict[str, Any]:
         """
@@ -2883,23 +2864,6 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_tool_with_data("john", data)
 
     @mcp.tool()
-    def wpscan_analyze(url: str, additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute WPScan WordPress vulnerability scanner.
-        
-        Args:
-            url: The target WordPress URL
-            additional_args: Additional WPScan arguments
-            
-        Returns:
-            Scan results
-        """
-        data = {
-            "url": url,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("wpscan", data)
-
     @mcp.tool()
     def enum4linux_scan(target: str, additional_args: str = "-a") -> Dict[str, Any]:
         """
@@ -3491,85 +3455,8 @@ def setup_mcp_server() -> FastMCP:
         return nuclei_scan(target, "technologies/", "info", "", "json")
 
     @mcp.tool()
-    def wfuzz_scan(target: str, wordlist: str = "/usr/share/wordlists/dirb/common.txt",
-                   additional_args: str = "-c") -> Dict[str, Any]:
-        """
-        Execute Wfuzz web fuzzer.
-
-        Args:
-            target: Target URL with FUZZ keyword (e.g., 'http://example.com/FUZZ')
-            wordlist: Path to wordlist file
-            additional_args: Additional Wfuzz arguments
-
-        Returns:
-            Wfuzz scan results
-        """
-        data = {
-            "target": target,
-            "wordlist": wordlist,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("wfuzz", data)
-
     @mcp.tool()
-    def wafw00f_scan(target: str, additional_args: str = "-a") -> Dict[str, Any]:
-        """
-        Execute wafw00f WAF detection.
-
-        Args:
-            target: Target URL to scan for WAF
-            additional_args: Additional wafw00f arguments
-
-        Returns:
-            WAF detection results
-        """
-        data = {
-            "target": target,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("wafw00f", data)
-
     @mcp.tool()
-    def sublist3r_scan(domain: str, additional_args: str = "-v") -> Dict[str, Any]:
-        """
-        Execute Sublist3r subdomain enumeration.
-
-        Args:
-            domain: Target domain to enumerate subdomains
-            additional_args: Additional Sublist3r arguments
-
-        Returns:
-            Subdomain enumeration results
-        """
-        data = {
-            "domain": domain,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("sublist3r", data)
-
-    @mcp.tool()
-    def masscan_scan(target: str, ports: str = "80,443", rate: str = "1000",
-                     additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute Masscan high-speed port scanner.
-
-        Args:
-            target: Target IP or network range
-            ports: Ports to scan (e.g., "80,443,8080")
-            rate: Scan rate (packets per second)
-            additional_args: Additional Masscan arguments
-
-        Returns:
-            High-speed port scan results
-        """
-        data = {
-            "target": target,
-            "ports": ports,
-            "rate": rate,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("masscan", data)
-
     @mcp.tool()
     def dnsrecon_scan(domain: str, scan_type: str = "-t std",
                       additional_args: str = "") -> Dict[str, Any]:
@@ -3724,31 +3611,6 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_tool_with_data("netdiscover", data)
 
     @mcp.tool()
-    def medusa_bruteforce(target: str, username: str = "",
-                          password_list: str = "/usr/share/wordlists/rockyou.txt",
-                          service: str = "ssh", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute Medusa for password brute force attacks.
-
-        Args:
-            target: Target host or IP address
-            username: Username to attack (optional for user enumeration)
-            password_list: Path to password wordlist
-            service: Service to attack (ssh, ftp, http, etc.)
-            additional_args: Additional Medusa arguments
-
-        Returns:
-            Password attack results
-        """
-        data = {
-            "target": target,
-            "username": username,
-            "password_list": password_list,
-            "service": service,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("medusa", data)
-
     @mcp.tool()
     def comprehensive_network_scan(target: str, deep_scan: bool = False) -> Dict[str, Any]:
         """
@@ -4098,21 +3960,6 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_command(cmd)
 
     @mcp.tool()
-    def amass_enum(domain: str, mode: str = "enum", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute AMASS for comprehensive subdomain enumeration.
-
-        Args:
-            domain: Target domain for enumeration
-            mode: AMASS mode (enum, intel, track, db)
-            additional_args: Additional AMASS arguments
-
-        Returns:
-            Subdomain enumeration results
-        """
-        cmd = f"amass {mode} -d {domain} {additional_args}"
-        return executor.execute_command(cmd)
-
     @mcp.tool()
     def subfinder_scan(domain: str, sources: str = "", additional_args: str = "") -> Dict[str, Any]:
         """
@@ -4320,112 +4167,10 @@ def setup_mcp_server() -> FastMCP:
     
     # 核心扫描工具
     @mcp.tool()
-    def zmap_scan(target: str, port: str = "80", rate: str = "10000", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute Zmap network scanner.
-        
-        Args:
-            target: Target network or IP range
-            port: Port to scan (default: 80)
-            rate: Scan rate (default: 10000)
-            additional_args: Additional Zmap arguments
-            
-        Returns:
-            Zmap scan results
-        """
-        data = {
-            "target": target,
-            "port": port,
-            "rate": rate,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("zmap", data)
-
-    # 目录和Web扫描工具
     @mcp.tool()
-    def feroxbuster_scan(url: str, wordlist: str = "/usr/share/wordlists/dirb/common.txt",
-                        threads: str = "50", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute feroxbuster directory scanner.
-        
-        Args:
-            url: Target URL
-            wordlist: Path to wordlist file
-            threads: Number of concurrent threads
-            additional_args: Additional feroxbuster arguments
-            
-        Returns:
-            Feroxbuster scan results
-        """
-        data = {
-            "url": url,
-            "wordlist": wordlist,
-            "threads": threads,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("feroxbuster", data)
-
-    # DNS枚举工具
     @mcp.tool()
-    def dnsenum_scan(domain: str, additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute dnsenum for DNS enumeration.
-        
-        Args:
-            domain: Target domain
-            additional_args: Additional dnsenum arguments
-            
-        Returns:
-            DNS enumeration results
-        """
-        data = {
-            "domain": domain,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("dnsenum", data)
-
     @mcp.tool()
-    def fierce_scan(domain: str, threads: str = "10", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute fierce DNS scanner.
-
-        Args:
-            domain: Target domain
-            threads: Number of threads (deprecated, ignored)
-            additional_args: Additional fierce arguments
-
-        Returns:
-            Fierce scan results
-        """
-        # 注意: 现代fierce不支持--threads参数，该参数仅保留用于向后兼容
-        data = {
-            "domain": domain,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("fierce", data)
-
     @mcp.tool()
-    def dnsmap_scan(domain: str, wordlist: str = "", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute dnsmap for DNS mapping.
-        
-        Args:
-            domain: Target domain
-            wordlist: Path to wordlist file
-            additional_args: Additional dnsmap arguments
-            
-        Returns:
-            DNS mapping results
-        """
-        data = {
-            "domain": domain,
-            "wordlist": wordlist,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("dnsmap", data)
-
-
-    # Web漏洞扫描工具
     @mcp.tool()
     def joomscan_scan(target: str, additional_args: str = "") -> Dict[str, Any]:
         """
@@ -4446,29 +4191,6 @@ def setup_mcp_server() -> FastMCP:
 
     # 密码攻击工具
     @mcp.tool()
-    def ncrack_attack(target: str, service: str = "ssh", username_file: str = "",
-                     password_file: str = "", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute ncrack for network authentication cracking.
-        
-        Args:
-            target: Target host
-            service: Service to attack
-            username_file: Path to username file
-            password_file: Path to password file
-            additional_args: Additional ncrack arguments
-            
-        Returns:
-            Network cracking results
-        """
-        data = {
-            "target": target,
-            "service": service,
-            "username_file": username_file,
-            "password_file": password_file,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("ncrack", data)
 
     @mcp.tool()
     def patator_attack(module: str = "ssh_login", target: str = "", wordlist: str = "",
@@ -4630,233 +4352,17 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_tool_with_data("pixiewps", data)
 
     @mcp.tool()
-    def wifiphisher_attack(interface: str, essid: str = "", phishing_scenario: str = "firmware-upgrade",
-                          additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute wifiphisher for WiFi phishing attacks.
-        
-        Args:
-            interface: Wireless interface
-            essid: Target network ESSID
-            phishing_scenario: Phishing scenario to use
-            additional_args: Additional wifiphisher arguments
-            
-        Returns:
-            WiFi phishing attack results
-        """
-        data = {
-            "interface": interface,
-            "essid": essid,
-            "phishing_scenario": phishing_scenario,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("wifiphisher", data)
-
-    # 蓝牙工具
     @mcp.tool()
-    def bluesnarfer_attack(target_mac: str, action: str = "info", channel: str = "1",
-                          additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute bluesnarfer for Bluetooth attacks.
-        
-        Args:
-            target_mac: Target Bluetooth MAC address
-            action: Action to perform (info, backup)
-            channel: Bluetooth channel
-            additional_args: Additional bluesnarfer arguments
-            
-        Returns:
-            Bluetooth attack results
-        """
-        data = {
-            "target_mac": target_mac,
-            "action": action,
-            "channel": channel,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("bluesnarfer", data)
 
     @mcp.tool()
-    def btscanner_scan(output_file: str = "/tmp/btscanner.xml", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute btscanner for Bluetooth device discovery.
-        
-        Args:
-            output_file: Output file path
-            additional_args: Additional btscanner arguments
-            
-        Returns:
-            Bluetooth scan results
-        """
-        data = {
-            "output_file": output_file,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("btscanner", data)
-
-    # 网络攻击工具
     @mcp.tool()
-    def ettercap_attack(interface: str, target1: str = "", target2: str = "",
-                       filter_file: str = "", additional_args: str = "-T") -> Dict[str, Any]:
-        """
-        Execute ettercap for network sniffing and MITM attacks.
-        
-        Args:
-            interface: Network interface
-            target1: First target IP
-            target2: Second target IP
-            filter_file: Ettercap filter file
-            additional_args: Additional ettercap arguments
-            
-        Returns:
-            Network attack results
-        """
-        data = {
-            "interface": interface,
-            "target1": target1,
-            "target2": target2,
-            "filter_file": filter_file,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("ettercap", data)
 
     @mcp.tool()
-    def responder_attack(interface: str, analyze_mode: bool = False, additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute Responder for LLMNR/NBT-NS poisoning.
-        
-        Args:
-            interface: Network interface
-            analyze_mode: Enable analyze mode
-            additional_args: Additional responder arguments
-            
-        Returns:
-            LLMNR/NBT-NS poisoning results
-        """
-        data = {
-            "interface": interface,
-            "analyze_mode": analyze_mode,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("responder", data)
-
     @mcp.tool()
-    def dsniff_sniff(interface: str = "", filter_expr: str = "", output_file: str = "",
-                    additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute dsniff for network sniffing.
-        
-        Args:
-            interface: Network interface
-            filter_expr: BPF filter expression
-            output_file: Output file path
-            additional_args: Additional dsniff arguments
-            
-        Returns:
-            Network sniffing results
-        """
-        data = {
-            "interface": interface,
-            "filter": filter_expr,
-            "output_file": output_file,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("dsniff", data)
-
-    @mcp.tool()
-    def ngrep_search(pattern: str = "", interface: str = "", filter_expr: str = "",
-                    additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute ngrep for network grep.
-        
-        Args:
-            pattern: Search pattern
-            interface: Network interface
-            filter_expr: BPF filter expression
-            additional_args: Additional ngrep arguments
-            
-        Returns:
-            Network grep results
-        """
-        data = {
-            "pattern": pattern,
-            "interface": interface,
-            "filter": filter_expr,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("ngrep", data)
-
-    @mcp.tool()
-    def tshark_capture(interface: str = "", capture_filter: str = "", display_filter: str = "",
-                      output_file: str = "", packet_count: str = "100", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute tshark for network analysis.
-        
-        Args:
-            interface: Network interface
-            capture_filter: Capture filter
-            display_filter: Display filter
-            output_file: Output file path
-            packet_count: Number of packets to capture
-            additional_args: Additional tshark arguments
-            
-        Returns:
-            Network analysis results
-        """
-        data = {
-            "interface": interface,
-            "capture_filter": capture_filter,
-            "display_filter": display_filter,
-            "output_file": output_file,
-            "packet_count": packet_count,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("tshark", data)
-
     # DoS工具
     @mcp.tool()
-    def slowhttptest_dos(target: str, attack_type: str = "slowloris", connections: str = "200",
-                        timeout: str = "240", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute slowhttptest for HTTP DoS testing.
-        
-        Args:
-            target: Target URL
-            attack_type: Type of attack (slowloris, slow_post, slow_read)
-            connections: Number of connections
-            timeout: Connection timeout
-            additional_args: Additional slowhttptest arguments
-            
-        Returns:
-            HTTP DoS test results
-        """
-        data = {
-            "target": target,
-            "attack_type": attack_type,
-            "connections": connections,
-            "timeout": timeout,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("slowhttptest", data)
-
     # 后渗透工具
     @mcp.tool()
-    def armitage_start(additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute armitage GUI (note: this will start the GUI).
-        
-        Args:
-            additional_args: Additional armitage arguments
-            
-        Returns:
-            Armitage startup results
-        """
-        data = {
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("armitage", data)
-
-    # 信息收集工具
     @mcp.tool()
     def recon_ng_run(workspace: str = "default", module: str = "", options: Dict[str, str] = {},
                     additional_args: str = "") -> Dict[str, Any]:
@@ -4904,53 +4410,8 @@ def setup_mcp_server() -> FastMCP:
         return executor.execute_tool_with_data("sherlock", data)
 
     @mcp.tool()
-    def whatweb_identify(target: str, aggression: str = "1", output_format: str = "json",
-                        additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute whatweb for web technology identification.
-        
-        Args:
-            target: Target URL or IP
-            aggression: Aggression level (1-4)
-            output_format: Output format
-            additional_args: Additional whatweb arguments
-            
-        Returns:
-            Web technology identification results
-        """
-        data = {
-            "target": target,
-            "aggression": aggression,
-            "output_format": output_format,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("whatweb", data)
-
-    # 网络攻击工具
-    @mcp.tool()
     def yersinia_attack(protocol: str = "stp", interface: str = "", attack_type: str = "",
                        additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute yersinia for network protocol attacks.
-        
-        Args:
-            protocol: Protocol to attack (stp, cdp, dtp, etc.)
-            interface: Network interface
-            attack_type: Type of attack
-            additional_args: Additional yersinia arguments
-            
-        Returns:
-            Network protocol attack results
-        """
-        data = {
-            "protocol": protocol,
-            "interface": interface,
-            "attack_type": attack_type,
-            "additional_args": additional_args
-        }
-        return executor.execute_tool_with_data("yersinia", data)
-
-    # ==================== 并发任务管理MCP工具 ====================
     
     @mcp.tool()
     def submit_concurrent_task(tool_name: str, parameters: Dict[str, Any],

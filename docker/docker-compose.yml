@@ -1,0 +1,140 @@
+# Kali MCP Docker Compose 配置
+#
+# 使用方法:
+#   启动所有服务:     docker-compose -f docker/docker-compose.yml up -d
+#   查看日志:         docker-compose -f docker/docker-compose.yml logs -f
+#   停止服务:         docker-compose -f docker/docker-compose.yml down
+#   重新构建:         docker-compose -f docker/docker-compose.yml build
+
+version: '3.8'
+
+services:
+  # Kali MCP 主服务
+  kali-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: kali-mcp-server
+    hostname: kali-mcp
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "8080:8080"    # Web界面
+      - "5000:5000"    # API服务
+
+    # 数据卷
+    volumes:
+      - kali-mcp-data:/data
+      - kali-mcp-reports:/data/reports
+      - kali-mcp-logs:/data/logs
+      # 可选: 挂载本地目标目录
+      # - ./targets:/targets:ro
+
+    # 环境变量
+    environment:
+      - KALI_MCP_DATA_DIR=/data
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Shanghai
+      # CTF模式配置
+      - CTF_PARALLEL_ATTACKS=8
+      - CTF_LEARNING_MODE=true
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+    # 网络配置
+    networks:
+      - kali-net
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python3", "-m", "kali_mcp.main", "--health-check"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+    # 安全配置
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_RAW        # 用于nmap等需要raw socket的工具
+      - NET_ADMIN      # 用于网络工具
+
+  # Web界面服务 (可选,独立运行)
+  kali-mcp-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: kali-mcp-web
+    hostname: kali-mcp-web
+    restart: unless-stopped
+    command: ["python3", "-m", "kali_mcp.main", "--web", "--web-port", "8080"]
+
+    ports:
+      - "8081:8080"
+
+    volumes:
+      - kali-mcp-data:/data:ro
+
+    environment:
+      - KALI_MCP_DATA_DIR=/data
+      - TZ=Asia/Shanghai
+
+    networks:
+      - kali-net
+
+    depends_on:
+      - kali-mcp
+
+    profiles:
+      - web    # 仅在明确指定时启动
+
+  # Redis 缓存 (可选)
+  redis:
+    image: redis:7-alpine
+    container_name: kali-mcp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+    volumes:
+      - kali-mcp-redis:/data
+
+    networks:
+      - kali-net
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    profiles:
+      - cache   # 仅在明确指定时启动
+
+# 数据卷定义
+volumes:
+  kali-mcp-data:
+    driver: local
+  kali-mcp-reports:
+    driver: local
+  kali-mcp-logs:
+    driver: local
+  kali-mcp-redis:
+    driver: local
+
+# 网络定义
+networks:
+  kali-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

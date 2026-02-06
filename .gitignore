@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Cache
+.pytest_cache/
+.cache/
+cache/
+
+# Logs
+*.log
+logs/
+
+# Build
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.backup
+*.bak
+MCP-Kali-Server-main.zip
+kali-mcp-deploy.tar.gz
+cookies.txt
+data/
+reports/
+.augment/

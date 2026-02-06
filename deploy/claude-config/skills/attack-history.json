@@ -1,0 +1,73 @@
+{
+  "version": "1.0.0",
+  "description": "攻击历史记录和学习数据 - 用于动态策略优化",
+  "created": "2025-12-12",
+  "last_updated": "2025-12-12",
+
+  "sessions": [],
+
+  "tool_statistics": {
+    "nmap_scan": {"total_uses": 0, "success_count": 0, "success_rate": 0.0, "avg_duration": 0},
+    "gobuster_scan": {"total_uses": 0, "success_count": 0, "success_rate": 0.0, "avg_duration": 0},
+    "sqlmap_scan": {"total_uses": 0, "success_count": 0, "success_rate": 0.0, "avg_duration": 0},
+    "nuclei_scan": {"total_uses": 0, "success_count": 0, "success_rate": 0.0, "avg_duration": 0},
+    "intelligent_ctf_solve": {"total_uses": 0, "success_count": 0, "success_rate": 0.0, "avg_duration": 0}
+  },
+
+  "learned_patterns": {
+    "waf_bypasses": [],
+    "successful_payloads": [],
+    "effective_tool_chains": [],
+    "failed_approaches": []
+  },
+
+  "ctf_statistics": {
+    "total_challenges": 0,
+    "solved_challenges": 0,
+    "flags_found": 0,
+    "by_category": {
+      "web": {"total": 0, "solved": 0},
+      "pwn": {"total": 0, "solved": 0},
+      "crypto": {"total": 0, "solved": 0},
+      "misc": {"total": 0, "solved": 0},
+      "reverse": {"total": 0, "solved": 0}
+    }
+  },
+
+  "vulnerability_discoveries": {
+    "total": 0,
+    "by_type": {
+      "sql_injection": 0,
+      "xss": 0,
+      "rce": 0,
+      "lfi": 0,
+      "ssrf": 0,
+      "xxe": 0,
+      "authentication_bypass": 0,
+      "information_disclosure": 0
+    },
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    }
+  },
+
+  "strategy_effectiveness": {
+    "web_comprehensive": {"uses": 0, "successes": 0, "effectiveness": 0.0},
+    "ctf_quick_solve": {"uses": 0, "successes": 0, "effectiveness": 0.0},
+    "network_recon": {"uses": 0, "successes": 0, "effectiveness": 0.0},
+    "apt_simulation": {"uses": 0, "successes": 0, "effectiveness": 0.0}
+  },
+
+  "attack_chain_templates": {
+    "successful_chains": [],
+    "recommended_chains": {
+      "web_ctf": ["enable_ctf_mode", "whatweb_scan", "gobuster_scan", "sqlmap_scan", "get_detected_flags"],
+      "network_pentest": ["nmap_scan", "nuclei_network_scan", "searchsploit_search", "metasploit_run"],
+      "wordpress_attack": ["wpscan_scan", "nuclei_scan", "hydra_attack"]
+    }
+  }
+}

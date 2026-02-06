@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "kali-intelligent-ctf": {
+      "command": "/home/zss/MCP-Kali-Server-main/.venv/bin/python",
+      "args": ["/home/zss/MCP-Kali-Server-main/mcp_server.py"],
+      "cwd": "/home/zss/MCP-Kali-Server-main"
+    },
+    "sequential-thinking": {
+      "command": "/usr/bin/mcp-server-sequential-thinking"
+    },
+    "mcp-feedback-web": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-feedback-web"
+      ]
+    }
+  }
+}
