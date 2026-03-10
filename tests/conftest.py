@@ -1,124 +1,115 @@
-#!/usr/bin/env python3
 """
-Pytest 配置和共享 fixtures
+Shared fixtures for Kali MCP test suite.
+
+All tests use mocked executors and dependencies so they run
+without any real Kali tools installed.
 """
 
 import pytest
-import asyncio
 import sys
 import os
-import tempfile
-from pathlib import Path
+from unittest.mock import patch
 
-# 添加项目路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Ensure project root is on sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """创建事件循环"""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture
-def temp_dir():
-    """创建临时目录"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir)
-
-
-@pytest.fixture
-def mock_target():
-    """模拟目标"""
-    return {
-        "ip": "192.168.1.100",
-        "url": "http://testsite.local",
-        "domain": "testsite.local"
-    }
-
-
-@pytest.fixture
-def sample_scan_result():
-    """示例扫描结果"""
-    return {
-        "success": True,
-        "tool": "nmap_scan",
-        "target": "192.168.1.100",
-        "findings": [
-            {"type": "port", "value": "22/ssh", "severity": "info"},
-            {"type": "port", "value": "80/http", "severity": "info"},
-            {"type": "port", "value": "443/https", "severity": "info"},
-        ],
-        "execution_time": 15.5
-    }
-
-
-@pytest.fixture
-def sample_vuln_result():
-    """示例漏洞结果"""
-    return {
-        "success": True,
-        "tool": "nuclei_scan",
-        "target": "http://testsite.local",
-        "findings": [
-            {
-                "type": "vulnerability",
-                "value": "SQL Injection",
-                "severity": "high",
-                "details": {"parameter": "id", "url": "/api/users?id=1"}
-            },
-            {
-                "type": "vulnerability",
-                "value": "XSS",
-                "severity": "medium",
-                "details": {"parameter": "search", "url": "/search"}
-            }
-        ]
-    }
-
-
-@pytest.fixture
-def ctf_flag():
-    """CTF Flag 示例"""
-    return "flag{test_flag_12345678}"
-
-
+# Disable engagement context requirement for all tests.
+# The EngagementManager defaults to require_context=True which blocks every
+# command when no engagement JSON is supplied.  In tests we want to exercise
+# the executor's subprocess path, so we patch the module-level singleton to
+# None so the guard clause (`if engagement_manager is not None`) is skipped.
 @pytest.fixture(autouse=True)
-def setup_test_env(monkeypatch, temp_dir):
-    """设置测试环境"""
-    # 使用临时目录作为数据目录
-    monkeypatch.setenv("KALI_MCP_DATA_DIR", str(temp_dir))
+def _disable_engagement_check():
+    """Patch engagement_manager to None so executor tests aren't scope-blocked."""
+    with patch("kali_mcp.core.local_executor.engagement_manager", None):
+        yield
 
 
-# 标记慢速测试
-def pytest_configure(config):
-    """配置 pytest 标记"""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "requires_tools: marks tests that require external tools"
-    )
+@pytest.fixture
+def mock_executor():
+    """Mock LocalCommandExecutor for testing without real tool execution."""
+    from unittest.mock import MagicMock
+    executor = MagicMock()
+    executor.execute_tool.return_value = {"success": True, "output": "mock output"}
+    executor.execute_tool_with_data.return_value = {"success": True, "output": "mock output"}
+    return executor
 
 
-# 跳过需要外部工具的测试
-def pytest_collection_modifyitems(config, items):
-    """修改测试集合"""
-    import shutil
+@pytest.fixture
+def event_bus():
+    """Create a fresh EventBus instance for each test."""
+    from kali_mcp.core.event_bus import EventBus
+    return EventBus()
 
-    for item in items:
-        # 检查是否需要外部工具
-        if "requires_tools" in item.keywords:
-            required_tools = item.keywords["requires_tools"].args
-            for tool in required_tools:
-                if not shutil.which(tool):
-                    item.add_marker(
-                        pytest.mark.skip(reason=f"需要工具 {tool}")
-                    )
-                    break
+
+@pytest.fixture
+def decision_brain():
+    """Create a fresh DecisionBrain instance for each test."""
+    from kali_mcp.core.decision_brain import DecisionBrain
+    return DecisionBrain()
+
+
+@pytest.fixture
+def nmap_output_with_ports():
+    """Sample nmap output with several open ports."""
+    return """\
+Starting Nmap 7.94 ( https://nmap.org ) at 2026-03-09 12:00 UTC
+Nmap scan report for 192.168.1.100
+Host is up (0.0012s latency).
+
+PORT     STATE SERVICE     VERSION
+22/tcp   open  ssh         OpenSSH 8.2p1
+80/tcp   open  http        Apache httpd 2.4.41
+443/tcp  open  ssl/http    nginx 1.18.0
+3306/tcp open  mysql       MySQL 5.7.32
+8080/tcp open  http-proxy  Squid http proxy
+
+OS details: Linux 5.4.0
+
+Nmap done: 1 IP address (1 host up) scanned in 12.34 seconds
+"""
+
+
+@pytest.fixture
+def nmap_output_empty():
+    """Sample nmap output with no open ports."""
+    return """\
+Starting Nmap 7.94 ( https://nmap.org ) at 2026-03-09 12:00 UTC
+Nmap scan report for 192.168.1.200
+Host seems down.
+
+Nmap done: 1 IP address (0 hosts up) scanned in 5.00 seconds
+"""
+
+
+@pytest.fixture
+def gobuster_output():
+    """Sample gobuster output."""
+    return """\
+/admin                (Status: 200) [Size: 1234]
+/login                (Status: 302) [Size: 0] [--> /auth/login]
+/api/v1               (Status: 200) [Size: 567]
+/upload               (Status: 200) [Size: 890]
+/static               (Status: 403) [Size: 123]
+/robots.txt           (Status: 200) [Size: 45]
+/index.php            (Status: 200) [Size: 4567]
+"""
+
+
+@pytest.fixture
+def nuclei_output():
+    """Sample nuclei text output."""
+    return """\
+[critical] [CVE-2021-44228] [http] http://192.168.1.100/api
+[high] [apache-struts-rce] [http] http://192.168.1.100/struts
+[medium] [x-frame-options] [http] http://192.168.1.100/
+[info] [tech-detect:apache] [http] http://192.168.1.100/
+"""
+
+
+@pytest.fixture
+def whatweb_output():
+    """Sample whatweb output."""
+    return """\
+http://192.168.1.100 [200 OK] Apache[2.4.41], PHP[7.4.3], WordPress[5.7], jQuery[3.5.1], Country[RESERVED][ZZ]
+"""
