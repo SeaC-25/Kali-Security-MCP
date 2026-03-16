@@ -31,6 +31,31 @@ from .http_engine import HTTPInteractionEngine
 from .response_analyzer import ResponseAnalyzer
 from .dynamic_fuzzer import DynamicFuzzer
 
+try:
+    from .websocket_engine import WebSocketEngine
+except Exception:
+    WebSocketEngine = None
+
+try:
+    from .grpc_engine import GRPCEngine
+except Exception:
+    GRPCEngine = None
+
+try:
+    from .proxy_interceptor import ProxyInterceptor
+except Exception:
+    ProxyInterceptor = None
+
+try:
+    from .workflow_engine import WorkflowEngine
+except Exception:
+    WorkflowEngine = None
+
+try:
+    from .learning_engine import LearningEngine
+except Exception:
+    LearningEngine = None
+
 # 延迟导入可选模块
 def get_websocket_engine():
     from .websocket_engine import WebSocketEngine
@@ -250,6 +275,11 @@ __all__ = [
     'HTTPInteractionEngine',
     'ResponseAnalyzer',
     'DynamicFuzzer',
+    'WebSocketEngine',
+    'GRPCEngine',
+    'ProxyInterceptor',
+    'WorkflowEngine',
+    'LearningEngine',
     'HTTPRequest',
     'HTTPResponse',
     'WSMessage',

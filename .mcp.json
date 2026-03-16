@@ -1,9 +1,14 @@
 {
   "mcpServers": {
-    "kali-intelligent-ctf": {
+    "kali": {
       "command": "/home/zss/MCP-Kali-Server-main/.venv/bin/python",
-      "args": ["/home/zss/MCP-Kali-Server-main/mcp_server.py"],
-      "cwd": "/home/zss/MCP-Kali-Server-main"
+      "args": ["/home/zss/MCP-Kali-Server-main/mcp_server.py", "--tool-profile", "full"],
+      "cwd": "/home/zss/MCP-Kali-Server-main",
+      "env": {
+        "KALI_MCP_TOOL_PROFILE": "full",
+        "KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT": "1",
+        "KALI_MCP_ENGAGEMENT_JSON": "{\"authorization_id\":\"EDU-VULN-EXERCISE-2026\",\"client\":\"教育系统常态化漏洞挖掘演习\",\"authorized_by\":\"演习指挥部\",\"valid_from\":\"2025-01-01\",\"valid_until\":\"2027-12-31\",\"target_scope\":[\"*.edu.cn\",\"*.ac.cn\",\"*.gov.cn\",\"10.0.0.0/8\",\"172.16.0.0/12\",\"192.168.0.0/16\",\"127.0.0.0/8\",\"*.local\",\"*.internal\",\"*.ctf\",\"*.challenge\",\"*.vuln\",\"*.htb\",\"*.thm\"],\"out_of_scope\":[],\"allowed_actions\":[\"scanning\",\"enumeration\",\"vulnerability_verification\",\"web_fingerprinting\",\"directory_discovery\",\"sql_injection_detection\",\"xss_detection\",\"command_injection_detection\",\"file_inclusion_detection\",\"ssrf_detection\",\"authentication_testing\",\"information_gathering\"],\"forbidden_actions\":[\"dos_attack\",\"arp_spoofing\",\"dhcp_spoofing\",\"dns_hijacking\",\"buffer_overflow_exploitation\",\"malware_deployment\",\"social_engineering\",\"phishing\",\"data_exfiltration\",\"page_defacement\",\"backdoor_persistence\",\"internal_network_scanning\",\"supply_chain_attack\",\"automated_login_bruteforce_production\"],\"data_handling\":\"禁止下载保存传播敏感数据\",\"reporting_standard\":\"OWASP/PTES\",\"emergency_stop_contact\":\"演习指挥部\"}"
+      }
     },
     "sequential-thinking": {
       "command": "/usr/bin/mcp-server-sequential-thinking"

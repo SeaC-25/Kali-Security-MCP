@@ -119,6 +119,18 @@ except ImportError as e:
 
 # 已删除伪智能化CTF引擎导入，现在使用真正的AI智能化MCP工具
 
+# v6.0: 反检测浏览器引擎导入 (Playwright)
+try:
+    from kali_mcp.core.browser_engine import StealthBrowserEngine, HAS_PLAYWRIGHT
+    BROWSER_ENGINE_AVAILABLE = HAS_PLAYWRIGHT
+    if BROWSER_ENGINE_AVAILABLE:
+        logger.info("✅ 反检测浏览器引擎加载成功 - Playwright 心跳维持已启用")
+    else:
+        logger.warning("⚠️ playwright 未安装, 浏览器引擎不可用. 运行: pip install playwright && playwright install chromium")
+except ImportError as e:
+    BROWSER_ENGINE_AVAILABLE = False
+    logger.warning(f"⚠️ 浏览器引擎模块加载失败: {e}")
+
 
 # ==================== 从模块导入核心类 (v5.0 模块化) ====================
 
@@ -167,8 +179,6 @@ DEFAULT_REQUEST_TIMEOUT = 10  # 10 seconds ultra fast timeout for API requests
 # ==================== MCP工具注册模块导入 (v5.0 模块化) ====================
 
 from kali_mcp.mcp_tools import (
-    register_system_tools,
-    register_multi_agent_tools,
     register_recon_tools,
     register_ai_session_tools,
     register_code_audit_tools,
@@ -177,25 +187,25 @@ from kali_mcp.mcp_tools import (
     register_ctf_tools,
     register_scan_workflow_tools,
     register_advanced_ctf_tools,
-    register_payload_tools,
     register_session_tools,
     register_pwn_tools,
-    register_context_tools,
-    register_knowledge_tools,
     register_adaptive_tools,
-    register_ai_advanced_tools,
     register_deep_test_tools,
     register_vuln_mgmt_tools,
-    register_fragment_mgmt_tools,
     register_chain_mgmt_tools,
-    register_shared_context_tools,
-    register_checkpoint_tools,
-    register_decision_brain_tools,
-    register_pipeline_tools,
+    register_pentagi_bridge_tools,
     register_llm_react_tools,
-    register_compliance_tools,
     register_assessment_tools,
 )
+
+# v6.0: 浏览器自动化工具
+try:
+    from kali_mcp.mcp_tools.browser_tools import register_browser_tools
+    _BROWSER_TOOLS_IMPORT_OK = True
+except ImportError:
+    _BROWSER_TOOLS_IMPORT_OK = False
+    register_browser_tools = None
+
 from kali_mcp.security import load_tool_profile, engagement_manager
 
 def setup_mcp_server(
@@ -226,6 +236,7 @@ def setup_mcp_server(
             VulnManagerSubscriber,
             MLOptimizerSubscriber,
             DecisionBrainSubscriber,
+            DiggerSubscriber,
         )
         event_bus = EventBus()
 
@@ -256,11 +267,24 @@ def setup_mcp_server(
         # 连接决策引擎订阅者
         try:
             from kali_mcp.core.decision_brain import DecisionBrain
-            db = DecisionBrain()
+            db = DecisionBrain(
+                ml_optimizer=ml_strategy_optimizer,
+                vuln_manager=vm if 'vm' in dir() else None,
+            )
             DecisionBrainSubscriber(db).register(event_bus)
             logger.info("  ✅ 决策引擎 → 事件总线")
         except Exception as e:
             logger.debug(f"  决策引擎订阅跳过: {e}")
+
+        # v5.2: 连接Digger事件订阅者
+        try:
+            DiggerSubscriber(
+                ml_optimizer=ml_strategy_optimizer,
+                vuln_manager=VulnManager() if 'VulnManager' in dir() else None,
+            ).register(event_bus)
+            logger.info("  ✅ Digger事件 → 事件总线")
+        except Exception as e:
+            logger.debug(f"  Digger订阅跳过: {e}")
 
         # 注入事件总线到执行器
         set_event_bus(event_bus)
@@ -374,10 +398,7 @@ def setup_mcp_server(
         except Exception as e:
             logger.warning(f"  ⚠️ {label}注册失败: {e}")
 
-    _safe_register("system", "系统工具", register_system_tools, mcp, executor)
-    _safe_register("compliance", "合规治理工具", register_compliance_tools, mcp, executor, tool_profile)
     _safe_register("assessment", "授权评估工具", register_assessment_tools, mcp, executor)
-    _safe_register("multi_agent", "多智能体工具", register_multi_agent_tools, mcp, executor, MULTI_AGENT_STATE)
     _safe_register("recon", "信息收集工具", register_recon_tools, mcp, executor)
     _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
     _safe_register("code_audit", "代码审计工具", register_code_audit_tools, mcp, executor)
@@ -397,20 +418,12 @@ def setup_mcp_server(
     )
     _safe_register("scan_workflow", "扫描工作流工具", register_scan_workflow_tools, mcp, executor)
     _safe_register("advanced_ctf", "增强CTF工具", register_advanced_ctf_tools, mcp, executor)
-    _safe_register("payload", "Payload工具", register_payload_tools, mcp, executor)
     _safe_register("session", "会话管理工具", register_session_tools, mcp, executor, _ATTACK_SESSIONS, _CURRENT_ATTACK_SESSION_ID)
     _safe_register("pwn", "PWN工具", register_pwn_tools, mcp, executor)
-    _safe_register("context", "上下文分析工具", register_context_tools, mcp, executor)
-    _safe_register("knowledge", "知识图谱工具", register_knowledge_tools, mcp, executor)
     _safe_register("adaptive", "自适应执行工具", register_adaptive_tools, mcp, executor)
-    _safe_register("ai_advanced", "AI高级工具", register_ai_advanced_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
     _safe_register("vuln_mgmt", "漏洞管理工具", register_vuln_mgmt_tools, mcp, executor)
-    _safe_register("fragment_mgmt", "碎片管理工具", register_fragment_mgmt_tools, mcp, executor)
     _safe_register("chain_mgmt", "攻击链管理工具", register_chain_mgmt_tools, mcp, executor)
-    _safe_register("shared_context", "共享上下文工具", register_shared_context_tools, mcp, executor)
-    _safe_register("checkpoint", "检查点管理工具", register_checkpoint_tools, mcp, executor)
-    _safe_register("decision_brain", "智能决策引擎工具", register_decision_brain_tools, mcp, executor)
-    _safe_register("pipeline", "流水线编排工具", register_pipeline_tools, mcp, executor)
+    _safe_register("pentagi_bridge", "Pentagi扩展工具", register_pentagi_bridge_tools, mcp, executor)
     _safe_register("llm_react", "LLM ReAct工具", register_llm_react_tools, mcp, executor)
 
     # ==================== 外部工具模块注册 ====================
@@ -429,6 +442,10 @@ def setup_mcp_server(
             logger.warning(f"  ⚠️ 漏洞数据库工具注册失败: {e}")
 
     _safe_register("deep_test", "深度测试引擎工具", register_deep_test_tools, mcp, executor, DEEP_TEST_ENGINE_AVAILABLE)
+
+    # v6.0: 反检测浏览器引擎工具
+    if _BROWSER_TOOLS_IMPORT_OK and register_browser_tools is not None:
+        _safe_register("browser", "反检测浏览器引擎工具", register_browser_tools, mcp, executor, BROWSER_ENGINE_AVAILABLE)
 
     logger.info("📦 所有MCP工具模块注册完成")
 

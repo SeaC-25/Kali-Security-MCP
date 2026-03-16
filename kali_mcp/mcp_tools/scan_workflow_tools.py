@@ -845,3 +845,161 @@ def register_scan_workflow_tools(mcp, executor):
         except Exception as e:
             logger.error(f"smart_full_pentest failed: {e}")
             return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    def auto_pentest(target: str, mode: str = "auto") -> Dict[str, Any]:
+        """
+        全自动渗透测试 (v5.2) — 一键自动化渗透测试全流程。
+
+        集成所有v5.2引擎:
+        1. DecisionBrain.start → 分析目标，选择策略，获取ML推荐
+        2. ToolChain → 执行侦察链（含6个决策钩子动态插入步骤）
+        3. DecisionBrain.mid_scan → 根据中间结果决定深入/转向/利用
+        4. Digger深度挖掘 → 对高价值漏洞自动启动深度测试
+        5. DecisionBrain.final → 汇总所有发现，生成结构化报告
+
+        Args:
+            target: 目标URL或IP
+            mode: 模式 (auto/ctf/pentest/web)
+
+        Returns:
+            完整渗透测试报告，含决策过程、漏洞发现、Flag等
+        """
+        import time as _time
+        start_time = _time.time()
+        report = {
+            "success": True,
+            "target": target,
+            "mode": mode,
+            "phases": {},
+            "vulns": [],
+            "flags": [],
+            "decision_trace": [],
+        }
+
+        try:
+            from kali_mcp.core.decision_brain import DecisionBrain
+            from kali_mcp.core.tool_chain import (
+                create_web_recon_chain, create_network_recon_chain,
+                create_ctf_speed_chain, create_full_pentest_chain,
+            )
+            from kali_mcp.core.local_executor import _event_bus
+            from kali_mcp.core.ml_optimizer import MLStrategyOptimizer
+
+            # 获取共享数据源
+            ml_opt = None
+            try:
+                ml_opt = MLStrategyOptimizer()
+            except Exception:
+                pass
+
+            brain = DecisionBrain(ml_optimizer=ml_opt)
+
+            # ===== Phase 1: 决策引擎启动 =====
+            start_decision = brain.decide("start", {
+                "target": target,
+                "mode": mode,
+            })
+            report["phases"]["start"] = start_decision
+            report["decision_trace"].append(start_decision)
+            strategy = start_decision.get("strategy", "balanced")
+
+            # ===== Phase 2: 选择并执行工具链 =====
+            is_url = "://" in target
+            is_ctf = mode == "ctf" or "ctf" in target.lower()
+
+            if is_ctf:
+                chain = create_ctf_speed_chain(executor, event_bus=_event_bus)
+            elif is_url or strategy == "web_focused":
+                chain = create_web_recon_chain(executor, event_bus=_event_bus)
+            elif strategy == "methodical":
+                chain = create_full_pentest_chain(executor, event_bus=_event_bus)
+            else:
+                chain = create_network_recon_chain(executor, event_bus=_event_bus)
+
+            chain_result = chain.execute(target)
+            report["phases"]["recon"] = {
+                "chain_type": type(chain).__name__,
+                "duration": chain_result.get("duration", 0),
+                "steps": chain_result.get("steps", {}),
+                "vulns_found": chain_result.get("vulns_found", 0),
+                "paths_found": chain_result.get("paths_found", 0),
+            }
+
+            # 收集发现
+            ctx_summary = chain_result.get("context_summary", {})
+            report["vulns"] = ctx_summary.get("discovered_vulns", [])
+            report["flags"] = chain_result.get("flags", [])
+
+            # ===== Phase 3: 中期决策 =====
+            elapsed = _time.time() - start_time
+            mid_decision = brain.decide("mid_scan", {
+                "target": target,
+                "vulns_found": chain_result.get("vulns_found", 0),
+                "elapsed_minutes": elapsed / 60,
+                "scanned": 1,
+                "total_targets": 1,
+            })
+            report["phases"]["mid_scan"] = mid_decision
+            report["decision_trace"].append(mid_decision)
+
+            # ===== Phase 4: 根据决策执行深度挖掘 =====
+            if mid_decision.get("action") == "shift_to_exploit":
+                # 对发现的漏洞使用Digger深度挖掘
+                injectable = ctx_summary.get("injectable_urls", [])
+                if injectable:
+                    try:
+                        from kali_mcp.diggers.sqli_digger import SQLInjectionDeepDigger
+                        digger = SQLInjectionDeepDigger(executor)
+                        dig_result = digger.excavate(injectable[0], mode="ctf" if is_ctf else "pentest")
+                        report["phases"]["deep_sqli"] = {
+                            "target": injectable[0],
+                            "findings": dig_result.get("findings_count", 0),
+                            "flags": dig_result.get("flags", []),
+                        }
+                        report["flags"].extend(dig_result.get("flags", []))
+                    except Exception as e:
+                        report["phases"]["deep_sqli"] = {"error": str(e)}
+
+            elif mid_decision.get("action") == "expand_scan":
+                # 扩大扫描 — 执行全端口nmap
+                full_scan = executor.execute_tool_with_data("nmap", {
+                    "target": target,
+                    "ports": "1-65535",
+                    "scan_type": "-sS",
+                    "additional_args": "-T4 --open --min-rate 3000",
+                })
+                report["phases"]["full_port_scan"] = {
+                    "success": full_scan.get("success", False),
+                    "output_preview": full_scan.get("output", "")[:500],
+                }
+
+            # ===== Phase 5: 最终汇总 =====
+            final_decision = brain.decide("final", {
+                "target": target,
+                "total_vulns": len(report["vulns"]),
+                "critical_vulns": sum(1 for v in report["vulns"] if v.get("severity") == "critical"),
+                "exploited": 0,
+                "flags_found": report["flags"],
+            })
+            report["phases"]["final"] = final_decision
+            report["decision_trace"].append(final_decision)
+
+            report["duration"] = round(_time.time() - start_time, 2)
+            report["summary"] = {
+                "strategy": strategy,
+                "total_vulns": len(report["vulns"]),
+                "total_flags": len(report["flags"]),
+                "phases_executed": len(report["phases"]),
+                "decisions_made": len(report["decision_trace"]),
+            }
+
+        except ImportError as e:
+            report["success"] = False
+            report["error"] = f"Required module not available: {e}"
+        except Exception as e:
+            logger.error(f"auto_pentest failed: {e}")
+            report["success"] = False
+            report["error"] = str(e)
+
+        return report

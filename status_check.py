@@ -31,14 +31,18 @@ def check_file_config() -> Dict[str, any]:
         optimization_match = re.search(r'OPTIMIZATION_ENABLED\s*=\s*(True|False)', content)
         optimization_enabled = optimization_match.group(1) == 'True' if optimization_match else None
 
-        # 查找本地执行模式标记
-        local_mode_found = '本地执行模式' in content or 'LOCAL EXECUTION MODE' in content
+        # 查找本地执行模式标记（新架构以本地执行器为准）
+        local_mode_found = (
+            'LocalCommandExecutor' in content or
+            '本地执行模式' in content or
+            'LOCAL EXECUTION MODE' in content
+        )
 
         return {
             'file_exists': True,
             'optimization_enabled': optimization_enabled,
             'local_mode_found': local_mode_found,
-            'mode': 'local' if not optimization_enabled else 'remote'
+            'mode': 'local' if local_mode_found else 'unknown'
         }
     except FileNotFoundError:
         return {
@@ -55,6 +59,8 @@ def check_env_variables() -> Dict[str, str]:
         'CTF_PARALLEL_ATTACKS': os.environ.get('CTF_PARALLEL_ATTACKS', ''),
         'CTF_LEARNING_MODE': os.environ.get('CTF_LEARNING_MODE', ''),
         'API_PORT': os.environ.get('API_PORT', ''),
+        'KALI_MCP_TOOL_PROFILE': os.environ.get('KALI_MCP_TOOL_PROFILE', 'compliance'),
+        'KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT': os.environ.get('KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT', '1'),
     }
 
 def check_process_status() -> Dict[str, bool]:
@@ -187,7 +193,7 @@ def main():
     }
 
     print_status("运行模式", mode_name[config['mode']], config['mode'] == 'local')
-    print_status("OPTIMIZATION_ENABLED", config['optimization_enabled'], not config['optimization_enabled'])
+    print_status("OPTIMIZATION_ENABLED", config['optimization_enabled'], config['optimization_enabled'] is not None)
 
     if config['mode'] == 'local':
         print(f"\n{Colors.GREEN}✅ 本地执行模式配置正确：")

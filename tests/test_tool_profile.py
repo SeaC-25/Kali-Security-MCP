@@ -94,7 +94,8 @@ class TestLoadToolProfile:
     def test_default_compliance(self):
         profile = load_tool_profile()
         assert profile.name == "compliance"
-        assert profile.disabled == set()
+        # v6.0: compliance now disables high-risk modules
+        assert profile.disabled == {"apt", "deep_test", "pwn", "advanced_ctf", "browser"}
 
     @patch.dict(os.environ, {
         "KALI_MCP_TOOL_PROFILE": "",

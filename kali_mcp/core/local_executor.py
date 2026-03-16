@@ -24,6 +24,30 @@ try:
 except Exception:
     engagement_manager = None
 
+# v6.0: 声明式工具注册表 + 结构化输出解析器
+try:
+    from kali_mcp.core.tool_registry import (
+        build_command as _registry_build_command,
+        ALLOWED_TOOLS as _REGISTRY_ALLOWED_TOOLS,
+        get_tool_spec,
+        get_output_parser_name,
+    )
+    _HAS_TOOL_REGISTRY = True
+except ImportError:
+    _HAS_TOOL_REGISTRY = False
+    logger.debug("tool_registry 未加载，使用内置 elif 路由")
+
+try:
+    from kali_mcp.core.output_parsers import (
+        parse_output as _parse_output,
+        detect_flags,
+        smart_truncate,
+    )
+    _HAS_OUTPUT_PARSERS = True
+except ImportError:
+    _HAS_OUTPUT_PARSERS = False
+    logger.debug("output_parsers 未加载，使用原始输出")
+
 # v5.1: 可选事件总线 — 不存在时静默降级
 _event_bus = None
 
@@ -99,8 +123,15 @@ EXEC_CONFIG = {
 }
 
 def validate_tool_name(name: str) -> bool:
-    """验证工具名是否在白名单中"""
-    return name in ALLOWED_TOOLS
+    """验证工具名是否在白名单中
+
+    v6.0: 同时检查内置白名单和注册表工具集。
+    """
+    if name in ALLOWED_TOOLS:
+        return True
+    if _HAS_TOOL_REGISTRY and name in _REGISTRY_ALLOWED_TOOLS:
+        return True
+    return False
 
 class LocalCommandExecutor:
     """本地命令执行器 - 直接使用subprocess执行Kali工具"""
@@ -241,7 +272,13 @@ class LocalCommandExecutor:
 
         command = self._build_tool_command(tool_name, data)
         if not command:
-            return {"success": False, "error": f"Unsupported tool: {tool_name}"}
+            in_whitelist = tool_name in ALLOWED_TOOLS
+            if in_whitelist:
+                reason = f"工具 '{tool_name}' 在白名单中但无法构建命令，请检查参数"
+            else:
+                reason = f"工具 '{tool_name}' 不在白名单中，拒绝执行"
+            logger.error(reason)
+            return {"success": False, "error": reason, "tool_name": tool_name}
 
         # v5.1: 工具级超时
         tool_timeout = EXEC_CONFIG["tool_timeouts"].get(tool_name, EXEC_CONFIG["default_timeout"])
@@ -250,23 +287,50 @@ class LocalCommandExecutor:
         result = self.execute_command(command, timeout=tool_timeout)
         duration = round(time.time() - start_time, 2)
 
+        result["duration"] = duration
+        result["tool_name"] = tool_name
+
+        # v6.0: 结构化输出解析
+        if _HAS_OUTPUT_PARSERS:
+            try:
+                raw_output = result.get("output", "")
+                parsed = _parse_output(tool_name, raw_output, result.get("success", False))
+                result["parsed"] = parsed.to_dict()
+                # 智能截断替代硬截断
+                truncated_output, was_truncated = smart_truncate(raw_output)
+                if was_truncated:
+                    result["output_truncated"] = True
+                # Flag 检测
+                if parsed.flags_found:
+                    result["flags_found"] = parsed.flags_found
+                    logger.info(f"🚩 发现 Flag: {parsed.flags_found}")
+                # 下一步建议
+                if parsed.next_steps:
+                    result["next_steps"] = parsed.next_steps
+            except Exception as e:
+                logger.debug(f"输出解析失败 (非致命): {e}")
+
         # v5.1: 通过事件总线广播工具执行结果
         if _event_bus is not None:
             try:
                 target = data.get("target", data.get("url", data.get("domain", "")))
+                # v6.0: 使用智能截断替代硬截断
+                event_output = result.get("output", "")
+                if _HAS_OUTPUT_PARSERS:
+                    event_output, _ = smart_truncate(event_output, 5000)
+                else:
+                    event_output = event_output[:5000]
                 _event_bus.emit("tool.result", {
                     "tool_name": tool_name,
                     "target": target,
                     "success": result.get("success", False),
-                    "output": result.get("output", "")[:5000],  # 限制大小
+                    "output": event_output,
                     "duration": duration,
                     "data": {k: v for k, v in data.items() if k != "additional_args"},
                 }, source="executor")
             except Exception as e:
                 logger.debug(f"EventBus emit failed (non-fatal): {e}")
 
-        result["duration"] = duration
-        result["tool_name"] = tool_name
         return result
 
     def execute_with_retry(self, tool_name: str, data: Dict[str, Any],
@@ -309,7 +373,18 @@ class LocalCommandExecutor:
         return last_result
 
     def _build_tool_command(self, tool_name: str, data: Dict[str, Any]) -> str:
-        """构建工具命令"""
+        """构建工具命令
+
+        v6.0: 优先使用声明式工具注册表 (tool_registry)。
+        若注册表未加载或注册表返回空字符串，则回退到内置 elif 路由。
+        """
+        # --- v6.0: 新注册表路径 ---
+        if _HAS_TOOL_REGISTRY:
+            cmd = _registry_build_command(tool_name, data)
+            if cmd:
+                return cmd
+
+        # --- 回退: 原始 elif 路由 (向后兼容) ---
         if tool_name == "nmap":
             target = sanitize_shell_arg(data.get("target", ""))
             scan_type = sanitize_shell_fragment(data.get("scan_type", "-sV"))
@@ -1153,6 +1228,203 @@ class LocalCommandExecutor:
                 cmd += f" {sanitize_shell_fragment(additional_args)}"
             return cmd
 
-        # 未知工具，返回空字符串
-        logger.warning(f"未知工具名: {tool_name}，拒绝构建命令")
+        # ==================== v5.2: 补全缺失路由 ====================
+        elif tool_name == "aircrack":
+            capture_file = sanitize_shell_arg(data.get("capture_file", data.get("target", "")))
+            wordlist = sanitize_shell_arg(data.get("wordlist", "/usr/share/wordlists/rockyou.txt"))
+            bssid = data.get("bssid", "")
+            additional_args = data.get("additional_args", "")
+            cmd = f"aircrack-ng -w {wordlist}"
+            if bssid:
+                cmd += f" -b {sanitize_shell_arg(bssid)}"
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            cmd += f" {capture_file}"
+            return cmd
+
+        elif tool_name in ("nc", "ncat", "netcat"):
+            target = sanitize_shell_arg(data.get("target", ""))
+            port = data.get("port", "")
+            additional_args = data.get("additional_args", "")
+            binary = "ncat" if tool_name == "ncat" else "nc"
+            cmd = binary
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            if target:
+                cmd += f" {target}"
+            if port:
+                cmd += f" {sanitize_shell_arg(str(port))}"
+            return cmd
+
+        elif tool_name == "arpscan":
+            # alias for arp-scan
+            network = data.get("network", data.get("target", ""))
+            interface = data.get("interface", "")
+            additional_args = data.get("additional_args", "")
+            cmd = "arp-scan"
+            if interface:
+                cmd += f" -I {sanitize_shell_arg(interface)}"
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            if network:
+                cmd += f" {sanitize_shell_arg(network)}"
+            else:
+                cmd += " --localnet"
+            return cmd
+
+        elif tool_name in ("msfconsole", "metasploit"):
+            module = data.get("module", "")
+            resource_file = data.get("resource_file", "")
+            if resource_file:
+                return f"msfconsole -r {sanitize_shell_arg(resource_file)} -q"
+            elif module:
+                # 构建一次性执行命令
+                target = data.get("target", data.get("RHOSTS", ""))
+                opts = []
+                if target:
+                    opts.append(f"set RHOSTS {target}")
+                for k, v in data.items():
+                    if k.isupper() and k not in ("RHOSTS",):
+                        opts.append(f"set {k} {v}")
+                opts.append("run")
+                opts.append("exit")
+                rc_cmds = ";".join(f"echo '{o}'" for o in [f"use {module}"] + opts)
+                return f"({rc_cmds}) | msfconsole -q"
+            return "msfconsole -q -x 'exit'"
+
+        elif tool_name == "msfvenom":
+            payload = data.get("payload", "linux/x64/shell_reverse_tcp")
+            lhost = data.get("lhost", data.get("LHOST", ""))
+            lport = data.get("lport", data.get("LPORT", "4444"))
+            fmt = data.get("format", data.get("f", "elf"))
+            output = data.get("output", data.get("o", ""))
+            additional_args = data.get("additional_args", "")
+            cmd = f"msfvenom -p {sanitize_shell_arg(payload)}"
+            if lhost:
+                cmd += f" LHOST={sanitize_shell_arg(lhost)}"
+            cmd += f" LPORT={sanitize_shell_arg(str(lport))}"
+            cmd += f" -f {sanitize_shell_arg(fmt)}"
+            if output:
+                cmd += f" -o {sanitize_shell_arg(output)}"
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            return cmd
+
+        elif tool_name == "r2":
+            binary_path = sanitize_shell_arg(data.get("binary_path", data.get("target", "")))
+            commands = data.get("commands", "aaa;afl;ii;iz;q")
+            return f"r2 -q -c {sanitize_shell_arg(commands)} {binary_path}"
+
+        elif tool_name == "theHarvester":
+            domain = sanitize_shell_arg(data.get("domain", data.get("target", "")))
+            sources = data.get("sources", "anubis,crtsh,dnsdumpster,hackertarget,rapiddns,urlscan")
+            limit = data.get("limit", "100")
+            additional_args = data.get("additional_args", "")
+            cmd = f"theHarvester -d {domain} -b {sanitize_shell_arg(sources)} -l {sanitize_shell_arg(str(limit))}"
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            return cmd
+
+        elif tool_name == "ssh":
+            target = sanitize_shell_arg(data.get("target", ""))
+            user = data.get("username", data.get("user", ""))
+            port = data.get("port", "22")
+            command = data.get("command", "")
+            key_file = data.get("key_file", "")
+            cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+            if key_file:
+                cmd += f" -i {sanitize_shell_arg(key_file)}"
+            cmd += f" -p {sanitize_shell_arg(str(port))}"
+            if user:
+                cmd += f" {sanitize_shell_arg(user)}@{target}"
+            else:
+                cmd += f" {target}"
+            if command:
+                cmd += f" {sanitize_shell_arg(command)}"
+            return cmd
+
+        elif tool_name == "scp":
+            source = sanitize_shell_arg(data.get("source", ""))
+            dest = sanitize_shell_arg(data.get("dest", data.get("target", "")))
+            port = data.get("port", "22")
+            key_file = data.get("key_file", "")
+            cmd = f"scp -o StrictHostKeyChecking=no -P {sanitize_shell_arg(str(port))}"
+            if key_file:
+                cmd += f" -i {sanitize_shell_arg(key_file)}"
+            cmd += f" {source} {dest}"
+            return cmd
+
+        elif tool_name in ("python3", "python"):
+            script = data.get("script", data.get("command", ""))
+            script_file = data.get("script_file", "")
+            if script_file:
+                return f"python3 {sanitize_shell_arg(script_file)}"
+            elif script:
+                return f"python3 -c {sanitize_shell_arg(script)}"
+            return "python3 --version"
+
+        elif tool_name == "base64":
+            action = data.get("action", "decode")
+            input_data = data.get("input", data.get("data", ""))
+            if action == "encode":
+                return f"echo -n {sanitize_shell_arg(input_data)} | base64"
+            else:
+                return f"echo -n {sanitize_shell_arg(input_data)} | base64 -d"
+
+        elif tool_name == "xxd":
+            file_path = data.get("file_path", data.get("target", ""))
+            action = data.get("action", "hex")
+            if action == "reverse":
+                return f"xxd -r {sanitize_shell_arg(file_path)}"
+            else:
+                return f"xxd {sanitize_shell_arg(file_path)}"
+
+        elif tool_name == "grep":
+            pattern = sanitize_shell_arg(data.get("pattern", ""))
+            file_path = data.get("file_path", data.get("target", ""))
+            additional_args = data.get("additional_args", "-rn")
+            cmd = f"grep {sanitize_shell_fragment(additional_args)} {pattern}"
+            if file_path:
+                cmd += f" {sanitize_shell_arg(file_path)}"
+            return cmd
+
+        elif tool_name == "awk":
+            program = sanitize_shell_arg(data.get("program", data.get("command", "{print}")))
+            file_path = data.get("file_path", data.get("target", ""))
+            cmd = f"awk {program}"
+            if file_path:
+                cmd += f" {sanitize_shell_arg(file_path)}"
+            return cmd
+
+        elif tool_name == "sed":
+            expression = sanitize_shell_arg(data.get("expression", data.get("command", "")))
+            file_path = data.get("file_path", data.get("target", ""))
+            cmd = f"sed {expression}"
+            if file_path:
+                cmd += f" {sanitize_shell_arg(file_path)}"
+            return cmd
+
+        elif tool_name == "jq":
+            filter_expr = sanitize_shell_arg(data.get("filter", data.get("command", ".")))
+            file_path = data.get("file_path", data.get("target", ""))
+            cmd = f"jq {filter_expr}"
+            if file_path:
+                cmd += f" {sanitize_shell_arg(file_path)}"
+            return cmd
+
+        # ==================== v5.2: 通用 catch-all ====================
+        # 对于白名单中有但没有专门路由的工具，尝试通用构建
+        if tool_name in ALLOWED_TOOLS:
+            target = data.get("target", data.get("url", data.get("domain", "")))
+            additional_args = data.get("additional_args", "")
+            cmd = tool_name
+            if additional_args:
+                cmd += f" {sanitize_shell_fragment(additional_args)}"
+            if target:
+                cmd += f" {sanitize_shell_arg(target)}"
+            logger.info(f"使用通用路由构建: {tool_name}")
+            return cmd
+
+        # 未知工具，返回空字符串并记录详细原因
+        logger.warning(f"未知工具名: {tool_name}，不在白名单中，拒绝构建命令")
         return ""

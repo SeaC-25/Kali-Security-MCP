@@ -452,3 +452,68 @@ class DecisionBrainSubscriber:
     def register(self, bus: EventBus):
         bus.subscribe("tool.result", self.on_tool_result, "DecisionBrain", priority=2)
         bus.subscribe("vuln.candidate", self.on_vuln_candidate, "DecisionBrain", priority=2)
+        bus.subscribe("vuln.discovered", self.on_vuln_candidate, "DecisionBrain", priority=2)
+        bus.subscribe("digger.completed", self.on_digger_completed, "DecisionBrain", priority=2)
+
+    def on_digger_completed(self, event: Event):
+        """Digger完成时更新决策引擎上下文"""
+        data = event.data
+        if hasattr(self.db, '_decisions'):
+            self.db._decisions.append({
+                "point": "digger_feedback",
+                "digger": data.get("digger", ""),
+                "target": data.get("target", ""),
+                "success": data.get("success", False),
+                "findings_count": data.get("findings_count", 0),
+                "flags_count": data.get("flags_count", 0),
+                "timestamp": event.timestamp,
+            })
+
+
+class DiggerSubscriber:
+    """v5.2: Digger事件统一订阅者 - 将Digger结果路由到MLOptimizer和VulnManager"""
+
+    def __init__(self, ml_optimizer=None, vuln_manager=None):
+        self.ml = ml_optimizer
+        self.vm = vuln_manager
+
+    def on_vuln_discovered(self, event: Event):
+        """Digger发现漏洞 → 记录到VulnManager"""
+        data = event.data
+        if self.vm and hasattr(self.vm, 'add_candidate'):
+            try:
+                self.vm.add_candidate(
+                    title=f"{data.get('vuln_type', 'unknown')} in {data.get('target', '')}",
+                    vuln_type=data.get("vuln_type", "unknown"),
+                    target=data.get("target", ""),
+                    severity=data.get("severity", "medium"),
+                    confidence="high",
+                    source="digger",
+                    evidence=data.get("detail", ""),
+                    discovered_by=data.get("source", ""),
+                )
+            except Exception as e:
+                logger.debug(f"DiggerSubscriber vuln record failed: {e}")
+
+    def on_digger_completed(self, event: Event):
+        """Digger完成 → 记录到MLOptimizer作为学习数据"""
+        data = event.data
+        if self.ml and hasattr(self.ml, 'record_tool_outcome'):
+            try:
+                self.ml.record_tool_outcome(
+                    tool_name=f"digger:{data.get('digger', 'unknown')}",
+                    target=data.get("target", ""),
+                    success=data.get("success", False),
+                    duration=data.get("duration", 0),
+                    context={
+                        "findings": data.get("findings_count", 0),
+                        "flags": data.get("flags_count", 0),
+                        "mode": data.get("mode", ""),
+                    }
+                )
+            except Exception as e:
+                logger.debug(f"DiggerSubscriber ML record failed: {e}")
+
+    def register(self, bus: EventBus):
+        bus.subscribe("vuln.discovered", self.on_vuln_discovered, "DiggerSub", priority=1)
+        bus.subscribe("digger.completed", self.on_digger_completed, "DiggerSub", priority=1)

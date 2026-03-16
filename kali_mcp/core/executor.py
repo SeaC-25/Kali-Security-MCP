@@ -247,7 +247,7 @@ class AsyncExecutor:
         logger.info(f"并行执行 {len(commands)} 个命令...")
 
         tasks = [
-            self.run_command(cmd, timeout=timeout)
+            asyncio.ensure_future(self.run_command(cmd, timeout=timeout))
             for cmd in commands
         ]
 

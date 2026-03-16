@@ -19,6 +19,7 @@ import logging
 import time
 from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass, field
+from collections import deque
 
 from kali_mcp.core.result_parser import (
     ResultParser, SmartParamsBuilder,
@@ -163,6 +164,7 @@ class ToolChainStep:
     fallback_tools: List[str] = field(default_factory=list)  # 失败时的备选工具
     timeout: int = 300           # 单步超时(秒)
     required: bool = False       # 是否必须成功
+    priority: int = 50           # 执行优先级(0=最高，100=最低)，用于动态排序
 
 
 class ToolChain:
@@ -179,11 +181,29 @@ class ToolChain:
         self.executor = executor
         self.event_bus = event_bus
         self.steps: List[ToolChainStep] = []
+        # v5.2: 决策钩子列表 — 每步完成后调用，可动态插入新步骤
+        # 签名: fn(ctx: ChainContext, step: ToolChainStep, result: Dict, queue: deque) -> None
+        self._decision_hooks: List[Callable] = []
 
     def add_step(self, step: ToolChainStep):
         """添加步骤"""
         self.steps.append(step)
         return self  # 支持链式调用
+
+    def add_decision_hook(self, hook: Callable):
+        """
+        添加决策钩子 (v5.2)
+
+        钩子在每步完成后调用，可根据结果动态插入新步骤到队列。
+        签名: fn(ctx: ChainContext, step: ToolChainStep, result: Dict, queue: deque) -> None
+
+        示例:
+            def on_wordpress(ctx, step, result, queue):
+                if ctx.cms_type == 'wordpress':
+                    queue.appendleft(ToolChainStep(name='wpscan', tool_name='wpscan', ...))
+        """
+        self._decision_hooks.append(hook)
+        return self
 
     def execute(self, target: str, initial_context: Dict = None) -> Dict[str, Any]:
         """
@@ -209,8 +229,20 @@ class ToolChain:
             "steps": {},
             "success": True,
         }
+        # v5.2: deque 替代固定列表，支持运行时追加步骤
+        step_queue = deque(self.steps)
+        executed_steps = set()  # 防止重复执行同名步骤
+        max_steps = len(self.steps) + 20  # 安全阀：最多追加20个动态步骤
+        step_count = 0
 
-        for step in self.steps:
+        while step_queue and step_count < max_steps:
+            step = step_queue.popleft()
+            step_count += 1
+
+            # 防止重复执行
+            if step.name in executed_steps:
+                continue
+            executed_steps.add(step.name)
             # 检查条件
             if step.condition and not step.condition(ctx):
                 logger.info(f"ToolChain: skipping '{step.name}' (condition not met)")
@@ -302,6 +334,13 @@ class ToolChain:
             # 检测flag
             self._detect_flags(ctx, output)
 
+            # v5.2: 调用决策钩子 — 可根据本步结果动态插入新步骤
+            for hook in self._decision_hooks:
+                try:
+                    hook(ctx, step, tool_result, step_queue)
+                except Exception as e:
+                    logger.debug(f"ToolChain: decision hook failed: {e}")
+
             # 必须成功的步骤失败则中止
             if step.required and not success:
                 results["success"] = False
@@ -371,8 +410,167 @@ class ToolChain:
 
 
 # ============================================================
+# v5.2: 内置决策钩子 — 基于中间结果动态插入探测步骤
+# ============================================================
+
+def _hook_cms_deep_scan(ctx: ChainContext, step: ToolChainStep,
+                        result: Dict, queue: deque):
+    """发现CMS时自动插入对应扫描器"""
+    if step.tool_name not in ("whatweb",):
+        return
+    cms = ctx.cms_type.lower()
+    if cms == "wordpress":
+        queue.appendleft(ToolChainStep(
+            name="auto_wpscan",
+            tool_name="wpscan",
+            params_builder=lambda c: {
+                "target": c.web_urls[0] if c.web_urls else f"http://{c.target}",
+                "additional_args": "--enumerate vp,vt,u --random-user-agent",
+            },
+            priority=10,
+        ))
+        logger.info("DecisionHook: WordPress detected → inserting wpscan")
+    elif cms == "joomla":
+        queue.appendleft(ToolChainStep(
+            name="auto_joomscan",
+            tool_name="joomscan",
+            params_builder=lambda c: {
+                "target": c.web_urls[0] if c.web_urls else f"http://{c.target}",
+            },
+            priority=10,
+        ))
+        logger.info("DecisionHook: Joomla detected → inserting joomscan")
+
+
+def _hook_injectable_deep_test(ctx: ChainContext, step: ToolChainStep,
+                               result: Dict, queue: deque):
+    """发现可注入URL时自动插入sqlmap深度扫描"""
+    if step.tool_name not in ("gobuster", "ffuf", "dirb", "feroxbuster"):
+        return
+    if not ctx.injectable_urls:
+        return
+    # 只测试第一个可注入URL
+    target_url = ctx.injectable_urls[0]
+    queue.appendleft(ToolChainStep(
+        name="auto_sqlmap",
+        tool_name="sqlmap",
+        params_builder=lambda c: SmartParamsBuilder.build_sqlmap_params(
+            c.gobuster_result, c.waf_result, target_url
+        ),
+        priority=15,
+    ))
+    logger.info(f"DecisionHook: injectable URL found → inserting sqlmap for {target_url}")
+
+
+def _hook_upload_test(ctx: ChainContext, step: ToolChainStep,
+                      result: Dict, queue: deque):
+    """发现上传路径时自动尝试文件上传漏洞检测"""
+    if step.tool_name not in ("gobuster", "ffuf", "dirb", "feroxbuster"):
+        return
+    if not ctx.gobuster_result:
+        return
+    upload_paths = ctx.gobuster_result.upload_paths
+    if not upload_paths:
+        return
+    # 使用nuclei的upload模板扫描
+    upload_url = f"{ctx.web_urls[0]}{upload_paths[0].path}" if ctx.web_urls else ""
+    if upload_url:
+        queue.appendleft(ToolChainStep(
+            name="auto_upload_scan",
+            tool_name="nuclei",
+            params_builder=lambda c: {
+                "target": upload_url,
+                "tags": "fileupload,upload",
+                "severity": "critical,high,medium",
+            },
+            priority=12,
+        ))
+        logger.info(f"DecisionHook: upload path found → inserting nuclei upload scan")
+
+
+def _hook_high_vuln_exploit(ctx: ChainContext, step: ToolChainStep,
+                            result: Dict, queue: deque):
+    """发现高危/严重漏洞时自动搜索exploit"""
+    if step.tool_name not in ("nuclei",):
+        return
+    if not ctx.nuclei_result:
+        return
+    cves = ctx.nuclei_result.cve_list
+    if not cves:
+        return
+    # 为第一个CVE搜索exploit
+    cve = cves[0]
+    queue.appendleft(ToolChainStep(
+        name="auto_searchsploit",
+        tool_name="searchsploit",
+        params_builder=lambda c: {
+            "term": cve,
+            "additional_args": "--json",
+        },
+        priority=8,
+    ))
+    logger.info(f"DecisionHook: CVE {cve} found → inserting searchsploit")
+
+
+def _hook_smb_enumeration(ctx: ChainContext, step: ToolChainStep,
+                          result: Dict, queue: deque):
+    """发现SMB端口时自动插入enum4linux"""
+    if step.tool_name not in ("nmap", "masscan"):
+        return
+    smb_ports = {445, 139}
+    if not smb_ports.intersection(set(ctx.open_ports)):
+        return
+    queue.append(ToolChainStep(
+        name="auto_enum4linux",
+        tool_name="enum4linux",
+        params_builder=lambda c: {"target": c.target},
+        priority=60,
+    ))
+    logger.info("DecisionHook: SMB ports found → inserting enum4linux")
+
+
+def _hook_ssh_bruteforce(ctx: ChainContext, step: ToolChainStep,
+                         result: Dict, queue: deque):
+    """发现SSH端口时自动尝试弱口令(仅CTF模式)"""
+    if step.tool_name not in ("nmap",):
+        return
+    if 22 not in ctx.open_ports:
+        return
+    queue.append(ToolChainStep(
+        name="auto_ssh_bruteforce",
+        tool_name="hydra",
+        params_builder=lambda c: {
+            "target": c.target,
+            "service": "ssh",
+            "username_file": "/usr/share/seclists/Usernames/top-usernames-shortlist.txt",
+            "password_file": "/usr/share/seclists/Passwords/Common-Credentials/top-20-common-SSH-passwords.txt",
+            "additional_args": "-t 4 -f",
+        },
+        priority=80,  # 低优先级，排在其他扫描之后
+    ))
+    logger.info("DecisionHook: SSH found → inserting hydra quick bruteforce")
+
+
+# 所有内置钩子
+BUILTIN_DECISION_HOOKS = [
+    _hook_cms_deep_scan,
+    _hook_injectable_deep_test,
+    _hook_upload_test,
+    _hook_high_vuln_exploit,
+    _hook_smb_enumeration,
+    _hook_ssh_bruteforce,
+]
+
+
+# ============================================================
 # 预定义工具链 - 真正的渗透测试流程
 # ============================================================
+
+def _apply_decision_hooks(chain: ToolChain) -> ToolChain:
+    """为预定义链注册所有内置决策钩子"""
+    for hook in BUILTIN_DECISION_HOOKS:
+        chain.add_decision_hook(hook)
+    return chain
 
 def create_web_recon_chain(executor, event_bus=None) -> ToolChain:
     """
@@ -465,6 +663,7 @@ def create_web_recon_chain(executor, event_bus=None) -> ToolChain:
         ) if ctx.gobuster_result else None,
     ))
 
+    _apply_decision_hooks(chain)
     return chain
 
 
@@ -523,6 +722,7 @@ def create_network_recon_chain(executor, event_bus=None) -> ToolChain:
         },
     ))
 
+    _apply_decision_hooks(chain)
     return chain
 
 
@@ -587,6 +787,7 @@ def create_ctf_speed_chain(executor, event_bus=None) -> ToolChain:
         timeout=60,
     ))
 
+    _apply_decision_hooks(chain)
     return chain
 
 
@@ -708,4 +909,5 @@ def create_full_pentest_chain(executor, event_bus=None) -> ToolChain:
         },
     ))
 
+    _apply_decision_hooks(chain)
     return chain

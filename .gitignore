@@ -39,9 +39,26 @@ Thumbs.db
 # Project specific
 *.backup
 *.bak
+*.old
+*.tmp
+*_backup.py
+*_old.py
+*.fix_temp
+*_v2_original.py
+*_v3.py
+*_REPORT.md
+*_SUMMARY.md
+*_SUMMARY.txt
+*_CHECKLIST.md
+*_CHECKLIST.txt
+*_GUIDE.md
+*_PLAN.md
+CLEANUP_REPORT.md
 MCP-Kali-Server-main.zip
 kali-mcp-deploy.tar.gz
 cookies.txt
+example.com_ips.txt
+web_ui.pid
 data/
 reports/
 .augment/

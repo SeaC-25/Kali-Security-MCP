@@ -491,8 +491,11 @@ class ResultParser:
         for line in lines:
             line = line.strip()
 
-            # 检测注入
-            if "is vulnerable" in line.lower() or "injectable" in line.lower():
+            # 检测注入 — 排除否定短语 "not injectable" / "might not be injectable"
+            ll = line.lower()
+            if "is vulnerable" in ll:
+                result.is_vulnerable = True
+            elif "injectable" in ll and "not" not in ll:
                 result.is_vulnerable = True
 
             # 检测注入类型

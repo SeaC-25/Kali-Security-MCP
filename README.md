@@ -97,11 +97,94 @@ pip install -r requirements.txt --break-system-packages
 # 3. 验证系统状态
 python status_check.py
 
-# 4. 运行测试 (可选)
-pytest
+# 4. 启动服务
+python mcp_server.py --tool-profile compliance
 ```
 
 ---
+
+#### 合规自动化模式（推荐）
+
+为减少模型误拒并确保授权边界清晰，建议默认使用合规档位并配置授权上下文：
+
+```bash
+# 默认全面合规档位（推荐，大部分模块可用）
+export KALI_MCP_TOOL_PROFILE=compliance
+
+# 可选：要求必须先加载授权上下文
+export KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT=1
+```
+
+`compliance` 档位可开放更完整工具集用于全面测试；  
+`strict` 档位用于模型容易误拒时的中性工具面策略。
+
+#### 真实目标授权执行 Runbook
+
+以下流程用于“真实目标且已授权”的完整评估执行，默认采用 `compliance` 获取全面工具能力：
+
+1. 设置工具档位并启动服务
+
+```bash
+export KALI_MCP_TOOL_PROFILE=compliance
+export KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT=1
+python mcp_server.py --tool-profile compliance
+```
+
+若模型误拒严重，再切换为 `strict`：
+
+```bash
+export KALI_MCP_TOOL_PROFILE=strict
+python mcp_server.py --tool-profile strict
+```
+
+2. 调用 MCP 工具 `set_engagement_context` 设置授权上下文（示例）
+
+```json
+{
+  "authorization_id": "AUTH-2026-001",
+  "client": "Example Corp",
+  "authorized_by": "CISO",
+  "valid_from": "2026-03-01",
+  "valid_until": "2026-03-31",
+  "target_scope": ["example.com", "10.10.10.0/24"],
+  "out_of_scope": ["prod-db.example.com"],
+  "allowed_actions": [
+    "recon",
+    "vuln-verification",
+    "credential-audit",
+    "controlled-validation",
+    "environment-review",
+    "reporting"
+  ],
+  "forbidden_actions": ["dos", "persistence", "data-exfiltration"],
+  "data_handling": "mask sensitive data in all reports",
+  "reporting_standard": "PTES + OWASP ASVS",
+  "emergency_stop_contact": "soc@example.com"
+}
+```
+
+3. 调用 `build_authorized_assessment_request` 生成合规请求块  
+将目标、目标说明、可选阶段开关传入，拿到可直接喂给大模型的合规提示文本。
+
+4. 调用 `authorized_comprehensive_security_assessment` 执行全链路评估（示例）
+
+```json
+{
+  "target": "https://example.com",
+  "depth": "thorough",
+  "include_credential_audit": true,
+  "include_controlled_validation": true,
+  "include_environment_review": true,
+  "username_file": "/opt/pentest/allowed_users.txt",
+  "password_file": "/opt/pentest/allowed_passwords.txt",
+  "credential_service": "ssh"
+}
+```
+
+5. 查看结果中的 `summary`、`phases`、`authorization_errors`  
+- `summary`：阶段成功/失败/跳过统计  
+- `phases`：每个阶段工具级结果与报错  
+- `authorization_errors`：未授权阶段会在这里明确返回，不会静默执行
 
 ### 💻 使用方法
 
@@ -124,6 +207,25 @@ pytest
 
 ```bash
 claude
+```
+
+首次进入建议先设置授权上下文（通过 MCP 工具 `set_engagement_context`），例如：
+
+```json
+{
+  "authorization_id": "AUTH-2026-001",
+  "client": "Example Corp",
+  "authorized_by": "CISO",
+  "valid_from": "2026-03-01",
+  "valid_until": "2026-03-31",
+  "target_scope": ["example.com", "10.10.10.0/24"],
+  "out_of_scope": ["prod-db.example.com"],
+  "allowed_actions": ["recon", "vuln-verification", "reporting"],
+  "forbidden_actions": ["dos", "persistence", "data-exfiltration"],
+  "data_handling": "mask sensitive data in all reports",
+  "reporting_standard": "PTES + OWASP ASVS",
+  "emergency_stop_contact": "soc@example.com"
+}
 ```
 
 #### 方式二：Claude Desktop 集成
