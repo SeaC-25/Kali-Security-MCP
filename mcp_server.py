@@ -37,32 +37,22 @@ logger = logging.getLogger(__name__)
 OPTIMIZATION_ENABLED = True
 logger.info("✅ 深度智能化模式 - 启用连接池优化和结果缓存")
 
-# Kali MCP v2.0 模块导入
+# v2/v3/vuln_db 模块导入 (统一块)
 try:
     from kali_mcp.mcp_tools.v2_tools import register_v2_tools, V2_TOOL_COUNT
+    from kali_mcp.mcp_tools.v3_tools import register_v3_tools, V3_TOOL_COUNT
+    from kali_mcp.mcp_tools.vuln_db_tools import register_vulnerability_tools, VULN_TOOL_COUNT
     V2_TOOLS_AVAILABLE = True
-    logger.info(f"✅ Kali MCP v2.0 模块加载成功 - {V2_TOOL_COUNT} 个新工具")
+    V3_TOOLS_AVAILABLE = True
+    VULN_DB_TOOLS_AVAILABLE = True
+    logger.info(f"✅ v2({V2_TOOL_COUNT})/v3({V3_TOOL_COUNT})/vuln_db({VULN_TOOL_COUNT}) 模块加载成功")
 except ImportError as e:
     V2_TOOLS_AVAILABLE = False
-    logger.warning(f"⚠️ Kali MCP v2.0 模块加载失败: {e}")
-
-# Kali MCP v3.0 深度挖掘器模块导入
-try:
-    from kali_mcp.mcp_tools.v3_tools import register_v3_tools, V3_TOOL_COUNT
-    V3_TOOLS_AVAILABLE = True
-    logger.info(f"✅ Kali MCP v3.0 深度挖掘器模块加载成功 - {V3_TOOL_COUNT} 个深度挖掘器")
-except ImportError as e:
     V3_TOOLS_AVAILABLE = False
-    logger.warning(f"⚠️ Kali MCP v3.0 深度挖掘器模块加载失败: {e}")
-
-# 漏洞数据库模块导入
-try:
-    from kali_mcp.mcp_tools.vuln_db_tools import register_vulnerability_tools, VULN_TOOL_COUNT
-    VULN_DB_TOOLS_AVAILABLE = True
-    logger.info(f"✅ 漏洞数据库模块加载成功 - {VULN_TOOL_COUNT} 个漏洞工具")
-except ImportError as e:
     VULN_DB_TOOLS_AVAILABLE = False
-    logger.warning(f"⚠️ 漏洞数据库模块加载失败: {e}")
+    register_v2_tools = register_v3_tools = register_vulnerability_tools = None
+    V2_TOOL_COUNT = V3_TOOL_COUNT = VULN_TOOL_COUNT = 0
+    logger.warning(f"⚠️ v2/v3/vuln_db 模块加载失败: {e}")
 
 # 多智能体集群系统模块导入 (v4.0)
 try:

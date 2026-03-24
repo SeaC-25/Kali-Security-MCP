@@ -58,15 +58,11 @@ class ToolBridge:
         from kali_mcp.core.ml_optimizer import MLStrategyOptimizer
         try:
             from kali_mcp.mcp_tools.v2_tools import register_v2_tools
-        except Exception:
-            register_v2_tools = None
-        try:
             from kali_mcp.mcp_tools.v3_tools import register_v3_tools
-        except Exception:
-            register_v3_tools = None
-        try:
             from kali_mcp.mcp_tools.vuln_db_tools import register_vulnerability_tools
         except Exception:
+            register_v2_tools = None
+            register_v3_tools = None
             register_vulnerability_tools = None
 
         from kali_mcp.mcp_tools import (
