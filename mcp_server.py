@@ -39,7 +39,7 @@ logger.info("✅ 深度智能化模式 - 启用连接池优化和结果缓存")
 
 # Kali MCP v2.0 模块导入
 try:
-    from kali_mcp.mcp_tools_v2 import register_v2_tools, V2_TOOL_COUNT
+    from kali_mcp.mcp_tools.v2_tools import register_v2_tools, V2_TOOL_COUNT
     V2_TOOLS_AVAILABLE = True
     logger.info(f"✅ Kali MCP v2.0 模块加载成功 - {V2_TOOL_COUNT} 个新工具")
 except ImportError as e:
@@ -48,7 +48,7 @@ except ImportError as e:
 
 # Kali MCP v3.0 深度挖掘器模块导入
 try:
-    from kali_mcp.mcp_tools_v3 import register_v3_tools, V3_TOOL_COUNT
+    from kali_mcp.mcp_tools.v3_tools import register_v3_tools, V3_TOOL_COUNT
     V3_TOOLS_AVAILABLE = True
     logger.info(f"✅ Kali MCP v3.0 深度挖掘器模块加载成功 - {V3_TOOL_COUNT} 个深度挖掘器")
 except ImportError as e:
@@ -57,7 +57,7 @@ except ImportError as e:
 
 # 漏洞数据库模块导入
 try:
-    from kali_mcp.vulnerability_tools import register_vulnerability_tools, VULN_TOOL_COUNT
+    from kali_mcp.mcp_tools.vuln_db_tools import register_vulnerability_tools, VULN_TOOL_COUNT
     VULN_DB_TOOLS_AVAILABLE = True
     logger.info(f"✅ 漏洞数据库模块加载成功 - {VULN_TOOL_COUNT} 个漏洞工具")
 except ImportError as e:
