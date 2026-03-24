@@ -66,8 +66,6 @@ class ToolBridge:
             register_vulnerability_tools = None
 
         from kali_mcp.mcp_tools import (
-            register_system_tools,
-            register_multi_agent_tools,
             register_recon_tools,
             register_ai_session_tools,
             register_code_audit_tools,
@@ -76,23 +74,15 @@ class ToolBridge:
             register_ctf_tools,
             register_scan_workflow_tools,
             register_advanced_ctf_tools,
-            register_payload_tools,
             register_session_tools,
             register_pwn_tools,
-            register_context_tools,
-            register_knowledge_tools,
             register_adaptive_tools,
-            register_ai_advanced_tools,
             register_deep_test_tools,
             register_vuln_mgmt_tools,
-            register_fragment_mgmt_tools,
             register_chain_mgmt_tools,
-            register_shared_context_tools,
-            register_checkpoint_tools,
-            register_decision_brain_tools,
-            register_pipeline_tools,
             register_pentagi_bridge_tools,
             register_llm_react_tools,
+            register_assessment_tools,
         )
         try:
             import deep_test_engine  # noqa: F401
@@ -125,8 +115,6 @@ class ToolBridge:
 
         # --- 逐个调用 register 函数，失败不影响其他模块 ---
         _calls = [
-            ("system",          lambda: register_system_tools(reg, exe)),
-            ("multi_agent",     lambda: register_multi_agent_tools(reg, exe, multi_agent_state)),
             ("recon",           lambda: register_recon_tools(reg, exe)),
             ("ai_session",      lambda: register_ai_session_tools(reg, exe, ai_ctx, ml_opt)),
             ("code_audit",      lambda: register_code_audit_tools(reg, exe)),
@@ -137,23 +125,15 @@ class ToolBridge:
                 current_ctf_session, detected_flags, ctf_challenges)),
             ("scan_workflow",   lambda: register_scan_workflow_tools(reg, exe)),
             ("advanced_ctf",    lambda: register_advanced_ctf_tools(reg, exe)),
-            ("payload",         lambda: register_payload_tools(reg, exe)),
             ("session",         lambda: register_session_tools(reg, exe, attack_sessions, current_session_id)),
             ("pwn",             lambda: register_pwn_tools(reg, exe)),
-            ("context",         lambda: register_context_tools(reg, exe)),
-            ("knowledge",       lambda: register_knowledge_tools(reg, exe)),
             ("adaptive",        lambda: register_adaptive_tools(reg, exe)),
-            ("ai_advanced",     lambda: register_ai_advanced_tools(reg, exe, ai_ctx, ml_opt)),
             ("deep_test",       lambda: register_deep_test_tools(reg, exe, deep_test_available)),
             ("vuln_mgmt",       lambda: register_vuln_mgmt_tools(reg, exe)),
-            ("fragment_mgmt",   lambda: register_fragment_mgmt_tools(reg, exe)),
             ("chain_mgmt",      lambda: register_chain_mgmt_tools(reg, exe)),
-            ("shared_context",  lambda: register_shared_context_tools(reg, exe)),
-            ("checkpoint",      lambda: register_checkpoint_tools(reg, exe)),
-            ("decision_brain",  lambda: register_decision_brain_tools(reg, exe)),
-            ("pipeline",        lambda: register_pipeline_tools(reg, exe)),
             ("pentagi_bridge",  lambda: register_pentagi_bridge_tools(reg, exe)),
             ("llm_react",       lambda: register_llm_react_tools(reg, exe)),
+            ("assessment",      lambda: register_assessment_tools(reg, exe)),
         ]
         if register_v3_tools:
             _calls.append(("v3_tools", lambda: register_v3_tools(reg)))
