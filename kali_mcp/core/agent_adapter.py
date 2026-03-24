@@ -12,6 +12,8 @@ import logging
 import time
 from typing import Dict, Any, Optional
 
+from kali_mcp.core.tool_router import ToolRouter
+
 logger = logging.getLogger(__name__)
 
 class AgentAdapter:
@@ -29,23 +31,8 @@ class AgentAdapter:
         if not self.agent_enabled:
             return False
 
-        # 复杂工具走代理路径
-        complex_tools = {
-            "intelligent_ctf_solve", "ctf_web_comprehensive_solver", "ctf_pwn_solver",
-            "adaptive_web_penetration", "adaptive_network_penetration",
-            "intelligent_apt_campaign", "apt_web_application_attack", "apt_network_penetration",
-            "comprehensive_recon", "smart_web_recon", "smart_network_recon",
-            "advanced_web_security_assessment", "intelligent_vulnerability_assessment",
-        }
-
-        if tool_name not in complex_tools:
-            return False
-
-        # 数据复杂度检查
-        target_count = len(data.get("targets", [])) if "targets" in data else 1
-        has_multi_phase = data.get("multi_phase", False) or data.get("comprehensive", False)
-
-        return target_count > 1 or has_multi_phase or True  # 默认复杂工具走代理
+        # 使用 ToolRouter 作为单一来源，覆盖所有34个复杂工具
+        return ToolRouter.get_route(tool_name, data) == "agent"
 
     def _run_async(self, coro):
         """在同步上下文中运行异步协程"""
@@ -115,17 +102,53 @@ class AgentAdapter:
         return self.executor.execute_tool_with_data(tool_name, data)
 
     def _infer_intent(self, tool_name: str, data: Dict[str, Any]) -> str:
-        """推断用户意图"""
+        """推断用户意图（覆盖所有复杂工具）"""
         intent_map = {
-            "intelligent_ctf_solve": "ctf_solve",
+            # CTF
+            "intelligent_ctf_solver": "ctf_solve",
             "ctf_web_comprehensive_solver": "ctf_web",
             "ctf_pwn_solver": "ctf_pwn",
+            "ctf_crypto_solver": "ctf_crypto",
+            "ctf_multi_agent_solve": "ctf_multi",
+            "smart_ctf_solve": "ctf_solve",
+            "ctf_ultimate_solve": "ctf_ultimate",
+            "auto_ctf_solve_with_poc": "ctf_poc",
+            # APT
+            "intelligent_apt_campaign": "apt_attack",
+            "apt_web_application_attack": "apt_web",
+            "apt_network_penetration": "apt_network",
+            "apt_comprehensive_attack": "apt_full",
+            "adaptive_apt_attack": "apt_adaptive",
+            "start_adaptive_apt_attack": "apt_adaptive",
+            "auto_apt_attack_with_poc": "apt_poc",
+            "intelligent_attack_with_poc": "apt_poc",
+            # 自适应渗透
             "adaptive_web_penetration": "web_pentest",
             "adaptive_network_penetration": "network_pentest",
-            "intelligent_apt_campaign": "apt_attack",
+            # 综合扫描
             "comprehensive_recon": "reconnaissance",
             "smart_web_recon": "web_recon",
             "smart_network_recon": "network_recon",
+            "smart_full_pentest": "full_pentest",
+            "auto_pentest": "full_pentest",
+            "ultimate_scan": "full_scan",
+            "auto_pilot_attack": "auto_attack",
+            # 智能评估
+            "intelligent_vulnerability_assessment": "vuln_assessment",
+            "intelligent_penetration_testing": "pentest",
+            "intelligent_smart_scan": "smart_scan",
+            # 自动化工作流
+            "auto_web_security_workflow": "web_security",
+            "auto_network_discovery_workflow": "network_discovery",
+            "auto_osint_workflow": "osint",
+            # PWN
+            "pwn_comprehensive_attack": "pwn",
+            # Web/Network评估
+            "advanced_web_security_assessment": "web_assessment",
+            "network_penetration_test": "network_pentest",
+            "web_app_security_assessment": "web_assessment",
+            # 授权综合评估
+            "authorized_comprehensive_security_assessment": "comprehensive_assessment",
         }
         return intent_map.get(tool_name, "general_security_test")
 

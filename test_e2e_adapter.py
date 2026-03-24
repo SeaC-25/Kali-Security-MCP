@@ -48,18 +48,39 @@ print(f"   代理启用: {adapter.agent_enabled}")
 
 # 测试1: 复杂工具走代理路径
 print("\n" + "-" * 70)
-print("测试1: 复杂工具 intelligent_ctf_solve")
+print("测试1: 复杂工具路由验证")
 print("-" * 70)
 
-data = {"target": "http://ctf.example.com", "mode": "aggressive"}
-should_use = adapter.should_use_agent("intelligent_ctf_solve", data)
-print(f"should_use_agent: {should_use}")
+complex_tool_cases = [
+    ("intelligent_ctf_solver", {"target": "http://ctf.example.com"}),
+    ("adaptive_web_penetration", {"target": "http://target.com"}),
+    ("auto_pentest", {"target": "192.168.1.1"}),
+    ("apt_comprehensive_attack", {"target": "192.168.1.1"}),
+    ("pwn_comprehensive_attack", {"binary_path": "/tmp/vuln"}),
+    ("authorized_comprehensive_security_assessment", {"target": "192.168.1.1"}),
+]
 
+all_ok = True
+for tool_name, data in complex_tool_cases:
+    should_use = adapter.should_use_agent(tool_name, data)
+    status = "✅" if should_use else "❌"
+    print(f"  {status} {tool_name}: should_use_agent={should_use}")
+    if not should_use:
+        all_ok = False
+
+if all_ok:
+    print("\n所有复杂工具路由正确")
+else:
+    print("\n⚠️  部分复杂工具路由错误")
+
+# 执行一个复杂工具验证完整链路
+data = {"target": "http://ctf.example.com", "mode": "aggressive"}
+should_use = adapter.should_use_agent("intelligent_ctf_solver", data)
 if should_use:
-    result = adapter.execute_via_agent("intelligent_ctf_solve", data)
+    result = adapter.execute_via_agent("intelligent_ctf_solver", data)
     print(f"\n执行结果:")
     print(f"  via_agent: {result.get('via_agent')}")
-    print(f"  summary: {result.get('output')}")
+    print(f"  output: {result.get('output', '')[:80]}")
     print(f"  agents_used: {result.get('agent_result', {}).get('agents_used')}")
 
 # 测试2: 简单工具直接执行
