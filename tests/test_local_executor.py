@@ -393,14 +393,14 @@ class TestExecConfig:
     """Test EXEC_CONFIG defaults."""
 
     def test_default_timeout(self):
-        """Default timeout is 300 seconds."""
-        assert EXEC_CONFIG["default_timeout"] == 300
+        """Default timeout is 60 seconds."""
+        assert EXEC_CONFIG["default_timeout"] == 60
 
     def test_tool_specific_timeouts(self):
         """Tool-specific timeouts are configured."""
         assert "nmap" in EXEC_CONFIG["tool_timeouts"]
         assert "sqlmap" in EXEC_CONFIG["tool_timeouts"]
-        assert EXEC_CONFIG["tool_timeouts"]["nmap"] == 600
+        assert EXEC_CONFIG["tool_timeouts"]["nmap"] == 180
 
     def test_retry_config(self):
         """Retry configuration exists."""

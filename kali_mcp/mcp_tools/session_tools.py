@@ -44,7 +44,22 @@ def register_session_tools(mcp, executor, _ATTACK_SESSIONS, _CURRENT_ATTACK_SESS
         """
         global _CURRENT_ATTACK_SESSION_ID
         import uuid
-        from datetime import datetime
+        from datetime import datetime, timedelta
+
+        # TTL 懒清理: 删除超过1小时的非活跃会话
+        _SESSION_TTL_HOURS = 1
+        _MAX_SESSIONS = 50
+        now = datetime.now()
+        expired = [
+            sid for sid, s in list(_ATTACK_SESSIONS.items())
+            if s.get("status") != "active" and
+            (now - datetime.fromisoformat(s["created_at"])) > timedelta(hours=_SESSION_TTL_HOURS)
+        ]
+        for sid in expired:
+            del _ATTACK_SESSIONS[sid]
+
+        if len(_ATTACK_SESSIONS) >= _MAX_SESSIONS:
+            return {"success": False, "error": f"会话数已达上限 ({_MAX_SESSIONS})，请先关闭旧会话"}
 
         session_id = str(uuid.uuid4())[:8]
         session_name = session_name or f"{mode.upper()}_{target}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"

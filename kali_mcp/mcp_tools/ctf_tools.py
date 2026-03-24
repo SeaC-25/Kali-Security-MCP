@@ -89,7 +89,22 @@ def register_ctf_tools(mcp, executor, _CTF_MODE_ENABLED, _CTF_SESSIONS, _CURRENT
             CTF会话创建结果
         """
         import uuid
-        from datetime import datetime
+        from datetime import datetime, timedelta
+
+        # TTL 懒清理: 删除超过1小时的非活跃CTF会话
+        _SESSION_TTL_HOURS = 1
+        _MAX_CTF_SESSIONS = 20
+        now = datetime.now()
+        expired = [
+            sid for sid, s in list(_CTF_SESSIONS.items())
+            if s.get("status") != "active" and
+            (now - datetime.fromisoformat(s["created_at"])) > timedelta(hours=_SESSION_TTL_HOURS)
+        ]
+        for sid in expired:
+            del _CTF_SESSIONS[sid]
+
+        if len(_CTF_SESSIONS) >= _MAX_CTF_SESSIONS:
+            return {"success": False, "error": f"CTF会话数已达上限 ({_MAX_CTF_SESSIONS})，请先关闭旧会话"}
 
         session_id = str(uuid.uuid4())[:8]
         session = {

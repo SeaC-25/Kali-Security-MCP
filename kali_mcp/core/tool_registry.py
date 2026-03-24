@@ -31,7 +31,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
-from kali_mcp.core.local_executor import (
+from kali_mcp.core.shell_utils import (
     sanitize_shell_arg,
     sanitize_shell_fragment,
     EXEC_CONFIG,
