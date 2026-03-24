@@ -51,4 +51,10 @@ __all__ = [
     "register_llm_react_tools",
     "register_assessment_tools",
     "register_browser_tools",
+    "register_v2_tools",
+    "V2_TOOL_COUNT",
+    "register_v3_tools",
+    "V3_TOOL_COUNT",
+    "register_vulnerability_tools",
+    "VULN_TOOL_COUNT",
 ]
