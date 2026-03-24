@@ -9,7 +9,7 @@ print("=" * 60)
 print("工具路由器测试")
 print("=" * 60)
 
-complex_tools = ["intelligent_ctf_solve", "adaptive_web_penetration", "comprehensive_recon"]
+complex_tools = ["intelligent_ctf_solver", "adaptive_web_penetration", "comprehensive_recon"]
 simple_tools = ["nmap_scan", "gobuster_scan", "sqlmap_scan"]
 
 print(f"\n复杂工具（应该走代理路径）:")
