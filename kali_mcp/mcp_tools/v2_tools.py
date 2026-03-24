@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # 导入核心模块
 try:
-    from .core import (
+    from kali_mcp.core import (
         ULTIMATE_ENGINE_AVAILABLE,
         ORCHESTRATOR_AVAILABLE,
         OPTIMIZER_AVAILABLE,
@@ -35,11 +35,11 @@ try:
         CTF_KNOWLEDGE_BASE_AVAILABLE,
     )
     if ULTIMATE_ENGINE_AVAILABLE:
-        from .core.ultimate_engine import UltimateScanEngine, CTFUltimateSolver, TargetType, ScanPhase, IterationLevel
+        from kali_mcp.core.ultimate_engine import UltimateScanEngine, CTFUltimateSolver, TargetType, ScanPhase, IterationLevel
     if ORCHESTRATOR_AVAILABLE:
-        from .core.tool_orchestrator import ToolOrchestrator, AutoPilotAttack, ToolCategory, TriggerCondition
+        from kali_mcp.core.tool_orchestrator import ToolOrchestrator, AutoPilotAttack, ToolCategory, TriggerCondition
     if OPTIMIZER_AVAILABLE:
-        from .core.result_cache import ScanDeduplicator, SmartScanOptimizer, get_optimizer
+        from kali_mcp.core.result_cache import ScanDeduplicator, SmartScanOptimizer, get_optimizer
 except ImportError as e:
     logger.warning(f"核心模块导入失败: {e}")
     ULTIMATE_ENGINE_AVAILABLE = False
@@ -53,16 +53,16 @@ except ImportError as e:
 # 导入CTF模块 (v2.2) - 从 ctfSolver 借鉴
 try:
     if CTF_POC_ENGINE_AVAILABLE:
-        from .core.ctf_poc_engine import POCScanner, POCManager, get_poc_manager, quick_poc_scan
+        from kali_mcp.core.ctf_poc_engine import POCScanner, POCManager, get_poc_manager, quick_poc_scan
         # 兼容性别名
         scan_with_pocs = quick_poc_scan
     if CTF_AGENT_FRAMEWORK_AVAILABLE:
-        from .core.ctf_agent_framework import CTFCoordinator, create_ctf_coordinator, quick_ctf_solve, FlagDetector
+        from kali_mcp.core.ctf_agent_framework import CTFCoordinator, create_ctf_coordinator, quick_ctf_solve, FlagDetector
         # 兼容性别名
         create_ctf_solver = create_ctf_coordinator
         solve_ctf = quick_ctf_solve
     if CTF_KNOWLEDGE_BASE_AVAILABLE:
-        from .core.ctf_knowledge_base import (
+        from kali_mcp.core.ctf_knowledge_base import (
             CTFKnowledgeBase, KnowledgeDrivenDetector, get_knowledge_base,
             get_payloads, get_flag_getters, detect_flags, suggest_action
         )
@@ -74,17 +74,17 @@ except ImportError as e:
 
 # 导入工具模块
 try:
-    from .tools import (
+    from kali_mcp.tools import (
         AD_TOOLS_AVAILABLE,
         FORENSICS_TOOLS_AVAILABLE,
         MOBILE_TOOLS_AVAILABLE,
     )
     if AD_TOOLS_AVAILABLE:
-        from .tools.ad import ADAttackOrchestrator
+        from kali_mcp.tools.ad import ADAttackOrchestrator
     if FORENSICS_TOOLS_AVAILABLE:
-        from .tools.forensics import FileAnalyzer, SteganographyDetector, MemoryForensics, NetworkForensics, CTFMiscSolver
+        from kali_mcp.tools.forensics import FileAnalyzer, SteganographyDetector, MemoryForensics, NetworkForensics, CTFMiscSolver
     if MOBILE_TOOLS_AVAILABLE:
-        from .tools.mobile import MobileSecurityScanner
+        from kali_mcp.tools.mobile import MobileSecurityScanner
 except ImportError as e:
     logger.warning(f"工具模块导入失败: {e}")
     AD_TOOLS_AVAILABLE = False
