@@ -98,8 +98,10 @@ def _make_task(task_id="t1", priority=5, tool_name="nmap",
 def _make_mock_agent(agent_id="agent_1", supported_tools=None):
     agent = MagicMock()
     agent.agent_id = agent_id
+    _tools = supported_tools or ["nmap", "sqlmap"]
     agent.capabilities = MagicMock()
-    agent.capabilities.supported_tools = supported_tools or ["nmap", "sqlmap"]
+    agent.capabilities.supported_tools = _tools
+    agent.get_supported_tools.return_value = _tools
     return agent
 
 
