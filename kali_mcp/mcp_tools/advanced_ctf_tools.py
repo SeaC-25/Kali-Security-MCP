@@ -14,7 +14,7 @@ from typing import Dict, Any, Optional, List
 logger = logging.getLogger(__name__)
 
 
-def register_advanced_ctf_tools(mcp, executor):
+def register_advanced_ctf_tools(mcp, executor, adapter=None):
     """增强CTF求解和逆向工程工具注册"""
 
     def _detect_flags(text):
@@ -27,8 +27,11 @@ def register_advanced_ctf_tools(mcp, executor):
         return list(set(flags))
 
     def _run_tool(tool_name, params):
-        """安全执行工具并返回结果"""
+        """安全执行工具并返回结果（支持适配器路由）"""
         try:
+            # 如果有适配器且工具应该走代理路径
+            if adapter and adapter.should_use_agent(tool_name, params):
+                return adapter.execute_via_agent(tool_name, params)
             return executor.execute_tool_with_data(tool_name, params)
         except Exception as e:
             logger.warning(f"工具 {tool_name} 执行失败: {e}")

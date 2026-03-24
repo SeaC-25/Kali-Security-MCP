@@ -297,7 +297,29 @@ def setup_mcp_server(
     # 声明使用全局的多智能体系统标志
     global MULTI_AGENT_SYSTEM_AVAILABLE
 
-    mcp = FastMCP("kali-mcp")
+    mcp = FastMCP(
+        "kali-mcp",
+        instructions="""Kali安全测试MCP服务器 - 重要使用规则：
+
+1. 优先使用MCP工具而非bash命令
+   当用户需要执行安全测试时，必须调用本服务器的MCP工具，而非直接运行nmap/curl/gobuster等命令。
+   MCP工具提供：参数安全清理、授权范围校验、结构化输出解析、工具链自动编排。
+
+2. 使用预定义的Skill加速常见任务
+   - /kali-quick-scan <target> - 快速扫描
+   - /kali-web-pentest <url> - Web渗透测试
+   - /kali-ctf-solve <target> - CTF解题
+   - /kali-vuln-assess <target> - 漏洞评估
+   - /kali-net-recon <network> - 网络侦察
+
+3. 工具选择指南
+   - 端口扫描 → nmap_scan (不要用 nmap 命令)
+   - 目录扫描 → gobuster_scan (不要用 gobuster 命令)
+   - 漏洞扫描 → nuclei_scan (不要用 nuclei 命令)
+   - SQL注入 → sqlmap_scan (不要用 sqlmap 命令)
+
+直接运行bash命令会绕过安全机制和结果解析。"""
+    )
     tool_profile = load_tool_profile(
         profile_name=profile_name,
         force_enable=force_enable_modules or [],
@@ -378,6 +400,20 @@ def setup_mcp_server(
             f"multi_agent_enabled={tool_profile.allows('multi_agent')}"
         )
 
+    # ==================== 代理适配器初始化 (v5.0 架构激活) ====================
+    agent_adapter = None
+    if MULTI_AGENT_STATE.get("initialized"):
+        try:
+            from kali_mcp.core.agent_adapter import AgentAdapter
+            agent_adapter = AgentAdapter(
+                executor=executor,
+                coordinator_agent=MULTI_AGENT_STATE.get("multi_agent_coordinator"),
+                agent_registry=MULTI_AGENT_STATE.get("agent_registry")
+            )
+            logger.info("✅ 代理适配器初始化成功 - 复杂工具将通过多智能体协作执行")
+        except Exception as e:
+            logger.warning(f"⚠️ 代理适配器初始化失败: {e}")
+
     # ==================== Kali MCP v3.0 深度挖掘器注册 ====================
     if V3_TOOLS_AVAILABLE and _module_enabled("v3"):
         try:
@@ -398,12 +434,12 @@ def setup_mcp_server(
         except Exception as e:
             logger.warning(f"  ⚠️ {label}注册失败: {e}")
 
-    _safe_register("assessment", "授权评估工具", register_assessment_tools, mcp, executor)
+    _safe_register("assessment", "授权评估工具", register_assessment_tools, mcp, executor, agent_adapter)
     _safe_register("recon", "信息收集工具", register_recon_tools, mcp, executor)
     _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
     _safe_register("code_audit", "代码审计工具", register_code_audit_tools, mcp, executor)
     _safe_register("misc", "杂项工具", register_misc_tools, mcp, executor, _TASKS, _WORKFLOWS)
-    _safe_register("apt", "APT攻击链工具", register_apt_tools, mcp, executor, _ADAPTIVE_ATTACKS)
+    _safe_register("apt", "APT攻击链工具", register_apt_tools, mcp, executor, _ADAPTIVE_ATTACKS, agent_adapter)
     _safe_register(
         "ctf",
         "CTF工具",
@@ -416,10 +452,10 @@ def setup_mcp_server(
         _DETECTED_FLAGS,
         _CTF_CHALLENGES,
     )
-    _safe_register("scan_workflow", "扫描工作流工具", register_scan_workflow_tools, mcp, executor)
-    _safe_register("advanced_ctf", "增强CTF工具", register_advanced_ctf_tools, mcp, executor)
+    _safe_register("scan_workflow", "扫描工作流工具", register_scan_workflow_tools, mcp, executor, agent_adapter)
+    _safe_register("advanced_ctf", "增强CTF工具", register_advanced_ctf_tools, mcp, executor, agent_adapter)
     _safe_register("session", "会话管理工具", register_session_tools, mcp, executor, _ATTACK_SESSIONS, _CURRENT_ATTACK_SESSION_ID)
-    _safe_register("pwn", "PWN工具", register_pwn_tools, mcp, executor)
+    _safe_register("pwn", "PWN工具", register_pwn_tools, mcp, executor, agent_adapter)
     _safe_register("adaptive", "自适应执行工具", register_adaptive_tools, mcp, executor)
     _safe_register("vuln_mgmt", "漏洞管理工具", register_vuln_mgmt_tools, mcp, executor)
     _safe_register("chain_mgmt", "攻击链管理工具", register_chain_mgmt_tools, mcp, executor)

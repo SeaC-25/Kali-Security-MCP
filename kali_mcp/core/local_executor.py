@@ -103,22 +103,29 @@ ALLOWED_TOOLS: Set[str] = {
 
 # v5.1: 可配置执行参数 - 支持环境变量覆盖
 EXEC_CONFIG = {
-    "default_timeout": int(os.environ.get("KALI_MCP_TIMEOUT", "300")),
+    "default_timeout": int(os.environ.get("KALI_MCP_TIMEOUT", "60")),  # 改为60秒
     "nuclei_rate_limit": int(os.environ.get("KALI_MCP_NUCLEI_RATE", "150")),
     "nuclei_timeout": int(os.environ.get("KALI_MCP_NUCLEI_TIMEOUT", "15")),
     "retry_count": int(os.environ.get("KALI_MCP_RETRY_COUNT", "2")),
     "retry_delay": int(os.environ.get("KALI_MCP_RETRY_DELAY", "3")),
     # 工具级超时覆盖
     "tool_timeouts": {
-        "nmap": 600,
-        "masscan": 300,
-        "sqlmap": 600,
-        "nikto": 300,
-        "nuclei": 300,
-        "gobuster": 180,
-        "ffuf": 180,
-        "hydra": 600,
-        "wpscan": 300,
+        # 慢工具 - 保持较长超时
+        "nmap": 180,        # 从600降到180
+        "masscan": 120,     # 从300降到120
+        "sqlmap": 300,      # 从600降到300
+        "hydra": 300,       # 从600降到300
+        # 中速工具
+        "nikto": 120,       # 从300降到120
+        "nuclei": 90,       # 从300降到90
+        "wpscan": 120,      # 从300降到120
+        "gobuster": 90,     # 从180降到90
+        "ffuf": 90,         # 从180降到90
+        # 快速工具
+        "whatweb": 30,
+        "httpx": 30,
+        "subfinder": 60,
+        "amass": 120,
     },
 }
 

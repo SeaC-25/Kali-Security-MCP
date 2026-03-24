@@ -17,7 +17,7 @@ from kali_mcp.core.multi_target import MultiTargetOrchestrator
 logger = logging.getLogger(__name__)
 
 
-def register_pwn_tools(mcp, executor):
+def register_pwn_tools(mcp, executor, adapter=None):
     """PWN自动化和二进制利用工具注册"""
 
     # 实例化多目标编排器
@@ -49,6 +49,12 @@ def register_pwn_tools(mcp, executor):
         """
         if not challenge_hints:
             challenge_hints = []
+
+        if adapter and adapter.should_use_agent("ctf_pwn_solver", {"binary_path": binary_path}):
+            return adapter.execute_via_agent("ctf_pwn_solver", {
+                "binary_path": binary_path, "challenge_name": challenge_name,
+                "challenge_hints": challenge_hints, "time_limit": time_limit
+            })
 
         results = {
             "binary_path": binary_path,
@@ -384,6 +390,12 @@ def register_pwn_tools(mcp, executor):
         """
         if attack_methods is None:
             attack_methods = ["pwnpasi_auto", "ret2libc"]
+
+        if adapter and adapter.should_use_agent("pwn_comprehensive_attack", {"binary_path": binary_path}):
+            return adapter.execute_via_agent("pwn_comprehensive_attack", {
+                "binary_path": binary_path, "attack_methods": attack_methods,
+                "remote_target": remote_target, "timeout": timeout
+            })
 
         results = {
             "binary_path": binary_path,

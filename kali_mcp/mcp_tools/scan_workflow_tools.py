@@ -13,14 +13,17 @@ from typing import Dict, Any, Optional, List
 logger = logging.getLogger(__name__)
 
 
-def register_scan_workflow_tools(mcp, executor):
+def register_scan_workflow_tools(mcp, executor, adapter=None):
     """智能分析和扫描工作流工具注册"""
 
     # ==================== 内部执行辅助函数 ====================
 
     def _run_tool(tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """内部辅助：通过 executor 实际执行 CLI 工具"""
+        """内部辅助：通过 executor 实际执行 CLI 工具（支持适配器路由）"""
         try:
+            # 如果有适配器且工具应该走代理路径
+            if adapter and adapter.should_use_agent(tool_name, data):
+                return adapter.execute_via_agent(tool_name, data)
             result = executor.execute_tool_with_data(tool_name, data)
             return result
         except Exception as e:

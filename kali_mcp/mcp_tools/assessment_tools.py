@@ -514,7 +514,7 @@ def _scope_denied(target: str, reason: str) -> Dict[str, Any]:
     }
 
 
-def register_assessment_tools(mcp, executor):
+def register_assessment_tools(mcp, executor, adapter=None):
     """Register compliance-friendly assessment tools with neutral naming."""
 
     @mcp.tool()
@@ -792,6 +792,13 @@ def register_assessment_tools(mcp, executor):
 
         High-risk phases are gated by engagement_context.allowed_actions.
         """
+        if adapter and adapter.should_use_agent("authorized_comprehensive_security_assessment", {"target": target, "depth": depth}):
+            return adapter.execute_via_agent("authorized_comprehensive_security_assessment", {
+                "target": target, "depth": depth,
+                "include_credential_audit": include_credential_audit,
+                "include_exploitation_validation": include_exploitation_validation,
+            })
+
         started_at = _now_iso()
         normalized_depth = _normalize_depth(depth)
         prepared = _prepare_target(target)
