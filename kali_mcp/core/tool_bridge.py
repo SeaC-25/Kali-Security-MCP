@@ -57,15 +57,15 @@ class ToolBridge:
         from kali_mcp.core.ai_context import AIContextManager
         from kali_mcp.core.ml_optimizer import MLStrategyOptimizer
         try:
-            from kali_mcp.mcp_tools_v2 import register_v2_tools
+            from kali_mcp.mcp_tools.v2_tools import register_v2_tools
         except Exception:
             register_v2_tools = None
         try:
-            from kali_mcp.mcp_tools_v3 import register_v3_tools
+            from kali_mcp.mcp_tools.v3_tools import register_v3_tools
         except Exception:
             register_v3_tools = None
         try:
-            from kali_mcp.vulnerability_tools import register_vulnerability_tools
+            from kali_mcp.mcp_tools.vuln_db_tools import register_vulnerability_tools
         except Exception:
             register_vulnerability_tools = None
 
