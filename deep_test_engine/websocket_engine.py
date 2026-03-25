@@ -18,7 +18,10 @@ import uuid
 
 try:
     import websockets
-    from websockets.client import WebSocketClientProtocol
+    try:
+        from websockets.asyncio.client import ClientConnection as WebSocketClientProtocol
+    except ImportError:
+        from websockets.client import WebSocketClientProtocol  # type: ignore[no-redef]
     WEBSOCKETS_AVAILABLE = True
 except ImportError:
     WEBSOCKETS_AVAILABLE = False
