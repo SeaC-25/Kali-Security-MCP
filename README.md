@@ -547,6 +547,10 @@ Edit configuration file:
 | PWN & Reverse | 20 | pwntools, radare2, ghidra |
 | Intelligent Tools | 58 | AI-powered automation |
 
+### 🙏 Acknowledgments
+
+- **[pwnpasi](https://github.com/heimao-box/pwnpasi)** — 本项目集成了 pwnpasi 自动化二进制漏洞利用框架，用于 PWN 题目的自动化分析和利用（ROP 技术分析、堆漏洞检测、模糊测试、符号执行等）。感谢原作者的出色工作。
+
 ### 📄 License
 
 MIT License - See [LICENSE](LICENSE) for details.
