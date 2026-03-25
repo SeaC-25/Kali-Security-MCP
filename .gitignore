@@ -62,3 +62,4 @@ web_ui.pid
 data/
 reports/
 .augment/
+__pycache__/
