@@ -529,7 +529,7 @@ class TacticalDecisionModel(DecisionModel):
             # 查找有此工具能力的智能体
             capable_agents = [
                 agent for agent in context.available_agents
-                if task.tool_name in agent.capabilities.supported_tools
+                if task.tool_name in agent.get_supported_tools()
             ]
 
             if capable_agents:

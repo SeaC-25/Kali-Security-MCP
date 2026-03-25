@@ -245,6 +245,12 @@ class SessionContext:
         return ctx
 
 
+# 会话TTL：超过此时间未更新的ACTIVE会话将被自动清理（4小时）
+SESSION_TTL = 4 * 3600
+# 清理检查间隔（10分钟）
+_CLEANUP_INTERVAL = 600
+
+
 class SessionManager:
     """会话管理器 - 管理多个攻击会话"""
 
@@ -265,7 +271,40 @@ class SessionManager:
         else:
             self._storage_path = None
 
+        # 启动后台TTL清理线程
+        self._start_cleanup_thread()
+
         logger.info("SessionManager初始化完成")
+
+    def _start_cleanup_thread(self):
+        """启动后台会话过期清理线程"""
+        t = threading.Thread(target=self._cleanup_loop, daemon=True)
+        t.start()
+
+    def _cleanup_loop(self):
+        """定期清理过期会话"""
+        import time as _time
+        while True:
+            _time.sleep(_CLEANUP_INTERVAL)
+            self._cleanup_expired_sessions()
+
+    def _cleanup_expired_sessions(self):
+        """清理超过TTL且处于ACTIVE状态的过期会话"""
+        now = time.time()
+        expired = []
+        with self._lock:
+            for sid, session in self._sessions.items():
+                if (
+                    session.status == SessionStatus.ACTIVE
+                    and now - session.updated_at > SESSION_TTL
+                ):
+                    expired.append(sid)
+            for sid in expired:
+                session = self._sessions.pop(sid)
+                session.status = SessionStatus.COMPLETED
+                if self._current_session_id == sid:
+                    self._current_session_id = None
+                logger.info(f"TTL过期，自动清理会话: {sid} (target={session.target})")
 
     def create_session(
         self,

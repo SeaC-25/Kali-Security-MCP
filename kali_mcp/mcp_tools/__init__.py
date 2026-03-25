@@ -22,6 +22,9 @@ from .chain_mgmt_tools import register_chain_mgmt_tools
 from .pentagi_bridge_tools import register_pentagi_bridge_tools
 from .llm_react_tools import register_llm_react_tools
 from .assessment_tools import register_assessment_tools
+from .v2_tools import register_v2_tools, V2_TOOL_COUNT
+from .v3_tools import register_v3_tools, V3_TOOL_COUNT
+from .vuln_db_tools import register_vulnerability_tools, VULN_TOOL_COUNT
 
 try:
     from .browser_tools import register_browser_tools
@@ -48,4 +51,10 @@ __all__ = [
     "register_llm_react_tools",
     "register_assessment_tools",
     "register_browser_tools",
+    "register_v2_tools",
+    "V2_TOOL_COUNT",
+    "register_v3_tools",
+    "V3_TOOL_COUNT",
+    "register_vulnerability_tools",
+    "VULN_TOOL_COUNT",
 ]

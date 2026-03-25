@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 logger = logging.getLogger(__name__)
 
 
-def register_apt_tools(mcp, executor, _ADAPTIVE_ATTACKS):
+def register_apt_tools(mcp, executor, _ADAPTIVE_ATTACKS, adapter=None):
     """APT攻击链和自适应攻击工具注册"""
 
     # ==================== APT攻击链工具 ====================
@@ -30,6 +30,14 @@ def register_apt_tools(mcp, executor, _ADAPTIVE_ATTACKS):
         Returns:
             APT攻击链工作流ID和状态
         """
+        # 如果有适配器，尝试通过代理执行
+        if adapter and adapter.should_use_agent("submit_apt_attack_chain", {"target": target}):
+            return adapter.execute_via_agent("submit_apt_attack_chain", {
+                "target": target,
+                "target_info": target_info,
+                "attack_objective": attack_objective
+            })
+
         import uuid
         attack_id = str(uuid.uuid4())[:8]
         results = {"phases": []}

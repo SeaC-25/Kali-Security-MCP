@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **MCP-Kali-Server** is an MCP (Model Context Protocol) server that bridges AI agents with 200+ Kali Linux security tools. It supports penetration testing, CTF competitions, and security assessments through intelligent tool orchestration.
 
-**Architecture**: v5.0 modular architecture. The system runs in **local execution mode** — `mcp_server.py` calls Kali tools directly via `subprocess`, no backend server needed.
+**Architecture**: v6.0 modular architecture. The system runs in **local execution mode** — `mcp_server.py` calls Kali tools directly via `subprocess`, no backend server needed. Core components: declarative `tool_registry`, structured `output_parsers`, `hybrid_decision_engine` for multi-agent routing, and session TTL auto-cleanup.
 
 ## Running the System
 

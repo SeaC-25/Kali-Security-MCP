@@ -289,8 +289,8 @@ class TestRegisterAllTools:
                     # This should not raise even though recon_tools fails
                     bridge = ToolBridge(executor=exe)
 
-                # system_tools should still have been called
-                mock_fns["register_system_tools"].assert_called_once()
+                # code_audit_tools comes after the failing recon_tools and should still run
+                mock_fns["register_code_audit_tools"].assert_called_once()
 
 
 # =====================================================================

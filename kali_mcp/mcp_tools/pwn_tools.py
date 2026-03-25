@@ -17,7 +17,7 @@ from kali_mcp.core.multi_target import MultiTargetOrchestrator
 logger = logging.getLogger(__name__)
 
 
-def register_pwn_tools(mcp, executor):
+def register_pwn_tools(mcp, executor, adapter=None):
     """PWN自动化和二进制利用工具注册"""
 
     # 实例化多目标编排器
@@ -49,6 +49,12 @@ def register_pwn_tools(mcp, executor):
         """
         if not challenge_hints:
             challenge_hints = []
+
+        if adapter and adapter.should_use_agent("ctf_pwn_solver", {"binary_path": binary_path}):
+            return adapter.execute_via_agent("ctf_pwn_solver", {
+                "binary_path": binary_path, "challenge_name": challenge_name,
+                "challenge_hints": challenge_hints, "time_limit": time_limit
+            })
 
         results = {
             "binary_path": binary_path,
@@ -385,6 +391,12 @@ def register_pwn_tools(mcp, executor):
         if attack_methods is None:
             attack_methods = ["pwnpasi_auto", "ret2libc"]
 
+        if adapter and adapter.should_use_agent("pwn_comprehensive_attack", {"binary_path": binary_path}):
+            return adapter.execute_via_agent("pwn_comprehensive_attack", {
+                "binary_path": binary_path, "attack_methods": attack_methods,
+                "remote_target": remote_target, "timeout": timeout
+            })
+
         results = {
             "binary_path": binary_path,
             "attack_methods": attack_methods,
@@ -599,3 +611,136 @@ def register_pwn_tools(mcp, executor):
                 "error": str(e),
                 "message": "批量执行失败"
             }
+
+    # ==================== pwnpasi 高级模块直接整合 ====================
+
+    # 延迟导入，避免 pwntools 不可用时阻断整个模块加载
+    try:
+        from pwnpasi.advanced_rop import analyze_rop_techniques
+        _ROP_AVAILABLE = True
+    except ImportError:
+        _ROP_AVAILABLE = False
+
+    try:
+        from pwnpasi.auto_fuzzing import quick_fuzz_check
+        _FUZZ_AVAILABLE = True
+    except ImportError:
+        _FUZZ_AVAILABLE = False
+
+    try:
+        from pwnpasi.symbolic_analysis import quick_symbolic_analysis
+        _SYMBOLIC_AVAILABLE = True
+    except ImportError:
+        _SYMBOLIC_AVAILABLE = False
+
+    try:
+        from pwnpasi.heap_exploit import detect_heap_vulnerability
+        _HEAP_AVAILABLE = True
+    except ImportError:
+        _HEAP_AVAILABLE = False
+
+    @mcp.tool()
+    def pwn_rop_analyze(binary_path: str) -> Dict[str, Any]:
+        """
+        高级ROP技术分析 - 直接调用 pwnpasi.advanced_rop
+
+        分析二进制文件支持的ROP利用技术：
+        - SROP (Sigreturn Oriented Programming)
+        - ret2csu (通用gadget利用)
+        - ret2dlresolve (无需泄露libc)
+        - Stack Pivot / BROP辅助
+
+        Args:
+            binary_path: 二进制文件路径
+
+        Returns:
+            ROP技术分析结果和推荐利用方式
+        """
+        if not _ROP_AVAILABLE:
+            return {"success": False, "error": "pwnpasi.advanced_rop 不可用（需要 pwntools）"}
+        if not os.path.exists(binary_path):
+            return {"success": False, "error": f"文件不存在: {binary_path}"}
+        try:
+            result = analyze_rop_techniques(binary_path)
+            return {"success": True, "binary": binary_path, "rop_analysis": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    def pwn_fuzz_check(binary_path: str) -> Dict[str, Any]:
+        """
+        快速Fuzzing检测 - 直接调用 pwnpasi.auto_fuzzing
+
+        对二进制文件执行快速模糊测试检测：
+        - 基于变异的输入生成
+        - 崩溃检测和分类
+        - 漏洞点初步定位
+
+        Args:
+            binary_path: 二进制文件路径
+
+        Returns:
+            Fuzzing检测结果，包含崩溃信息和漏洞线索
+        """
+        if not _FUZZ_AVAILABLE:
+            return {"success": False, "error": "pwnpasi.auto_fuzzing 不可用"}
+        if not os.path.exists(binary_path):
+            return {"success": False, "error": f"文件不存在: {binary_path}"}
+        try:
+            result = quick_fuzz_check(binary_path)
+            return {"success": True, "binary": binary_path, "fuzz_result": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    def pwn_symbolic_explore(binary_path: str, target_function: str = "") -> Dict[str, Any]:
+        """
+        符号执行分析 - 直接调用 pwnpasi.symbolic_analysis
+
+        对二进制文件执行符号执行分析：
+        - 路径探索和约束求解
+        - 自动生成触发漏洞的输入
+        - 辅助CTF逆向题求解
+
+        Args:
+            binary_path: 二进制文件路径
+            target_function: 目标函数名（可选，留空则分析main）
+
+        Returns:
+            符号执行分析结果
+        """
+        if not _SYMBOLIC_AVAILABLE:
+            return {"success": False, "error": "pwnpasi.symbolic_analysis 不可用"}
+        if not os.path.exists(binary_path):
+            return {"success": False, "error": f"文件不存在: {binary_path}"}
+        try:
+            result = quick_symbolic_analysis(binary_path)
+            return {"success": True, "binary": binary_path, "symbolic_result": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    def pwn_heap_analyze(binary_path: str) -> Dict[str, Any]:
+        """
+        堆漏洞分析 - 直接调用 pwnpasi.heap_exploit
+
+        分析二进制文件的堆利用可能性：
+        - Fastbin/Tcache攻击检测
+        - House of Force/Spirit/Orange等
+        - Off-by-one/Off-by-null漏洞识别
+
+        Args:
+            binary_path: 二进制文件路径
+
+        Returns:
+            堆漏洞分析结果和推荐利用技术
+        """
+        if not _HEAP_AVAILABLE:
+            return {"success": False, "error": "pwnpasi.heap_exploit 不可用（需要 pwntools）"}
+        if not os.path.exists(binary_path):
+            return {"success": False, "error": f"文件不存在: {binary_path}"}
+        try:
+            result = detect_heap_vulnerability(binary_path)
+            return {"success": True, "binary": binary_path, "heap_analysis": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
