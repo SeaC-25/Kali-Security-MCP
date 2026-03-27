@@ -164,9 +164,9 @@ class AdaptiveRateLimiter:
 
     def __init__(
         self,
-        initial_rate: float = 10.0,  # 初始每秒请求数
-        min_rate: float = 1.0,
-        max_rate: float = 100.0,
+        initial_rate: float = 50.0,  # 初始每秒请求数
+        min_rate: float = 5.0,
+        max_rate: float = 200.0,
         adjustment_factor: float = 0.1
     ):
         self.current_rate = initial_rate
@@ -183,15 +183,16 @@ class AdaptiveRateLimiter:
 
     def acquire(self):
         """获取执行许可"""
+        # 先在锁内计算需要等待的时间，然后释放锁再 sleep
+        # 避免持锁 sleep 导致所有并发调用串行排队
         with self.lock:
             now = time.time()
             interval = 1.0 / self.current_rate
             wait_time = self.last_request_time + interval - now
+            self.last_request_time = now + max(wait_time, 0)
 
-            if wait_time > 0:
-                time.sleep(wait_time)
-
-            self.last_request_time = time.time()
+        if wait_time > 0:
+            time.sleep(wait_time)
 
     def report_success(self):
         """报告成功执行"""

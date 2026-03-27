@@ -214,7 +214,7 @@ def setup_mcp_server(
     """
     # 创建全局本地命令执行器
     global executor
-    executor = LocalCommandExecutor(timeout=300)
+    executor = LocalCommandExecutor(timeout=60)
     logger.info("本地命令执行器已初始化")
 
     # ==================== v5.1: 统一事件总线初始化 ====================
@@ -403,6 +403,21 @@ def setup_mcp_server(
             logger.info("✅ 代理适配器初始化成功 - 复杂工具将通过多智能体协作执行")
         except Exception as e:
             logger.warning(f"⚠️ 代理适配器初始化失败: {e}")
+
+    # ==================== 双层并行调度器初始化 (v7.0) ====================
+    try:
+        from kali_mcp.core.parallel_dispatcher import make_parallel_execute
+        _coordinator = MULTI_AGENT_STATE.get("multi_agent_coordinator") if MULTI_AGENT_STATE.get("initialized") else None
+        _pool, _agent_exec, _parallel_execute = make_parallel_execute(
+            orig_fn=executor.execute_tool_with_data,
+            coordinator=_coordinator,
+            max_workers=32,
+        )
+        # 用并行版本替换 executor 的调用入口
+        executor.execute_tool_with_data = _parallel_execute
+        logger.info(f"✅ 双层并行调度器已就绪 (workers=32, coordinator={'绑定' if _coordinator else '未绑定'})")
+    except Exception as e:
+        logger.warning(f"⚠️ 并行调度器初始化失败，回退到串行执行: {e}")
 
     # ==================== Kali MCP v3.0 深度挖掘器注册 ====================
     if V3_TOOLS_AVAILABLE and _module_enabled("v3"):

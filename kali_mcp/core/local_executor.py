@@ -103,7 +103,7 @@ def validate_tool_name(name: str) -> bool:
 class LocalCommandExecutor:
     """本地命令执行器 - 直接使用subprocess执行Kali工具"""
 
-    def __init__(self, timeout: int = 300, working_dir: str = None):
+    def __init__(self, timeout: int = 60, working_dir: str = None):
         """
         初始化本地命令执行器
 
@@ -126,7 +126,7 @@ class LocalCommandExecutor:
         Returns:
             执行结果字典
         """
-        cmd_timeout = timeout or self.timeout
+        cmd_timeout = timeout if timeout is not None else self.timeout
 
         # 合规策略 - 授权范围门禁
         if engagement_manager is not None:

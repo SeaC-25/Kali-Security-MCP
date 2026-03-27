@@ -323,7 +323,7 @@ def register_pwn_tools(mcp, executor, adapter=None):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5分钟超时
+                timeout=120,  # 2分钟超时
                 cwd=os.path.dirname(binary_path) if os.path.dirname(binary_path) else None
             )
 

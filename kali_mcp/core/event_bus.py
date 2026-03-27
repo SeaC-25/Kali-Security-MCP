@@ -23,6 +23,7 @@
 import logging
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Callable, List, Optional
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -65,9 +66,12 @@ class EventBus:
     def __init__(self):
         self._subscriptions: Dict[str, List[Subscription]] = defaultdict(list)
         self._lock = threading.Lock()
+        self._stats_lock = threading.Lock()
         self._event_history: List[Event] = []
         self._max_history = 500  # 保留最近500个事件
         self._stats = defaultdict(lambda: {"emitted": 0, "handled": 0, "errors": 0, "timeouts": 0})
+        # 后台线程池：handler 异步执行，不阻塞 emit 调用方
+        self._pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="evbus")
 
     def subscribe(self, event_pattern: str, handler: Callable,
                   subscriber_name: str = "", priority: int = 0):
@@ -120,27 +124,15 @@ class EventBus:
         if len(self._event_history) > self._max_history:
             self._event_history = self._event_history[-self._max_history:]
 
-        self._stats[event_type]["emitted"] += 1
+        with self._stats_lock:
+            self._stats[event_type]["emitted"] += 1
 
         # 找到所有匹配的订阅
         matched_subs = self._match_subscriptions(event_type)
 
+        # fire-and-forget：提交到后台线程池，不阻塞调用方
         for sub in matched_subs:
-            try:
-                self._execute_handler(sub, event)
-                self._stats[event_type]["handled"] += 1
-            except TimeoutError:
-                self._stats[event_type]["timeouts"] += 1
-                logger.warning(
-                    f"EventBus: handler '{sub.subscriber_name}' timed out "
-                    f"for event '{event_type}'"
-                )
-            except Exception as e:
-                self._stats[event_type]["errors"] += 1
-                logger.error(
-                    f"EventBus: handler '{sub.subscriber_name}' failed "
-                    f"for event '{event_type}': {e}"
-                )
+            self._pool.submit(self._run_handler, sub, event, event_type)
 
     def _match_subscriptions(self, event_type: str) -> List[Subscription]:
         """匹配事件模式"""
@@ -170,9 +162,19 @@ class EventBus:
             return event_type.startswith(prefix + ".")
         return False
 
+    def _run_handler(self, sub: Subscription, event: Event, event_type: str):
+        """在线程池中异步执行 handler，更新统计，不阻塞 emit 调用方"""
+        try:
+            sub.handler(event)
+            with self._stats_lock:
+                self._stats[event_type]["handled"] += 1
+        except Exception as e:
+            with self._stats_lock:
+                self._stats[event_type]["errors"] += 1
+            logger.debug(f"EventBus: handler '{sub.subscriber_name}' error for '{event_type}': {e}")
+
     def _execute_handler(self, sub: Subscription, event: Event):
-        """执行handler，带超时保护"""
-        # 使用线程实现超时
+        """执行handler，带超时保护（保留供外部直接调用）"""
         result = {"error": None}
 
         def run():

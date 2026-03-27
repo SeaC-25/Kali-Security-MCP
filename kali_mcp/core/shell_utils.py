@@ -33,7 +33,7 @@ EXEC_CONFIG = {
     "default_timeout": int(os.environ.get("KALI_MCP_TIMEOUT", "60")),
     "nuclei_rate_limit": int(os.environ.get("KALI_MCP_NUCLEI_RATE", "150")),
     "nuclei_timeout": int(os.environ.get("KALI_MCP_NUCLEI_TIMEOUT", "15")),
-    "retry_count": int(os.environ.get("KALI_MCP_RETRY_COUNT", "2")),
+    "retry_count": int(os.environ.get("KALI_MCP_RETRY_COUNT", "0")),
     "retry_delay": int(os.environ.get("KALI_MCP_RETRY_DELAY", "3")),
     "tool_timeouts": {
         "nmap": 180,
