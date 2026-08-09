@@ -1,6 +1,6 @@
 # Kali MCP Baseline Report
 
-- Generated (UTC): 2026-08-09T05:17:05+00:00
+- Generated (UTC): 2026-08-09T05:21:59+00:00
 - Repo root: `F:/springInFer-skill/Kali-Security-MCP-main/Kali-Security-MCP-main`
 
 ## Registered tools

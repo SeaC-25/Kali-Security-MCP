@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-08-09T05:58:36+00:00",
+  "keep_set_size": 26,
+  "keep_set": [
+    "comprehensive_recon",
+    "enum4linux_scan",
+    "ffuf_scan",
+    "gobuster_scan",
+    "hashcat_crack",
+    "hydra_attack",
+    "john_crack",
+    "kali_run",
+    "list_attack_sessions",
+    "masscan_fast_scan",
+    "metasploit_run",
+    "nikto_scan",
+    "nmap_scan",
+    "nuclei_scan",
+    "pwnpasi_auto_pwn",
+    "quick_pwn_check",
+    "run_surface_chain",
+    "searchsploit_search",
+    "server_health",
+    "sqlmap_scan",
+    "start_attack_session",
+    "start_task",
+    "subfinder_scan",
+    "task_status",
+    "verify_finding",
+    "whatweb_scan"
+  ],
+  "tool_availability": {
+    "whatweb": false,
+    "nmap": false
+  },
+  "tasks": [
+    {
+      "task": "http_recon",
+      "tool": "whatweb_scan",
+      "success": false,
+      "status": "skipped-binary-missing",
+      "tt_wall_s": 0.0,
+      "tool_calls": 0,
+      "tokens_est": 108,
+      "note": "binary 'whatweb' not found on this host"
+    },
+    {
+      "task": "port_scan",
+      "tool": "nmap_scan",
+      "success": false,
+      "status": "skipped-binary-missing",
+      "tt_wall_s": 0.0,
+      "tool_calls": 0,
+      "tokens_est": 248,
+      "note": "binary 'nmap' not found on this host"
+    },
+    {
+      "task": "server_health",
+      "tool": "server_health",
+      "success": true,
+      "status": "ok",
+      "tt_wall_s": 0.0,
+      "tool_calls": 1,
+      "tokens_est": 44,
+      "note": "本地执行模式"
+    }
+  ],
+  "summary": {
+    "ok": 1,
+    "skipped_binary_missing": 2,
+    "failed": 0,
+    "total_tt_wall_s": 0.0
+  },
+  "verdict": "B >= A: keep-set capability intact (see skipped tasks)"
+}
