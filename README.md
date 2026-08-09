@@ -6,11 +6,11 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Protocol-00D4AA?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Tools](https://img.shields.io/badge/Tools-193-orange?style=for-the-badge)
+![Tools](https://img.shields.io/badge/MCP_Tools-Registered-orange?style=for-the-badge)
 
 **🤖 AI 驱动的智能渗透测试框架**
 
-*通过 MCP 协议将 193 个 Kali Linux 安全工具与 AI 无缝集成*
+*通过 MCP 协议将已注册的 Kali Linux 安全工具（数量以启动时注册表为准）与 AI 无缝集成*
 
 [English](#english) | [中文](#中文)
 
@@ -22,13 +22,17 @@
 
 ### 🎯 简介
 
-Kali MCP Server 是一个基于 Model Context Protocol (MCP) 的智能安全测试框架（**v6.0**），将 Kali Linux 的 **200+ 个**专业安全工具与 AI 助手（如 Claude）深度集成。支持自动化渗透测试、CTF 竞赛解题、漏洞评估等场景。
+Kali MCP Server 是一个基于 Model Context Protocol (MCP) 的智能安全测试框架（**v6.0**），将 Kali Linux 的 **已注册 MCP 工具**（实际数量以启动时注册为准）与 AI 助手（如 Claude）深度集成。支持自动化渗透测试、CTF 竞赛解题、漏洞评估等场景。
+
+### 📌 现状 (Status)
+
+工具面正在整合收敛中（见 `PLAN_2026-08-09_kali_orchestrate_fusion.md`）；依赖 Agent/LLM 密钥的模块（如 `llm_react`、`ai_session`）按条件加载，实际注册的工具数随配置变化，以启动时的注册表为准。
 
 ### ✨ 核心特性
 
 | 特性 | 说明 |
 |------|------|
-| **200+ 安全工具** | 涵盖信息收集、漏洞扫描、密码攻击、Web 测试、PWN 等 |
+| **已注册 MCP 工具** | 涵盖信息收集、漏洞扫描、密码攻击、Web 测试、PWN 等 |
 | **声明式工具注册表** | v6.0 重构：消灭 elif 地狱，统一工具路由 |
 | **结构化输出解析** | Nmap/Gobuster/Nuclei 等关键工具结果智能解析 |
 | **多智能体协作** | 19 个复杂工具通过 Agent 协作执行，支持任务分发 |
@@ -67,7 +71,7 @@ MCP-Kali-Server/
 │   ├── auto_fuzzing.py        # 自动模糊测试
 │   ├── symbolic_analysis.py   # 符号执行 (angr)
 │   └── pwn_suite.py           # 综合利用套件
-├── tests/                     # 测试套件 (7576 个测试)
+├── tests/                     # 测试套件 (224 个测试函数)
 ├── status_check.py            # 系统状态检查
 └── connection_pool.py         # 连接池
 ```
@@ -95,19 +99,26 @@ pip install -r requirements.txt --break-system-packages
 # 3. 验证系统状态
 python status_check.py
 
-# 4. 启动服务
-python mcp_server.py --tool-profile compliance
+# 4. 启动服务（默认档位 harness，可用 --tool-profile 或环境变量覆盖）
+python mcp_server.py
 ```
 
 ---
 
-#### 合规自动化模式（推荐）
+#### 工具档位（Profile）
 
-为减少模型误拒并确保授权边界清晰，建议默认使用合规档位并配置授权上下文：
+代码默认档位为 `harness`（见 `kali_mcp/security/tool_profile.py`），仅暴露编排核心工具面；可通过环境变量或命令行参数覆盖：
 
 ```bash
-# 默认全面合规档位（推荐，大部分模块可用）
+# 默认：harness（无需显式指定）
+python mcp_server.py
+
+# 覆盖档位：环境变量方式
 export KALI_MCP_TOOL_PROFILE=compliance
+python mcp_server.py
+
+# 覆盖档位：命令行方式
+python mcp_server.py --tool-profile compliance
 
 # 可选：要求必须先加载授权上下文
 export KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT=1
@@ -118,13 +129,19 @@ export KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT=1
 
 #### 真实目标授权执行 Runbook
 
-以下流程用于“真实目标且已授权”的完整评估执行，默认采用 `compliance` 获取全面工具能力：
+以下流程用于“真实目标且已授权”的完整评估执行，默认档位为 `harness`；需要更完整工具面时通过环境变量或参数覆盖为 `compliance`：
 
 1. 设置工具档位并启动服务
 
 ```bash
-export KALI_MCP_TOOL_PROFILE=compliance
 export KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT=1
+python mcp_server.py
+```
+
+需要全面工具面时（覆盖默认档位）：
+
+```bash
+export KALI_MCP_TOOL_PROFILE=compliance
 python mcp_server.py --tool-profile compliance
 ```
 
@@ -425,7 +442,7 @@ PORT    STATE SERVICE
 ### 🧪 运行测试
 
 ```bash
-# 运行所有测试 (63 个)
+# 运行所有测试 (224 个)
 pytest
 
 # 运行特定测试
@@ -459,13 +476,17 @@ pytest -m "not slow"
 
 ### 🎯 Introduction
 
-Kali MCP Server is an intelligent security testing framework based on Model Context Protocol (MCP) (**v6.0**), deeply integrating **200+** professional security tools from Kali Linux with AI assistants like Claude. It supports automated penetration testing, CTF challenge solving, vulnerability assessment, and more.
+Kali MCP Server is an intelligent security testing framework based on Model Context Protocol (MCP) (**v6.0**), deeply integrating **registered MCP tools** (count is what the registry reports at startup) from Kali Linux with AI assistants like Claude. It supports automated penetration testing, CTF challenge solving, vulnerability assessment, and more.
+
+### 📌 Status
+
+The tool surface is being consolidated (see `PLAN_2026-08-09_kali_orchestrate_fusion.md`). Agent/LLM-key-dependent modules (e.g. `llm_react`, `ai_session`) load conditionally, so the number of registered tools varies with configuration; the registry at startup is authoritative.
 
 ### ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
-| **200+ Security Tools** | Covering reconnaissance, vulnerability scanning, password attacks, web testing, PWN, etc. |
+| **Registered MCP Tools** | Covering reconnaissance, vulnerability scanning, password attacks, web testing, PWN, etc. |
 | **Declarative Tool Registry** | v6.0 refactor: unified tool routing, no more elif chains |
 | **Structured Output Parsing** | Intelligent result parsing for Nmap, Gobuster, Nuclei, and more |
 | **Multi-Agent Collaboration** | 19 complex tools executed via agent cooperation with task dispatch |
