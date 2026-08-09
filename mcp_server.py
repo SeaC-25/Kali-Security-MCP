@@ -9,6 +9,7 @@ import os
 import argparse
 import logging
 import shlex
+import unicodedata
 from typing import Dict, Any, Optional, List, Set, Tuple
 import time
 import json
@@ -157,7 +158,9 @@ _CTF_CHALLENGES = {}
 ai_context_manager = AIContextManager()
 
 # Default configuration
-DEFAULT_KALI_SERVER = "http://192.168.2.66:5000"  # 固定的Kali攻击机IP地址
+# 注意: 已移除硬编码的远程 Kali API 地址。执行后端 (local/ssh/docker)
+# 由 kali_mcp.core.backend.resolve_backend() 在启动时动态解析。
+from kali_mcp.core.backend import resolve_backend  # noqa: E402
 DEFAULT_REQUEST_TIMEOUT = 10  # 10 seconds ultra fast timeout for API requests
 
 # ==================== MCP工具注册模块导入 (v5.0 模块化) ====================
@@ -471,8 +474,8 @@ adaptive_execution_engine = AdaptiveExecutionEngine()
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Run the Kali MCP Server")
-    parser.add_argument("--server", type=str, default=DEFAULT_KALI_SERVER,
-                      help=f"Kali API server URL (default: {DEFAULT_KALI_SERVER})")
+    parser.add_argument("--server", type=str, default=None,
+                      help="Kali API server URL (legacy, optional; execution backend is auto-detected via resolve_backend)")
     parser.add_argument("--timeout", type=int, default=DEFAULT_REQUEST_TIMEOUT,
                       help=f"Request timeout in seconds (default: {DEFAULT_REQUEST_TIMEOUT})")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
@@ -513,6 +516,29 @@ def main():
     # 解析命令行参数
     args = parse_args()
 
+    # 启动时解析一次执行后端 (local/ssh/docker) - 失败绝不阻塞服务器启动
+    try:
+        backend_info = resolve_backend()
+        _backend_mode = backend_info.get("mode", "unknown")
+        _detected = backend_info.get("detected_tools", [])
+        if _backend_mode == "local":
+            _backend_label = f"local (本地检测到 {len(_detected)} 个工具)"
+        elif _backend_mode == "ssh":
+            _backend_label = "ssh (已配置远程主机)"
+        elif _backend_mode == "docker":
+            _backend_label = "docker (容器执行)"
+        else:
+            _backend_label = "unavailable (未检测到执行后端)"
+        logger.info(f"⚡ 执行后端: {_backend_mode} - {backend_info.get('details', '')}")
+    except Exception as e:  # noqa: BLE001 - 后端解析失败不应阻塞服务器
+        logger.warning(f"⚠️ 执行后端解析失败: {e}")
+        _backend_label = "unknown (解析失败)"
+    # 按终端显示宽度 (73 列) 填充横幅内容，保持框线对齐
+    _backend_line_content = "  ⚡ 执行后端: " + _backend_label
+    _backend_pad = 73 - sum(2 if unicodedata.east_asian_width(c) in "WF" else 1
+                            for c in _backend_line_content)
+    backend_banner_line = _backend_line_content + " " * max(0, _backend_pad)
+
     # 根据传输模式显示不同的横幅
     if args.transport == "sse":
         banner = f"""
@@ -522,6 +548,7 @@ def main():
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║                                                                         ║
 ║  🌐 运行模式: SSE 远程访问模式 (REMOTE ACCESS MODE)                     ║
+║{backend_banner_line}║
 ║                                                                         ║
 ║  ✅ HTTP服务: 监听 http://{args.host}:{args.port}                       ║
 ║  ✅ 远程连接: 外部AI可通过SSE协议连接                                   ║
@@ -541,6 +568,7 @@ def main():
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║                                                                         ║
 ║  🟢 运行模式: 本地执行模式 (LOCAL EXECUTION MODE)                       ║
+║{backend_banner_line}║
 ║                                                                         ║
 ║  ✅ 直接执行: 通过subprocess调用本地安全工具                            ║
 ║  ✅ 无需后端: 不需要启动kali_server.py                                 ║
