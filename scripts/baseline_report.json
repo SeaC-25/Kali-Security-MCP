@@ -1,0 +1,1515 @@
+{
+  "generated_at": "2026-08-09T05:17:05+00:00",
+  "repo_root": "F:/springInFer-skill/Kali-Security-MCP-main/Kali-Security-MCP-main",
+  "tool_count": 192,
+  "modules": 19,
+  "module_breakdown": {
+    "__init__.py": {
+      "tool_count": 0,
+      "schema_bytes": 0
+    },
+    "adaptive_tools.py": {
+      "tool_count": 5,
+      "schema_bytes": 1689
+    },
+    "advanced_ctf_tools.py": {
+      "tool_count": 4,
+      "schema_bytes": 1102
+    },
+    "ai_tools.py": {
+      "tool_count": 21,
+      "schema_bytes": 9860
+    },
+    "apt_tools.py": {
+      "tool_count": 12,
+      "schema_bytes": 6201
+    },
+    "assessment_tools.py": {
+      "tool_count": 11,
+      "schema_bytes": 2926
+    },
+    "browser_tools.py": {
+      "tool_count": 12,
+      "schema_bytes": 7875
+    },
+    "chain_mgmt_tools.py": {
+      "tool_count": 4,
+      "schema_bytes": 1629
+    },
+    "code_audit_tools.py": {
+      "tool_count": 6,
+      "schema_bytes": 3330
+    },
+    "ctf_tools.py": {
+      "tool_count": 8,
+      "schema_bytes": 3006
+    },
+    "deep_test_tools.py": {
+      "tool_count": 28,
+      "schema_bytes": 14932
+    },
+    "harness_tools.py": {
+      "tool_count": 18,
+      "schema_bytes": 5301
+    },
+    "llm_react_tools.py": {
+      "tool_count": 1,
+      "schema_bytes": 984
+    },
+    "misc_tools.py": {
+      "tool_count": 19,
+      "schema_bytes": 8496
+    },
+    "pentagi_bridge_tools.py": {
+      "tool_count": 9,
+      "schema_bytes": 1785
+    },
+    "pwn_tools.py": {
+      "tool_count": 12,
+      "schema_bytes": 6995
+    },
+    "recon_tools.py": {
+      "tool_count": 9,
+      "schema_bytes": 4806
+    },
+    "session_tools.py": {
+      "tool_count": 8,
+      "schema_bytes": 2738
+    },
+    "vuln_mgmt_tools.py": {
+      "tool_count": 5,
+      "schema_bytes": 2455
+    }
+  },
+  "schema_byte_estimate": {
+    "total_bytes": 86110,
+    "tools_measured": 192,
+    "per_module": {
+      "__init__.py": 0,
+      "adaptive_tools.py": 1689,
+      "advanced_ctf_tools.py": 1102,
+      "ai_tools.py": 9860,
+      "apt_tools.py": 6201,
+      "assessment_tools.py": 2926,
+      "browser_tools.py": 7875,
+      "chain_mgmt_tools.py": 1629,
+      "code_audit_tools.py": 3330,
+      "ctf_tools.py": 3006,
+      "deep_test_tools.py": 14932,
+      "harness_tools.py": 5301,
+      "llm_react_tools.py": 984,
+      "misc_tools.py": 8496,
+      "pentagi_bridge_tools.py": 1785,
+      "pwn_tools.py": 6995,
+      "recon_tools.py": 4806,
+      "session_tools.py": 2738,
+      "vuln_mgmt_tools.py": 2455
+    }
+  },
+  "instructions_block": {
+    "chars": 559,
+    "bytes": 933,
+    "lines": 20
+  },
+  "timeout_inventory": {
+    "default_timeout": {
+      "default": 60,
+      "env_var": "KALI_MCP_TIMEOUT"
+    },
+    "retry_count": {
+      "default": 2,
+      "env_var": "KALI_MCP_RETRY_COUNT"
+    },
+    "retry_delay": {
+      "default": 3,
+      "env_var": "KALI_MCP_RETRY_DELAY"
+    },
+    "other_scalars": {
+      "nuclei_rate_limit": {
+        "default": 150,
+        "env_var": "KALI_MCP_NUCLEI_RATE"
+      },
+      "nuclei_timeout": {
+        "default": 15,
+        "env_var": "KALI_MCP_NUCLEI_TIMEOUT"
+      }
+    },
+    "tool_timeouts": {
+      "amass": 120,
+      "ffuf": 90,
+      "gobuster": 90,
+      "httpx": 30,
+      "hydra": 300,
+      "masscan": 120,
+      "nikto": 120,
+      "nmap": 180,
+      "nuclei": 90,
+      "sqlmap": 300,
+      "subfinder": 60,
+      "whatweb": 30,
+      "wpscan": 120
+    },
+    "max_tool_timeout": 300,
+    "max_config_value": 300,
+    "tool_timeout_count": 13
+  },
+  "llm_key_dependency_files": [
+    "kali_mcp/agents/specialized/code_analyze_agent.py",
+    "kali_mcp/agents/specialized/code_audit_agent.py",
+    "kali_mcp/core/llm_brain.py",
+    "kali_mcp/core/result_parser.py",
+    "kali_mcp/mcp_tools/llm_react_tools.py",
+    "kali_mcp/tools/mobile.py"
+  ],
+  "backend_reachability": {
+    "check_command": "where nmap",
+    "nmap_found": false,
+    "nmap_path": null
+  },
+  "tools": [
+    {
+      "module": "adaptive_tools.py",
+      "name": "adaptive_create_execution_context",
+      "signature_bytes": 168,
+      "docstring_bytes": 286,
+      "schema_bytes": 454
+    },
+    {
+      "module": "adaptive_tools.py",
+      "name": "adaptive_execute_strategy",
+      "signature_bytes": 94,
+      "docstring_bytes": 244,
+      "schema_bytes": 338
+    },
+    {
+      "module": "adaptive_tools.py",
+      "name": "adaptive_get_execution_status",
+      "signature_bytes": 73,
+      "docstring_bytes": 174,
+      "schema_bytes": 247
+    },
+    {
+      "module": "adaptive_tools.py",
+      "name": "adaptive_get_insights",
+      "signature_bytes": 65,
+      "docstring_bytes": 177,
+      "schema_bytes": 242
+    },
+    {
+      "module": "adaptive_tools.py",
+      "name": "adaptive_intelligent_orchestration",
+      "signature_bytes": 117,
+      "docstring_bytes": 291,
+      "schema_bytes": 408
+    },
+    {
+      "module": "advanced_ctf_tools.py",
+      "name": "reverse_tool_check",
+      "signature_bytes": 47,
+      "docstring_bytes": 162,
+      "schema_bytes": 209
+    },
+    {
+      "module": "advanced_ctf_tools.py",
+      "name": "radare2_analyze_binary",
+      "signature_bytes": 67,
+      "docstring_bytes": 256,
+      "schema_bytes": 323
+    },
+    {
+      "module": "advanced_ctf_tools.py",
+      "name": "ghidra_analyze_binary",
+      "signature_bytes": 66,
+      "docstring_bytes": 206,
+      "schema_bytes": 272
+    },
+    {
+      "module": "advanced_ctf_tools.py",
+      "name": "auto_reverse_analyze",
+      "signature_bytes": 65,
+      "docstring_bytes": 233,
+      "schema_bytes": 298
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "execute_command",
+      "signature_bytes": 56,
+      "docstring_bytes": 195,
+      "schema_bytes": 251
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "nuclei_scan",
+      "signature_bytes": 176,
+      "docstring_bytes": 587,
+      "schema_bytes": 763
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "nuclei_cve_scan",
+      "signature_bytes": 104,
+      "docstring_bytes": 302,
+      "schema_bytes": 406
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "nuclei_web_scan",
+      "signature_bytes": 89,
+      "docstring_bytes": 263,
+      "schema_bytes": 352
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "nuclei_network_scan",
+      "signature_bytes": 85,
+      "docstring_bytes": 232,
+      "schema_bytes": 317
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "nuclei_technology_detection",
+      "signature_bytes": 67,
+      "docstring_bytes": 195,
+      "schema_bytes": 262
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "dnsrecon_scan",
+      "signature_bytes": 129,
+      "docstring_bytes": 343,
+      "schema_bytes": 472
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "wpscan_scan",
+      "signature_bytes": 136,
+      "docstring_bytes": 316,
+      "schema_bytes": 452
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "reaver_attack",
+      "signature_bytes": 120,
+      "docstring_bytes": 281,
+      "schema_bytes": 401
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "bettercap_attack",
+      "signature_bytes": 129,
+      "docstring_bytes": 316,
+      "schema_bytes": 445
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "binwalk_analysis",
+      "signature_bytes": 134,
+      "docstring_bytes": 328,
+      "schema_bytes": 462
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "theharvester_osint",
+      "signature_bytes": 215,
+      "docstring_bytes": 580,
+      "schema_bytes": 795
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "netdiscover_scan",
+      "signature_bytes": 159,
+      "docstring_bytes": 377,
+      "schema_bytes": 536
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "ffuf_scan",
+      "signature_bytes": 167,
+      "docstring_bytes": 401,
+      "schema_bytes": 568
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "whatweb_scan",
+      "signature_bytes": 102,
+      "docstring_bytes": 328,
+      "schema_bytes": 430
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "subfinder_scan",
+      "signature_bytes": 100,
+      "docstring_bytes": 309,
+      "schema_bytes": 409
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "httpx_probe",
+      "signature_bytes": 79,
+      "docstring_bytes": 328,
+      "schema_bytes": 407
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "masscan_fast_scan",
+      "signature_bytes": 192,
+      "docstring_bytes": 359,
+      "schema_bytes": 551
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "hashcat_crack",
+      "signature_bytes": 224,
+      "docstring_bytes": 458,
+      "schema_bytes": 682
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "searchsploit_search",
+      "signature_bytes": 84,
+      "docstring_bytes": 267,
+      "schema_bytes": 351
+    },
+    {
+      "module": "ai_tools.py",
+      "name": "aircrack_attack",
+      "signature_bytes": 181,
+      "docstring_bytes": 367,
+      "schema_bytes": 548
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "submit_apt_attack_chain",
+      "signature_bytes": 173,
+      "docstring_bytes": 418,
+      "schema_bytes": 591
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "identify_attack_surfaces",
+      "signature_bytes": 80,
+      "docstring_bytes": 215,
+      "schema_bytes": 295
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "generate_attack_paths",
+      "signature_bytes": 90,
+      "docstring_bytes": 301,
+      "schema_bytes": 391
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "apt_web_application_attack",
+      "signature_bytes": 66,
+      "docstring_bytes": 479,
+      "schema_bytes": 545
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "apt_network_penetration",
+      "signature_bytes": 63,
+      "docstring_bytes": 513,
+      "schema_bytes": 576
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "apt_comprehensive_attack",
+      "signature_bytes": 64,
+      "docstring_bytes": 485,
+      "schema_bytes": 549
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "start_adaptive_apt_attack",
+      "signature_bytes": 177,
+      "docstring_bytes": 650,
+      "schema_bytes": 827
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "get_adaptive_attack_status",
+      "signature_bytes": 69,
+      "docstring_bytes": 404,
+      "schema_bytes": 473
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "trigger_next_attack_phase",
+      "signature_bytes": 68,
+      "docstring_bytes": 194,
+      "schema_bytes": 262
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "adaptive_web_penetration",
+      "signature_bytes": 64,
+      "docstring_bytes": 482,
+      "schema_bytes": 546
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "adaptive_network_penetration",
+      "signature_bytes": 68,
+      "docstring_bytes": 492,
+      "schema_bytes": 560
+    },
+    {
+      "module": "apt_tools.py",
+      "name": "intelligent_apt_campaign",
+      "signature_bytes": 64,
+      "docstring_bytes": 522,
+      "schema_bytes": 586
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_surface_mapping",
+      "signature_bytes": 136,
+      "docstring_bytes": 74,
+      "schema_bytes": 210
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_network_exposure_assessment",
+      "signature_bytes": 151,
+      "docstring_bytes": 81,
+      "schema_bytes": 232
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_web_exposure_review",
+      "signature_bytes": 157,
+      "docstring_bytes": 79,
+      "schema_bytes": 236
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_web_application_assessment",
+      "signature_bytes": 196,
+      "docstring_bytes": 85,
+      "schema_bytes": 281
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_injection_verification",
+      "signature_bytes": 147,
+      "docstring_bytes": 85,
+      "schema_bytes": 232
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_template_validation",
+      "signature_bytes": 126,
+      "docstring_bytes": 85,
+      "schema_bytes": 211
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_asset_inventory",
+      "signature_bytes": 91,
+      "docstring_bytes": 82,
+      "schema_bytes": 173
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_credential_assessment",
+      "signature_bytes": 183,
+      "docstring_bytes": 89,
+      "schema_bytes": 272
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_controlled_validation",
+      "signature_bytes": 72,
+      "docstring_bytes": 83,
+      "schema_bytes": 155
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_environment_review",
+      "signature_bytes": 69,
+      "docstring_bytes": 80,
+      "schema_bytes": 149
+    },
+    {
+      "module": "assessment_tools.py",
+      "name": "authorized_comprehensive_security_assessment",
+      "signature_bytes": 601,
+      "docstring_bytes": 174,
+      "schema_bytes": 775
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_start_session",
+      "signature_bytes": 222,
+      "docstring_bytes": 876,
+      "schema_bytes": 1098
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_close_session",
+      "signature_bytes": 97,
+      "docstring_bytes": 281,
+      "schema_bytes": 378
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_list_sessions",
+      "signature_bytes": 60,
+      "docstring_bytes": 188,
+      "schema_bytes": 248
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_navigate",
+      "signature_bytes": 159,
+      "docstring_bytes": 341,
+      "schema_bytes": 500
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_click",
+      "signature_bytes": 152,
+      "docstring_bytes": 495,
+      "schema_bytes": 647
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_type_text",
+      "signature_bytes": 210,
+      "docstring_bytes": 640,
+      "schema_bytes": 850
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_execute_js",
+      "signature_bytes": 119,
+      "docstring_bytes": 397,
+      "schema_bytes": 516
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_extract_content",
+      "signature_bytes": 171,
+      "docstring_bytes": 490,
+      "schema_bytes": 661
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_screenshot",
+      "signature_bytes": 163,
+      "docstring_bytes": 446,
+      "schema_bytes": 609
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_get_network_log",
+      "signature_bytes": 168,
+      "docstring_bytes": 504,
+      "schema_bytes": 672
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_heartbeat_status",
+      "signature_bytes": 100,
+      "docstring_bytes": 617,
+      "schema_bytes": 717
+    },
+    {
+      "module": "browser_tools.py",
+      "name": "browser_intercept_request",
+      "signature_bytes": 239,
+      "docstring_bytes": 740,
+      "schema_bytes": 979
+    },
+    {
+      "module": "chain_mgmt_tools.py",
+      "name": "create_attack_chain",
+      "signature_bytes": 196,
+      "docstring_bytes": 309,
+      "schema_bytes": 505
+    },
+    {
+      "module": "chain_mgmt_tools.py",
+      "name": "add_chain_step",
+      "signature_bytes": 297,
+      "docstring_bytes": 407,
+      "schema_bytes": 704
+    },
+    {
+      "module": "chain_mgmt_tools.py",
+      "name": "analyze_attack_chain",
+      "signature_bytes": 77,
+      "docstring_bytes": 122,
+      "schema_bytes": 199
+    },
+    {
+      "module": "chain_mgmt_tools.py",
+      "name": "get_attack_chains",
+      "signature_bytes": 77,
+      "docstring_bytes": 144,
+      "schema_bytes": 221
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "semgrep_scan",
+      "signature_bytes": 126,
+      "docstring_bytes": 446,
+      "schema_bytes": 572
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "bandit_scan",
+      "signature_bytes": 125,
+      "docstring_bytes": 432,
+      "schema_bytes": 557
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "flawfinder_scan",
+      "signature_bytes": 109,
+      "docstring_bytes": 378,
+      "schema_bytes": 487
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "shellcheck_scan",
+      "signature_bytes": 114,
+      "docstring_bytes": 368,
+      "schema_bytes": 482
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "code_audit_comprehensive",
+      "signature_bytes": 93,
+      "docstring_bytes": 571,
+      "schema_bytes": 664
+    },
+    {
+      "module": "code_audit_tools.py",
+      "name": "comprehensive_recon",
+      "signature_bytes": 159,
+      "docstring_bytes": 409,
+      "schema_bytes": 568
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "enable_ctf_mode",
+      "signature_bytes": 44,
+      "docstring_bytes": 361,
+      "schema_bytes": 405
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "disable_ctf_mode",
+      "signature_bytes": 45,
+      "docstring_bytes": 141,
+      "schema_bytes": 186
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "create_ctf_session",
+      "signature_bytes": 77,
+      "docstring_bytes": 202,
+      "schema_bytes": 279
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "add_ctf_challenge",
+      "signature_bytes": 104,
+      "docstring_bytes": 320,
+      "schema_bytes": 424
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "get_detected_flags",
+      "signature_bytes": 47,
+      "docstring_bytes": 294,
+      "schema_bytes": 341
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "get_ctf_challenges_status",
+      "signature_bytes": 54,
+      "docstring_bytes": 265,
+      "schema_bytes": 319
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "ctf_quick_scan",
+      "signature_bytes": 114,
+      "docstring_bytes": 436,
+      "schema_bytes": 550
+    },
+    {
+      "module": "ctf_tools.py",
+      "name": "ctf_web_attack",
+      "signature_bytes": 80,
+      "docstring_bytes": 422,
+      "schema_bytes": 502
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_send",
+      "signature_bytes": 319,
+      "docstring_bytes": 605,
+      "schema_bytes": 924
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_replay",
+      "signature_bytes": 142,
+      "docstring_bytes": 347,
+      "schema_bytes": 489
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_send_raw",
+      "signature_bytes": 200,
+      "docstring_bytes": 404,
+      "schema_bytes": 604
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_history",
+      "signature_bytes": 178,
+      "docstring_bytes": 345,
+      "schema_bytes": 523
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_compare",
+      "signature_bytes": 137,
+      "docstring_bytes": 303,
+      "schema_bytes": 440
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "http_session_manage",
+      "signature_bytes": 223,
+      "docstring_bytes": 418,
+      "schema_bytes": 641
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "analyze_response",
+      "signature_bytes": 197,
+      "docstring_bytes": 390,
+      "schema_bytes": 587
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "detect_blind_vulnerability",
+      "signature_bytes": 206,
+      "docstring_bytes": 390,
+      "schema_bytes": 596
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "fingerprint_target",
+      "signature_bytes": 99,
+      "docstring_bytes": 206,
+      "schema_bytes": 305
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "extract_endpoints",
+      "signature_bytes": 152,
+      "docstring_bytes": 282,
+      "schema_bytes": 434
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "adaptive_sqli_test",
+      "signature_bytes": 209,
+      "docstring_bytes": 401,
+      "schema_bytes": 610
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "adaptive_xss_test",
+      "signature_bytes": 169,
+      "docstring_bytes": 350,
+      "schema_bytes": 519
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "adaptive_cmdi_test",
+      "signature_bytes": 170,
+      "docstring_bytes": 328,
+      "schema_bytes": 498
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "fuzz_parameter",
+      "signature_bytes": 248,
+      "docstring_bytes": 449,
+      "schema_bytes": 697
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "fuzz_all_params",
+      "signature_bytes": 220,
+      "docstring_bytes": 393,
+      "schema_bytes": 613
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "ws_connect",
+      "signature_bytes": 128,
+      "docstring_bytes": 277,
+      "schema_bytes": 405
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "ws_send",
+      "signature_bytes": 255,
+      "docstring_bytes": 416,
+      "schema_bytes": 671
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "ws_fuzz",
+      "signature_bytes": 167,
+      "docstring_bytes": 320,
+      "schema_bytes": 487
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "grpc_reflect",
+      "signature_bytes": 160,
+      "docstring_bytes": 315,
+      "schema_bytes": 475
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "grpc_call",
+      "signature_bytes": 251,
+      "docstring_bytes": 426,
+      "schema_bytes": 677
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "proxy_start",
+      "signature_bytes": 155,
+      "docstring_bytes": 278,
+      "schema_bytes": 433
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "proxy_add_rule",
+      "signature_bytes": 244,
+      "docstring_bytes": 479,
+      "schema_bytes": 723
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "proxy_get_intercepted",
+      "signature_bytes": 64,
+      "docstring_bytes": 154,
+      "schema_bytes": 218
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "workflow_define",
+      "signature_bytes": 164,
+      "docstring_bytes": 318,
+      "schema_bytes": 482
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "workflow_execute",
+      "signature_bytes": 147,
+      "docstring_bytes": 297,
+      "schema_bytes": 444
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "auth_bypass_test",
+      "signature_bytes": 180,
+      "docstring_bytes": 379,
+      "schema_bytes": 559
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "get_recommended_payloads",
+      "signature_bytes": 177,
+      "docstring_bytes": 357,
+      "schema_bytes": 534
+    },
+    {
+      "module": "deep_test_tools.py",
+      "name": "get_attack_strategy",
+      "signature_bytes": 107,
+      "docstring_bytes": 237,
+      "schema_bytes": 344
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "start_task",
+      "signature_bytes": 156,
+      "docstring_bytes": 262,
+      "schema_bytes": 418
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "get_task",
+      "signature_bytes": 49,
+      "docstring_bytes": 79,
+      "schema_bytes": 128
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "graph_upsert",
+      "signature_bytes": 237,
+      "docstring_bytes": 101,
+      "schema_bytes": 338
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "graph_query",
+      "signature_bytes": 116,
+      "docstring_bytes": 32,
+      "schema_bytes": 148
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "graph_next_actions",
+      "signature_bytes": 108,
+      "docstring_bytes": 87,
+      "schema_bytes": 195
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "graph_mark_dead",
+      "signature_bytes": 92,
+      "docstring_bytes": 73,
+      "schema_bytes": 165
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "run_playbook",
+      "signature_bytes": 166,
+      "docstring_bytes": 92,
+      "schema_bytes": 258
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "run_surface_chain",
+      "signature_bytes": 195,
+      "docstring_bytes": 383,
+      "schema_bytes": 578
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "verify_finding",
+      "signature_bytes": 163,
+      "docstring_bytes": 91,
+      "schema_bytes": 254
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "export_task_summary",
+      "signature_bytes": 82,
+      "docstring_bytes": 291,
+      "schema_bytes": 373
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "compile_task_handoff",
+      "signature_bytes": 61,
+      "docstring_bytes": 81,
+      "schema_bytes": 142
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "continue_from_handoff",
+      "signature_bytes": 62,
+      "docstring_bytes": 72,
+      "schema_bytes": 134
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "observe_task",
+      "signature_bytes": 83,
+      "docstring_bytes": 105,
+      "schema_bytes": 188
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "propose_insights",
+      "signature_bytes": 171,
+      "docstring_bytes": 273,
+      "schema_bytes": 444
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "attack_coverage",
+      "signature_bytes": 56,
+      "docstring_bytes": 104,
+      "schema_bytes": 160
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "task_status",
+      "signature_bytes": 57,
+      "docstring_bytes": 161,
+      "schema_bytes": 218
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "task_timeline",
+      "signature_bytes": 108,
+      "docstring_bytes": 273,
+      "schema_bytes": 381
+    },
+    {
+      "module": "harness_tools.py",
+      "name": "run_surface_chain_multi",
+      "signature_bytes": 264,
+      "docstring_bytes": 515,
+      "schema_bytes": 779
+    },
+    {
+      "module": "llm_react_tools.py",
+      "name": "llm_auto_pentest",
+      "signature_bytes": 245,
+      "docstring_bytes": 739,
+      "schema_bytes": 984
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "joomscan_scan",
+      "signature_bytes": 80,
+      "docstring_bytes": 259,
+      "schema_bytes": 339
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "patator_attack",
+      "signature_bytes": 155,
+      "docstring_bytes": 349,
+      "schema_bytes": 504
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "crowbar_attack",
+      "signature_bytes": 170,
+      "docstring_bytes": 376,
+      "schema_bytes": 546
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "brutespray_attack",
+      "signature_bytes": 182,
+      "docstring_bytes": 434,
+      "schema_bytes": 616
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "arp_scan",
+      "signature_bytes": 109,
+      "docstring_bytes": 297,
+      "schema_bytes": 406
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "fping_scan",
+      "signature_bytes": 96,
+      "docstring_bytes": 295,
+      "schema_bytes": 391
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "bully_attack",
+      "signature_bytes": 96,
+      "docstring_bytes": 279,
+      "schema_bytes": 375
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "pixiewps_attack",
+      "signature_bytes": 117,
+      "docstring_bytes": 337,
+      "schema_bytes": 454
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "recon_ng_run",
+      "signature_bytes": 164,
+      "docstring_bytes": 311,
+      "schema_bytes": 475
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "sherlock_search",
+      "signature_bytes": 153,
+      "docstring_bytes": 380,
+      "schema_bytes": 533
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "yersinia_attack",
+      "signature_bytes": 159,
+      "docstring_bytes": 358,
+      "schema_bytes": 517
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "submit_concurrent_task",
+      "signature_bytes": 307,
+      "docstring_bytes": 385,
+      "schema_bytes": 692
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "submit_workflow",
+      "signature_bytes": 145,
+      "docstring_bytes": 433,
+      "schema_bytes": 578
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "get_task_status",
+      "signature_bytes": 56,
+      "docstring_bytes": 147,
+      "schema_bytes": 203
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "get_workflow_status",
+      "signature_bytes": 64,
+      "docstring_bytes": 196,
+      "schema_bytes": 260
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "get_concurrent_system_stats",
+      "signature_bytes": 56,
+      "docstring_bytes": 159,
+      "schema_bytes": 215
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "fast_reconnaissance",
+      "signature_bytes": 103,
+      "docstring_bytes": 354,
+      "schema_bytes": 457
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "parallel_port_scanning",
+      "signature_bytes": 164,
+      "docstring_bytes": 309,
+      "schema_bytes": 473
+    },
+    {
+      "module": "misc_tools.py",
+      "name": "parallel_directory_scanning",
+      "signature_bytes": 180,
+      "docstring_bytes": 282,
+      "schema_bytes": 462
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "amass_scan",
+      "signature_bytes": 97,
+      "docstring_bytes": 60,
+      "schema_bytes": 157
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "sublist3r_scan",
+      "signature_bytes": 83,
+      "docstring_bytes": 55,
+      "schema_bytes": 138
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "dnsenum_scan",
+      "signature_bytes": 79,
+      "docstring_bytes": 49,
+      "schema_bytes": 128
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "fierce_scan",
+      "signature_bytes": 78,
+      "docstring_bytes": 48,
+      "schema_bytes": 126
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "dirb_scan",
+      "signature_bytes": 160,
+      "docstring_bytes": 47,
+      "schema_bytes": 207
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "feroxbuster_scan",
+      "signature_bytes": 196,
+      "docstring_bytes": 63,
+      "schema_bytes": 259
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "wfuzz_scan",
+      "signature_bytes": 166,
+      "docstring_bytes": 63,
+      "schema_bytes": 229
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "medusa_attack",
+      "signature_bytes": 226,
+      "docstring_bytes": 55,
+      "schema_bytes": 281
+    },
+    {
+      "module": "pentagi_bridge_tools.py",
+      "name": "ncrack_attack",
+      "signature_bytes": 199,
+      "docstring_bytes": 61,
+      "schema_bytes": 260
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "ctf_pwn_solver",
+      "signature_bytes": 169,
+      "docstring_bytes": 662,
+      "schema_bytes": 831
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "quick_pwn_check",
+      "signature_bytes": 60,
+      "docstring_bytes": 543,
+      "schema_bytes": 603
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwnpasi_auto_pwn",
+      "signature_bytes": 241,
+      "docstring_bytes": 956,
+      "schema_bytes": 1197
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwn_comprehensive_attack",
+      "signature_bytes": 179,
+      "docstring_bytes": 821,
+      "schema_bytes": 1000
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "multi_target_add_target",
+      "signature_bytes": 171,
+      "docstring_bytes": 379,
+      "schema_bytes": 550
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "multi_target_orchestrate",
+      "signature_bytes": 79,
+      "docstring_bytes": 224,
+      "schema_bytes": 303
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "multi_target_get_status",
+      "signature_bytes": 52,
+      "docstring_bytes": 129,
+      "schema_bytes": 181
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "multi_target_execute_batch",
+      "signature_bytes": 100,
+      "docstring_bytes": 257,
+      "schema_bytes": 357
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwn_rop_analyze",
+      "signature_bytes": 60,
+      "docstring_bytes": 447,
+      "schema_bytes": 507
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwn_fuzz_check",
+      "signature_bytes": 59,
+      "docstring_bytes": 398,
+      "schema_bytes": 457
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwn_symbolic_explore",
+      "signature_bytes": 92,
+      "docstring_bytes": 459,
+      "schema_bytes": 551
+    },
+    {
+      "module": "pwn_tools.py",
+      "name": "pwn_heap_analyze",
+      "signature_bytes": 61,
+      "docstring_bytes": 397,
+      "schema_bytes": 458
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "nmap_scan",
+      "signature_bytes": 282,
+      "docstring_bytes": 712,
+      "schema_bytes": 994
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "gobuster_scan",
+      "signature_bytes": 319,
+      "docstring_bytes": 662,
+      "schema_bytes": 981
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "nikto_scan",
+      "signature_bytes": 77,
+      "docstring_bytes": 240,
+      "schema_bytes": 317
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "sqlmap_scan",
+      "signature_bytes": 91,
+      "docstring_bytes": 271,
+      "schema_bytes": 362
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "metasploit_run",
+      "signature_bytes": 86,
+      "docstring_bytes": 227,
+      "schema_bytes": 313
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "hydra_attack",
+      "signature_bytes": 251,
+      "docstring_bytes": 507,
+      "schema_bytes": 758
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "john_crack",
+      "signature_bytes": 196,
+      "docstring_bytes": 350,
+      "schema_bytes": 546
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "enum4linux_scan",
+      "signature_bytes": 84,
+      "docstring_bytes": 274,
+      "schema_bytes": 358
+    },
+    {
+      "module": "recon_tools.py",
+      "name": "server_health",
+      "signature_bytes": 42,
+      "docstring_bytes": 135,
+      "schema_bytes": 177
+    },
+    {
+      "module": "session_tools.py",
+      "name": "start_attack_session",
+      "signature_bytes": 103,
+      "docstring_bytes": 353,
+      "schema_bytes": 456
+    },
+    {
+      "module": "session_tools.py",
+      "name": "log_attack_step",
+      "signature_bytes": 194,
+      "docstring_bytes": 500,
+      "schema_bytes": 694
+    },
+    {
+      "module": "session_tools.py",
+      "name": "end_attack_session",
+      "signature_bytes": 47,
+      "docstring_bytes": 186,
+      "schema_bytes": 233
+    },
+    {
+      "module": "session_tools.py",
+      "name": "generate_poc_from_session",
+      "signature_bytes": 69,
+      "docstring_bytes": 276,
+      "schema_bytes": 345
+    },
+    {
+      "module": "session_tools.py",
+      "name": "generate_poc_from_current_session",
+      "signature_bytes": 62,
+      "docstring_bytes": 191,
+      "schema_bytes": 253
+    },
+    {
+      "module": "session_tools.py",
+      "name": "get_attack_session_details",
+      "signature_bytes": 70,
+      "docstring_bytes": 243,
+      "schema_bytes": 313
+    },
+    {
+      "module": "session_tools.py",
+      "name": "list_attack_sessions",
+      "signature_bytes": 49,
+      "docstring_bytes": 174,
+      "schema_bytes": 223
+    },
+    {
+      "module": "session_tools.py",
+      "name": "list_poc_templates",
+      "signature_bytes": 47,
+      "docstring_bytes": 174,
+      "schema_bytes": 221
+    },
+    {
+      "module": "vuln_mgmt_tools.py",
+      "name": "issue_vulnerability",
+      "signature_bytes": 421,
+      "docstring_bytes": 682,
+      "schema_bytes": 1103
+    },
+    {
+      "module": "vuln_mgmt_tools.py",
+      "name": "get_vuln_candidates",
+      "signature_bytes": 108,
+      "docstring_bytes": 209,
+      "schema_bytes": 317
+    },
+    {
+      "module": "vuln_mgmt_tools.py",
+      "name": "cross_validate_vulns",
+      "signature_bytes": 116,
+      "docstring_bytes": 230,
+      "schema_bytes": 346
+    },
+    {
+      "module": "vuln_mgmt_tools.py",
+      "name": "get_vuln_report",
+      "signature_bytes": 106,
+      "docstring_bytes": 165,
+      "schema_bytes": 271
+    },
+    {
+      "module": "vuln_mgmt_tools.py",
+      "name": "verify_vulnerability",
+      "signature_bytes": 159,
+      "docstring_bytes": 259,
+      "schema_bytes": 418
+    }
+  ]
+}
