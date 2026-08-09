@@ -6,6 +6,7 @@ import os
 import unittest
 from unittest.mock import patch
 
+import kali_mcp.security.engagement as engagement_mod
 from kali_mcp.security.engagement import (
     EngagementContext,
     EngagementManager,
@@ -54,6 +55,10 @@ class TestEngagementManager(unittest.TestCase):
 
     def setUp(self):
         self.mgr = EngagementManager()
+        # Scope-judgement tests exercise the real _in_scope logic; enforcement
+        # is turned ON here and restored to the default OFF in tearDown.
+        self._prev_enforcement = engagement_mod.ENFORCEMENT_ENABLED
+        engagement_mod.ENFORCEMENT_ENABLED = True
         self.valid = {
             "authorization_id": "AUTH-001",
             "client": "Internal",
@@ -62,6 +67,15 @@ class TestEngagementManager(unittest.TestCase):
             "valid_until": "2026-12-31",
             "target_scope": ["example.com", "10.0.0.0/8"],
         }
+
+    def tearDown(self):
+        engagement_mod.ENFORCEMENT_ENABLED = self._prev_enforcement
+
+    def test_default_enforcement_off_allows_all(self):
+        # K0-3 contract: enforcement disabled by default → scope never rejects.
+        engagement_mod.ENFORCEMENT_ENABLED = False
+        self.mgr.set_context(self.valid)
+        self.assertTrue(self.mgr._in_scope("192.168.1.1"))
 
     def test_default_no_context(self):
         self.assertEqual(self.mgr.get_context(), {})

@@ -468,6 +468,14 @@ def setup_mcp_server(
     # K1 meta surface: kali_run (fallback executor for archived tools)
     _safe_register("meta", "K1元工具(通用执行)", register_meta_tools, mcp, executor)
 
+    # K4 thin task board (file-backed, lease, ≤3 concurrency) — default surface
+    try:
+        from kali_mcp.mcp_tools.board_tools import register_board_tools
+        _safe_register("board", "K4薄任务板", register_board_tools, mcp, executor)
+        logger.info("  ✅ K4 薄任务板注册成功")
+    except Exception as e:
+        logger.warning(f"  ⚠️ K4 薄任务板注册失败: {e}")
+
     # K1: prune the MCP surface to the keep-set. Keep modules registered
     # wholesale above, so drop non-keep tools here; archived modules were
     # never registered at all. Archived tools stay reachable via kali_run.

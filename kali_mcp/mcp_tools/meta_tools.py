@@ -51,6 +51,9 @@ K1_KEEP_TOOLS = frozenset({
     # session (session_tools.py — pruned; create_session/list_sessions map
     # to start_attack_session/list_attack_sessions)
     "start_attack_session", "list_attack_sessions",
+    # K4 thin task board (board_tools.py)
+    "task_create", "task_claim", "task_complete", "task_renew",
+    "task_list", "board_snapshot",
     # meta
     "kali_run",
 })
