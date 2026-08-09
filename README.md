@@ -457,6 +457,14 @@ pytest -m "not slow"
 
 ---
 
+### 📊 基准测试与自剪枝 (Benchmark & Pruning)
+
+- **基准测试**：`py scripts/benchmark.py`（或 `python scripts/benchmark.py`）在本地目标上运行 3 个固定任务（本地 HTTP 侦察 `whatweb_scan` / 端口扫描 `nmap_scan` / `server_health`），逐任务记录成功、墙钟耗时 (`tt_wall_s`)、工具调用数 (`tool_calls`) 与 token 估算 (`tokens_est`，按基线风格的 schema 字节估算)，输出 `scripts/benchmark_report.json` 与 `scripts/benchmark_report.md`。用于证明 K1 工具面收敛后能力无回退（B >= A）。缺失二进制时任务标记为 `skipped-binary-missing`，退出码恒为 0。
+- **使用遥测**：每次工具执行自动写入 `data/usage.sqlite`（K0-5：`tool`、`args_hash`、`duration_s`、`timed_out`、`success`、`cache_hit`、`target`、`ts`）。
+- **自剪枝**：`py scripts/prune_tools.py`（默认 dry-run）打印按调用次数排序的工具排名与底部十分位候选；`py scripts/prune_tools.py --apply` 将底部十分位工具从 `K1_KEEP_TOOLS` 中移除（`kali_mcp/mcp_tools/meta_tools.py`）。**每月执行一次**；始终保留 `kali_run`，工具数不低于 15，低于 15 时拒绝剪枝。
+
+---
+
 ### ⚠️ 安全声明
 
 **本项目仅用于：**
@@ -568,6 +576,12 @@ Edit configuration file:
 | Exploitation | 20 | metasploit, searchsploit |
 | PWN & Reverse | 20 | pwntools, radare2, ghidra |
 | Intelligent Tools | 58 | AI-powered automation |
+
+### 📊 Benchmark & Pruning
+
+- **Benchmark**: `py scripts/benchmark.py` (or `python scripts/benchmark.py`) runs 3 fixed tasks against a local target (local HTTP recon via `whatweb_scan`, port scan via `nmap_scan`, and `server_health`), recording per task: success, wall time (`tt_wall_s`), tool-call count (`tool_calls`) and a token estimate (`tokens_est`, baseline-style schema-byte measurement). It writes `scripts/benchmark_report.json` + `scripts/benchmark_report.md` and proves the K1-converged surface has no capability regression (B >= A). Tasks are marked `skipped-binary-missing` when a binary is absent; exit code is always 0.
+- **Telemetry**: every tool execution is recorded automatically into `data/usage.sqlite` (K0-5: `tool`, `args_hash`, `duration_s`, `timed_out`, `success`, `cache_hit`, `target`, `ts`).
+- **Pruning**: `py scripts/prune_tools.py` (dry-run by default) prints the per-tool usage ranking and the bottom-decile drop candidates; `py scripts/prune_tools.py --apply` removes bottom-decile tools from `K1_KEEP_TOOLS` in `kali_mcp/mcp_tools/meta_tools.py`. **Run monthly**; `kali_run` is always kept, the keep-set never falls below 15 tools, and pruning below 15 is refused.
 
 ### 🙏 Acknowledgments
 
