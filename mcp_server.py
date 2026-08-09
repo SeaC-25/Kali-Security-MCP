@@ -34,6 +34,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def _llm_api_key_available() -> bool:
+    """Return True when an LLM provider API key is configured (Anthropic or OpenAI)."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+
+
 # 深度智能化模式 - 启用连接池和结果缓存
 OPTIMIZATION_ENABLED = True
 logger.info("✅ 深度智能化模式 - 启用连接池优化和结果缓存")
@@ -49,32 +55,36 @@ except ImportError as e:
     VULN_TOOL_COUNT = 0
     logger.warning(f"⚠️ vuln_db 模块加载失败: {e}")
 
-# 多智能体集群系统模块导入 (v4.0)
-try:
-    from kali_mcp.core.agent_registry import AgentRegistry
-    from kali_mcp.core.agent_coordinator import CoordinatorAgent
-    from kali_mcp.agents.information_gathering.recon_agent import ReconAgent
-    from kali_mcp.agents.information_gathering.subdomain_agent import SubdomainAgent
-    from kali_mcp.agents.information_gathering.web_recon_agent import WebReconAgent
-    from kali_mcp.agents.vulnerability_discovery.vuln_scanner_agent import VulnScannerAgent
-    from kali_mcp.agents.vulnerability_discovery.web_vuln_agent import WebVulnAgent
-    from kali_mcp.agents.vulnerability_discovery.auth_agent import AuthAgent
-    from kali_mcp.agents.vulnerability_discovery.network_vuln_agent import NetworkVulnAgent
-    from kali_mcp.agents.vulnerability_discovery.vuln_verifier_agent import VulnVerifierAgent
-    from kali_mcp.agents.exploitation.exploit_agent import ExploitAgent
-    from kali_mcp.agents.exploitation.privilege_agent import PrivilegeAgent
-    from kali_mcp.agents.exploitation.lateral_agent import LateralAgent
-    from kali_mcp.agents.specialized.pwn_agent import PwnAgent
-    from kali_mcp.agents.specialized.crypto_agent import CryptoAgent
-    from kali_mcp.agents.specialized.forensics_agent import ForensicsAgent
-    from kali_mcp.agents.specialized.code_audit_agent import CodeAuditAgent
-    from kali_mcp.agents.specialized.source_code_agent import SourceCodeAgent
-    from kali_mcp.agents.specialized.code_analyze_agent import CodeAnalyzeAgent
-    MULTI_AGENT_SYSTEM_AVAILABLE = True
-    logger.info("✅ 多智能体集群系统模块加载成功 - v4.0 架构")
-except ImportError as e:
+# 多智能体集群系统模块导入 (v4.0) — LLM-key 依赖，无 key 时不激活
+if not _llm_api_key_available():
     MULTI_AGENT_SYSTEM_AVAILABLE = False
-    logger.warning(f"⚠️ 多智能体集群系统模块加载失败: {e}")
+    logger.info("skipped multi_agent (no LLM API key)")
+else:
+    try:
+        from kali_mcp.core.agent_registry import AgentRegistry
+        from kali_mcp.core.agent_coordinator import CoordinatorAgent
+        from kali_mcp.agents.information_gathering.recon_agent import ReconAgent
+        from kali_mcp.agents.information_gathering.subdomain_agent import SubdomainAgent
+        from kali_mcp.agents.information_gathering.web_recon_agent import WebReconAgent
+        from kali_mcp.agents.vulnerability_discovery.vuln_scanner_agent import VulnScannerAgent
+        from kali_mcp.agents.vulnerability_discovery.web_vuln_agent import WebVulnAgent
+        from kali_mcp.agents.vulnerability_discovery.auth_agent import AuthAgent
+        from kali_mcp.agents.vulnerability_discovery.network_vuln_agent import NetworkVulnAgent
+        from kali_mcp.agents.vulnerability_discovery.vuln_verifier_agent import VulnVerifierAgent
+        from kali_mcp.agents.exploitation.exploit_agent import ExploitAgent
+        from kali_mcp.agents.exploitation.privilege_agent import PrivilegeAgent
+        from kali_mcp.agents.exploitation.lateral_agent import LateralAgent
+        from kali_mcp.agents.specialized.pwn_agent import PwnAgent
+        from kali_mcp.agents.specialized.crypto_agent import CryptoAgent
+        from kali_mcp.agents.specialized.forensics_agent import ForensicsAgent
+        from kali_mcp.agents.specialized.code_audit_agent import CodeAuditAgent
+        from kali_mcp.agents.specialized.source_code_agent import SourceCodeAgent
+        from kali_mcp.agents.specialized.code_analyze_agent import CodeAnalyzeAgent
+        MULTI_AGENT_SYSTEM_AVAILABLE = True
+        logger.info("✅ 多智能体集群系统模块加载成功 - v4.0 架构")
+    except ImportError as e:
+        MULTI_AGENT_SYSTEM_AVAILABLE = False
+        logger.warning(f"⚠️ 多智能体集群系统模块加载失败: {e}")
 
 
 # 多智能体系统全局状态存储（用于MCP工具访问）
@@ -334,7 +344,7 @@ def setup_mcp_server(
 
     logger.info(f"[DEBUG] 开始多智能体系统初始化, MULTI_AGENT_SYSTEM_AVAILABLE={MULTI_AGENT_SYSTEM_AVAILABLE}")
 
-    should_init_multi_agent = MULTI_AGENT_SYSTEM_AVAILABLE and _module_enabled("multi_agent")
+    should_init_multi_agent = MULTI_AGENT_SYSTEM_AVAILABLE and _llm_api_key_available() and _module_enabled("multi_agent")
     if should_init_multi_agent:
         try:
             from kali_mcp.core.mesh_message_bus import MeshMessageBus
@@ -387,7 +397,7 @@ def setup_mcp_server(
             logger.warning(f"[DEBUG] Traceback: {traceback.format_exc()}")
             MULTI_AGENT_SYSTEM_AVAILABLE = False
     else:
-        logger.warning(
+        logger.info(
             f"[DEBUG] 跳过初始化: MULTI_AGENT_SYSTEM_AVAILABLE={MULTI_AGENT_SYSTEM_AVAILABLE}, "
             f"multi_agent_enabled={tool_profile.allows('multi_agent')}"
         )
@@ -421,7 +431,10 @@ def setup_mcp_server(
 
     _safe_register("assessment", "授权评估工具", register_assessment_tools, mcp, executor, agent_adapter)
     _safe_register("recon", "信息收集工具", register_recon_tools, mcp, executor)
-    _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
+    if _llm_api_key_available():
+        _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
+    else:
+        logger.info("skipped ai_session (no LLM API key)")
     _safe_register("code_audit", "代码审计工具", register_code_audit_tools, mcp, executor)
     _safe_register("misc", "杂项工具", register_misc_tools, mcp, executor, _TASKS, _WORKFLOWS)
     _safe_register("apt", "APT攻击链工具", register_apt_tools, mcp, executor, _ADAPTIVE_ATTACKS, agent_adapter)
@@ -444,7 +457,10 @@ def setup_mcp_server(
     _safe_register("vuln_mgmt", "漏洞管理工具", register_vuln_mgmt_tools, mcp, executor)
     _safe_register("chain_mgmt", "攻击链管理工具", register_chain_mgmt_tools, mcp, executor)
     _safe_register("pentagi_bridge", "Pentagi扩展工具", register_pentagi_bridge_tools, mcp, executor)
-    _safe_register("llm_react", "LLM ReAct工具", register_llm_react_tools, mcp, executor)
+    if _llm_api_key_available():
+        _safe_register("llm_react", "LLM ReAct工具", register_llm_react_tools, mcp, executor)
+    else:
+        logger.info("skipped llm_react (no LLM API key)")
 
     # P0 harness tools (always-on orchestration surface: task/graph/playbook/verify/chain)
     _safe_register("harness", "P0 Harness编排工具", register_harness_tools, mcp, executor)
