@@ -1,0 +1,20 @@
+id: nuclei
+tool: nuclei
+description: Nuclei severity-subset scan (aligned with registry rate-limit/timeout defaults)
+# Lab note (Kali 192.168.157.8, 2026-07-28 probe): Nuclei Engine v3.4.10
+min_version_note: "expects nuclei v3.x CLI (-u/-s/-silent/-rl/-timeout)"
+notes: >
+  Template kept lean for harness surfaces. Prefer -s over long -severity form.
+  Registry builder may still win when no_recipe=true; recipe is default path.
+params:
+  target_keys: [target, url]
+  required: [target]
+  defaults:
+    severity: critical,high
+    rate_limit: 150
+    timeout: 10
+    silent: true
+command:
+  template: "nuclei -u {target} -s {severity} -silent -rl {rate_limit} -timeout {timeout}"
+  extra_args_key: additional_args
+cache_ttl: 1800

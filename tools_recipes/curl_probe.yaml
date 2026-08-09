@@ -1,0 +1,13 @@
+id: curl_probe
+tool: curl_probe
+description: HTTP probe with status code and header capture
+params:
+  target_keys: [target, url]
+  required: [target]
+  defaults:
+    timeout: 10
+    follow: true
+command:
+  template: "curl -sS --noproxy \"*\" -L -w \"\\n__HTTP_CODE__:%{{http_code}}\" --connect-timeout {timeout} \"{target}\""
+  extra_args_key: additional_args
+cache_ttl: 300

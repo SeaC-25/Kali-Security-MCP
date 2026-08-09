@@ -1,0 +1,85 @@
+{
+  "task_id": "rpt_probe",
+  "exported_at": "2026-07-27T14:23:44+00:00",
+  "meta": {
+    "task_id": "rpt_probe",
+    "created_at": "2026-07-27T14:23:44+00:00",
+    "updated_at": "2026-07-27T14:23:44+00:00",
+    "phase": "RECON",
+    "status": "open",
+    "targets": [],
+    "depth": "standard"
+  },
+  "graph_summary": {
+    "task_id": "rpt_probe",
+    "nodes": 1,
+    "edges": 0,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1
+    },
+    "graph_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\rpt_probe\\graph\\graph.json"
+  },
+  "findings": [
+    {
+      "title": "t",
+      "target": "http://x",
+      "status": "verified",
+      "source": "t",
+      "finding_id": "e7d0dec44893",
+      "created_at": "2026-07-27T14:23:44+00:00",
+      "updated_at": "2026-07-27T14:23:44+00:00",
+      "technique_ids": []
+    }
+  ],
+  "verified": [
+    {
+      "title": "t",
+      "target": "http://x",
+      "status": "verified",
+      "source": "t",
+      "finding_id": "e7d0dec44893",
+      "created_at": "2026-07-27T14:23:44+00:00",
+      "updated_at": "2026-07-27T14:23:44+00:00",
+      "technique_ids": []
+    }
+  ],
+  "candidates": [],
+  "other_findings": [],
+  "recent_actions": [],
+  "attack_coverage": {
+    "ok": true,
+    "task_id": "rpt_probe",
+    "all": {
+      "findings_total": 1,
+      "labeled_count": 0,
+      "unlabeled_count": 1,
+      "labeled_ratio": 0.0,
+      "techniques": [],
+      "technique_counts": {},
+      "tactics_present": [],
+      "by_status": {},
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    },
+    "verified_only": {
+      "findings_total": 1,
+      "labeled_count": 0,
+      "unlabeled_count": 1,
+      "labeled_ratio": 0.0,
+      "techniques": [],
+      "technique_counts": {},
+      "tactics_present": [],
+      "by_status": {},
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    }
+  },
+  "observer": {
+    "duplicate_count": 0,
+    "suggestions": [],
+    "should_slow_down": false
+  },
+  "handoff": {
+    "handoff_json": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\rpt_probe\\handoff\\handoff.json",
+    "progress_md": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\rpt_probe\\handoff\\progress.md"
+  }
+}

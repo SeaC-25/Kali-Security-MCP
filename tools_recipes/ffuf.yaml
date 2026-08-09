@@ -1,0 +1,17 @@
+id: ffuf
+tool: ffuf
+description: Fast directory and parameter fuzzer
+# Lab note (Kali probe 2026-07-28): ffuf 2.1.0-dev
+min_version_note: "ffuf 2.x (-u/-w/-t/-s)"
+notes: "Default appends /FUZZ; pass full FUZZ url via url= if needed."
+params:
+  target_keys: [url, target]
+  required: [url]
+  defaults:
+    wordlist: /usr/share/wordlists/dirb/common.txt
+    threads: 40
+    silence: true
+command:
+  template: "ffuf -u {url}/FUZZ -w {wordlist} -t {threads} -s"
+  extra_args_key: additional_args
+cache_ttl: 3600

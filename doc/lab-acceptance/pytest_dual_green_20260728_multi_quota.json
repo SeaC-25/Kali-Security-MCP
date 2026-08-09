@@ -1,0 +1,23 @@
+{
+  "date": "2026-07-28",
+  "reason": "after Phase4 multi quota (KALI_MCP_MULTI_MAX_TARGETS / WORKERS)",
+  "command": "python -m pytest tests/test_p0_harness.py -q",
+  "windows": {
+    "result": "48 passed",
+    "warnings": 2
+  },
+  "kali": {
+    "host": "zss@192.168.157.8",
+    "path": "/home/zss/MCP-v2/Kali-Security-MCP-main",
+    "result": "48 passed",
+    "warnings": 2,
+    "synced_files": [
+      "kali_mcp/mcp_tools/harness_tools.py",
+      "tests/test_p0_harness.py",
+      "doc/runbook-internal.md",
+      "doc/progress-snapshot-20260728-multi-quota.md"
+    ]
+  },
+  "aligned": true,
+  "note": "replaces 47 baseline for post-quota code; historical pytest_dual_green_20260728.json remains pre-quota snapshot"
+}

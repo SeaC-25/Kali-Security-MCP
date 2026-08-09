@@ -1,0 +1,25 @@
+{
+  "task_id": "cnt_2191480375776_missing",
+  "compiled_at": "2026-07-30T16:09:03+00:00",
+  "phase": "RECON",
+  "status": "open",
+  "targets": [],
+  "depth": "standard",
+  "graph_summary": {
+    "task_id": "cnt_2191480375776_missing",
+    "nodes": 0,
+    "edges": 0,
+    "dead_nodes": 0,
+    "by_type": {},
+    "graph_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\cnt_2191480375776_missing\\graph\\graph.json"
+  },
+  "done_tools": [],
+  "actions_count": 0,
+  "verified_count": 0,
+  "candidate_count": 0,
+  "verified_titles": [],
+  "candidate_titles": [],
+  "dead_nodes": [],
+  "next_actions": [],
+  "do_not_rescan": []
+}

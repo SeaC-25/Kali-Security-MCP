@@ -1,0 +1,22 @@
+{
+  "date": "2026-07-28",
+  "command": "python -m pytest tests/test_p0_harness.py -q",
+  "windows": {
+    "result": "47 passed",
+    "warnings": 2,
+    "note": "websockets deprecation in test_harness_register_importable only"
+  },
+  "kali": {
+    "host": "zss@192.168.157.8",
+    "path": "/home/zss/MCP-v2/Kali-Security-MCP-main",
+    "result": "47 passed",
+    "warnings": 2,
+    "note": "same deprecation warnings; counts match Windows"
+  },
+  "nodesource_check": {
+    "source_file": "/etc/apt/sources.list.d/nodesource.list.disabled-sha1-20260728",
+    "nodesource_in_apt_update_output": false,
+    "policy": "do not force-trust SHA1; re-enable only with new signing source"
+  },
+  "aligned": true
+}

@@ -1,0 +1,16 @@
+id: nmap
+tool: nmap
+description: Service version scan with open ports
+# Lab note (Kali probe 2026-07-28): Nmap 7.99
+min_version_note: "nmap 7.x"
+notes: "Harness default ports are a short web/ssh set; override ports via data or additional_args."
+params:
+  target_keys: [target, host, url]
+  required: [target]
+  defaults:
+    scan_type: "-sV -T4 --open"
+    ports: "22,80,443,8080,8443"
+command:
+  template: "nmap {scan_type} -p {ports} {target}"
+  extra_args_key: additional_args
+cache_ttl: 7200

@@ -1,0 +1,22 @@
+{
+  "date": "2026-07-28",
+  "host": "zss@192.168.157.8",
+  "issue": "apt-get update OpenPGP/SHA1 policy failure on deb.nodesource.com node_22.x InRelease",
+  "symptom": "Signing key 6F71F525282841EEDAF851B42F59B5F99B1BE0B4 rejected: SHA1 not considered secure since 2026-02-01",
+  "action": "disable broken source list (do not force-trust SHA1)",
+  "commands": [
+    "sudo mv /etc/apt/sources.list.d/nodesource.list /etc/apt/sources.list.d/nodesource.list.disabled-sha1-20260728"
+  ],
+  "before": {
+    "source_file": "/etc/apt/sources.list.d/nodesource.list",
+    "apt_update": "W: nodesource InRelease OpenPGP signature verification failed"
+  },
+  "after": {
+    "source_file": "/etc/apt/sources.list.d/nodesource.list.disabled-sha1-20260728",
+    "apt_get_update_exit": 0,
+    "nodesource_in_update_output": false
+  },
+  "node_runtime_note": "Node still available via Volta (~/.volta/bin/node v22.23.1); dpkg nodejs 22.20.0-1nodesource1 remains installed; apt no longer pulls nodesource index",
+  "product_impact": "none — harness/MCP does not depend on nodesource apt index",
+  "credentials_in_repo": false
+}

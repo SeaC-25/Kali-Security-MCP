@@ -1,0 +1,11 @@
+{
+  "target": "http://127.0.0.1:18081/",
+  "lab_pid": "19925",
+  "checks": {
+    "root": "200",
+    "login": "200",
+    "admin": "200",
+    "api_health": "200",
+    "console": "200"
+  }
+}

@@ -1,0 +1,17 @@
+id: gobuster
+tool: gobuster
+description: Directory brute force (single -u)
+# Lab note (Kali probe 2026-07-28): gobuster present; version subcommand may vary by build
+min_version_note: "gobuster 3.x dir mode"
+notes: "Uses --no-error -q for quieter harness logs."
+params:
+  target_keys: [url, target]
+  required: [url]
+  defaults:
+    mode: dir
+    wordlist: /usr/share/wordlists/dirb/common.txt
+    threads: 20
+command:
+  template: "gobuster {mode} -u {url} -w {wordlist} -t {threads} --no-error -q"
+  extra_args_key: additional_args
+cache_ttl: 3600

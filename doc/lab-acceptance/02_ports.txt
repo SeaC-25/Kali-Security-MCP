@@ -1,0 +1,112 @@
+=== port service 18081 + top ===
+# Nmap 7.99 scan initiated Sat Jul 25 13:24:47 2026 as: /usr/lib/nmap/nmap --privileged -sV -sC -p 18081,22,80,8080,8787,18080 -oN - 127.0.0.1
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.000071s latency).
+
+PORT      STATE  SERVICE    VERSION
+22/tcp    open   ssh        OpenSSH 10.0p2 Debian 8 (protocol 2.0)
+80/tcp    closed http
+8080/tcp  closed http-proxy
+8787/tcp  open   http       Uvicorn
+|_http-server-header: uvicorn
+|_http-title: Site doesn't have a title (text/plain; charset=utf-8).
+18080/tcp open   http       SimpleHTTPServer 0.6 (Python 3.13.12)
+|_http-server-header: SimpleHTTP/0.6 Python/3.13.12
+|_http-title: P0 Lab
+18081/tcp open   unknown
+| fingerprint-strings: 
+|   GetRequest: 
+|     HTTP/1.0 200 OK
+|     Server: Crow5Lab/1.0 Python/3.13.12
+|     Date: Sat, 25 Jul 2026 05:24:54 GMT
+|     Content-Type: text/html; charset=utf-8
+|     Content-Length: 469
+|     X-Lab: crow5-research
+|     <!doctype html><html><head><title>Crow5 Lab</title></head>
+|     <body>
+|     <h1>Crow5 Research Lab</h1>
+|     <ul>
+|     <li><a href="/login">/login</a></li>
+|     <li><a href="/admin/">/admin/</a></li>
+|     <li><a href="/api/">/api/</a></li>
+|     <li><a href="/api/health">/api/health</a></li>
+|     <li><a href="/api/v1/users">/api/v1/users</a></li>
+|     <li><a href="/console">/console</a></li>
+|     <li><a href="/search?q=test">/search?q=test</a></li>
+|     <li><a href="/robots.txt">/robots.txt</a></li>
+|     </ul>
+|     </body></html>
+|   HTTPOptions: 
+|     HTTP/1.0 501 Unsupported method ('OPTIONS')
+|     Server: Crow5Lab/1.0 Python/3.13.12
+|     Date: Sat, 25 Jul 2026 05:24:54 GMT
+|     Connection: close
+|     Content-Type: text/html;charset=utf-8
+|     Content-Length: 360
+|     <!DOCTYPE HTML>
+|     <html lang="en">
+|     <head>
+|     <meta charset="utf-8">
+|     <title>Error response</title>
+|     </head>
+|     <body>
+|     <h1>Error response</h1>
+|     <p>Error code: 501</p>
+|     <p>Message: Unsupported method ('OPTIONS').</p>
+|     <p>Error code explanation: 501 - Server does not support this operation.</p>
+|     </body>
+|     </html>
+|   RTSPRequest: 
+|     <!DOCTYPE HTML>
+|     <html lang="en">
+|     <head>
+|     <meta charset="utf-8">
+|     <title>Error response</title>
+|     </head>
+|     <body>
+|     <h1>Error response</h1>
+|     <p>Error code: 400</p>
+|     <p>Message: Bad request version ('RTSP/1.0').</p>
+|     <p>Error code explanation: 400 - Bad request syntax or unsupported method.</p>
+|     </body>
+|_    </html>
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port18081-TCP:V=7.99%I=7%D=7/25%Time=6A6448A6%P=x86_64-pc-linux-gnu%r(G
+SF:etRequest,286,"HTTP/1\.0\x20200\x20OK\r\nServer:\x20Crow5Lab/1\.0\x20Py
+SF:thon/3\.13\.12\r\nDate:\x20Sat,\x2025\x20Jul\x202026\x2005:24:54\x20GMT
+SF:\r\nContent-Type:\x20text/html;\x20charset=utf-8\r\nContent-Length:\x20
+SF:469\r\nX-Lab:\x20crow5-research\r\n\r\n<!doctype\x20html><html><head><t
+SF:itle>Crow5\x20Lab</title></head>\n<body>\n<h1>Crow5\x20Research\x20Lab<
+SF:/h1>\n<ul>\n<li><a\x20href=\"/login\">/login</a></li>\n<li><a\x20href=\
+SF:"/admin/\">/admin/</a></li>\n<li><a\x20href=\"/api/\">/api/</a></li>\n<
+SF:li><a\x20href=\"/api/health\">/api/health</a></li>\n<li><a\x20href=\"/a
+SF:pi/v1/users\">/api/v1/users</a></li>\n<li><a\x20href=\"/console\">/cons
+SF:ole</a></li>\n<li><a\x20href=\"/search\?q=test\">/search\?q=test</a></l
+SF:i>\n<li><a\x20href=\"/robots\.txt\">/robots\.txt</a></li>\n</ul>\n</bod
+SF:y></html>")%r(HTTPOptions,230,"HTTP/1\.0\x20501\x20Unsupported\x20metho
+SF:d\x20\('OPTIONS'\)\r\nServer:\x20Crow5Lab/1\.0\x20Python/3\.13\.12\r\nD
+SF:ate:\x20Sat,\x2025\x20Jul\x202026\x2005:24:54\x20GMT\r\nConnection:\x20
+SF:close\r\nContent-Type:\x20text/html;charset=utf-8\r\nContent-Length:\x2
+SF:0360\r\n\r\n<!DOCTYPE\x20HTML>\n<html\x20lang=\"en\">\n\x20\x20\x20\x20
+SF:<head>\n\x20\x20\x20\x20\x20\x20\x20\x20<meta\x20charset=\"utf-8\">\n\x
+SF:20\x20\x20\x20\x20\x20\x20\x20<title>Error\x20response</title>\n\x20\x2
+SF:0\x20\x20</head>\n\x20\x20\x20\x20<body>\n\x20\x20\x20\x20\x20\x20\x20\
+SF:x20<h1>Error\x20response</h1>\n\x20\x20\x20\x20\x20\x20\x20\x20<p>Error
+SF:\x20code:\x20501</p>\n\x20\x20\x20\x20\x20\x20\x20\x20<p>Message:\x20Un
+SF:supported\x20method\x20\('OPTIONS'\)\.</p>\n\x20\x20\x20\x20\x20\x20\x2
+SF:0\x20<p>Error\x20code\x20explanation:\x20501\x20-\x20Server\x20does\x20
+SF:not\x20support\x20this\x20operation\.</p>\n\x20\x20\x20\x20</body>\n</h
+SF:tml>\n")%r(RTSPRequest,16C,"<!DOCTYPE\x20HTML>\n<html\x20lang=\"en\">\n
+SF:\x20\x20\x20\x20<head>\n\x20\x20\x20\x20\x20\x20\x20\x20<meta\x20charse
+SF:t=\"utf-8\">\n\x20\x20\x20\x20\x20\x20\x20\x20<title>Error\x20response<
+SF:/title>\n\x20\x20\x20\x20</head>\n\x20\x20\x20\x20<body>\n\x20\x20\x20\
+SF:x20\x20\x20\x20\x20<h1>Error\x20response</h1>\n\x20\x20\x20\x20\x20\x20
+SF:\x20\x20<p>Error\x20code:\x20400</p>\n\x20\x20\x20\x20\x20\x20\x20\x20<
+SF:p>Message:\x20Bad\x20request\x20version\x20\('RTSP/1\.0'\)\.</p>\n\x20\
+SF:x20\x20\x20\x20\x20\x20\x20<p>Error\x20code\x20explanation:\x20400\x20-
+SF:\x20Bad\x20request\x20syntax\x20or\x20unsupported\x20method\.</p>\n\x20
+SF:\x20\x20\x20</body>\n</html>\n");
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sat Jul 25 13:26:15 2026 -- 1 IP address (1 host up) scanned in 87.81 seconds

@@ -1,0 +1,129 @@
+{
+  "report_id": "MWIR-2026-0313-001",
+  "tlp": "AMBER",
+  "date": "2026-03-13",
+  "family": "Silver Fox RAT / XtremeRAT Variant",
+
+  "attacker": {
+    "real_ip": "220.200.241.40",
+    "location": "中国北京市西城区金融街",
+    "isp": "China Unicom China169 Backbone",
+    "asn": "AS4837"
+  },
+
+  "samples": {
+    "loader_dll": {
+      "filename": "libcef.dll",
+      "md5": "7585fde03c1de6e3ccf294c16e716e44",
+      "sha256": "e34f1f2162d6ae7dc9e9a8fc515063b70c80f63ba0d4d83b2bc11575f035823e",
+      "size": 3919360,
+      "compile_time": "2025-07-13T07:37:59Z"
+    },
+    "payload_exe": {
+      "filename": "V2CpQGkS.exe",
+      "md5": "87c920f49963f75d9faf14871d603c77",
+      "sha256": "ac000ab075a49f3efecf4afb05863be764203decb993d51be1efadbc875267a6",
+      "size": 4648960,
+      "compile_time": "2025-07-13T07:41:10Z"
+    }
+  },
+
+  "c2_infrastructure": {
+    "primary_c2": {
+      "domain": "taokur.com",
+      "ip": "202.79.166.27",
+      "port": 2869,
+      "registrar": "Navicosoft",
+      "registered": "2025-07-11"
+    },
+    "backup_c2": {
+      "domain": "puami.com",
+      "ip": "202.79.166.27",
+      "port": 2869,
+      "registrar": "GoDaddy",
+      "registered": "2025-04-20"
+    },
+    "beacon": {
+      "domain": "i.moumio.com",
+      "url": "http://i.moumio.com/comments/add",
+      "cdn_ips": ["172.67.221.131", "104.21.25.2"],
+      "real_source_ips": ["202.79.166.90", "202.79.166.95"]
+    }
+  },
+
+  "infrastructure_servers": {
+    "c2_server": "202.79.166.27",
+    "source_server_1": "202.79.166.90",
+    "source_server_2": "202.79.166.95",
+    "vuln_radar": "202.79.166.164:8080",
+    "scan_node": "202.79.166.155",
+    "tomcat_cluster": ["202.79.166.160", "202.79.166.162"],
+    "windows_hostnames": ["WIN-4FKSK4PE5GL", "WIN-DOI7MKEL2FQ"]
+  },
+
+  "vuln_radar_platform": {
+    "url": "http://202.79.166.164:8080",
+    "login_url": "http://202.79.166.164:8080/login",
+    "api_login": "POST http://202.79.166.164:8080/api/auth/login",
+    "credentials": {
+      "username": "admin",
+      "password": "admin123"
+    },
+    "admin_email": "admin@vulnradar.local",
+    "admin_last_login_ip": "220.200.241.40",
+    "platform_created": "2026-02-14",
+    "monthly_tasks": 40,
+    "total_plugins": 1153,
+    "scan_targets": [
+      {"target": "chana.asia", "scans": 14, "findings": 42},
+      {"target": "zhibao.dzzq.com.cn", "scans": 6, "findings": 1462},
+      {"target": "e23.cn", "scans": 1, "findings": 1310},
+      {"target": "ccn.com.cn", "scans": 2, "findings": 357}
+    ]
+  },
+
+  "associated_domains": {
+    "active_on_c2_ip": [
+      "jiaweo.com", "alonesad.com", "sbido.com", "lovemeb.com",
+      "jokewick.com", "golomee.com", "jouloi.com", "happy238.com",
+      "happy371.com", "xumeno.com", "oploa.com", "theaigaming.com"
+    ],
+    "migrated_to_aws": [
+      "sadliu.com", "kimhate.com", "duooi.com", "titamic.com"
+    ]
+  },
+
+  "cloudflare_accounts": {
+    "rodney_sloan": ["taokur.com", "jiaweo.com", "jouloi.com", "oploa.com"],
+    "jake_linda": ["puami.com", "moumio.com", "xumeno.com"],
+    "drake_sue": ["happy238.com", "theaigaming.com", "lovemeb.com", "alonesad.com", "jokewick.com", "happy371.com"],
+    "bonnie_west": ["sbido.com"],
+    "poppy_rohin": ["golomee.com"]
+  },
+
+  "encryption": {
+    "c2_encryption": "RC4",
+    "rc4_function_rva": "0x232740",
+    "sqlite_aes_key": "J6CuDftfPr22FnYn",
+    "loader_id": "A2029D45CC46080B"
+  },
+
+  "host_indicators": {
+    "author_signature": "XtremeCoder ---> newxtremerat@gmail.com",
+    "pe_marker": "HR::DETECT::MEM",
+    "mutexes": ["MUTEX_W32", "RemoteMutexString", "MyMutex"],
+    "attack_path": "C:\\Clash.Verge 1.3.3\\clashres\\libcef.dll",
+    "memory_log": "C:\\Clash.Verge 1.3.3\\clashres\\V2CpQGkS_MemoryManager_EventLog.txt"
+  },
+
+  "hosting_provider": {
+    "name": "CTG Server Limited",
+    "asn": "AS152194",
+    "ip_range": "202.79.164.0/22",
+    "location": "Hong Kong / Japan / Singapore",
+    "address": "8-12 Wong Chuk Yeung Street, Fo Tan, Shatin, NT, HK",
+    "abuse_contact": "cs.mail@ctgserver.com",
+    "total_prefixes": 659,
+    "smtp_nodes": "~1490 across 6 x /24 blocks"
+  }
+}

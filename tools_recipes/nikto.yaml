@@ -1,0 +1,15 @@
+id: nikto
+tool: nikto
+description: Web server vulnerability scanner with time cap
+# Lab note (Kali probe 2026-07-28): Nikto 2.5.0
+min_version_note: "nikto 2.5+ with -maxtime"
+notes: "maxtime keeps harness chains from hanging on deep scans."
+params:
+  target_keys: [target, url, host]
+  required: [target]
+  defaults:
+    maxtime: 120s
+command:
+  template: "nikto -h {target} -maxtime {maxtime}"
+  extra_args_key: additional_args
+cache_ttl: 1800

@@ -1,0 +1,146 @@
+{
+  "task_id": "lab_reg_20260727",
+  "ok": true,
+  "by_status": {
+    "verified": 6
+  },
+  "steps": [
+    {
+      "pb": "web_surface",
+      "ok": true,
+      "verified": 3
+    },
+    {
+      "pb": "api_surface",
+      "ok": true,
+      "verified": 4
+    },
+    {
+      "pb": "auth_surface",
+      "ok": true,
+      "verified": 5
+    },
+    {
+      "pb": "svc_surface",
+      "ok": true,
+      "verified": 6
+    }
+  ],
+  "actions_count": 39,
+  "actions_after_continue": 39,
+  "continue_ok": true,
+  "observer_dups": 1,
+  "observer_has_self": false,
+  "insights": {
+    "skipped": false,
+    "created_count": 5,
+    "reason": null,
+    "error": null
+  },
+  "report_md": "/home/zss/MCP-v2/Kali-Security-MCP-main/workspace/tasks/lab_reg_20260727/report/report.md",
+  "report_md_exists": true,
+  "report_export_error": null,
+  "graph": {
+    "task_id": "lab_reg_20260727",
+    "nodes": 11,
+    "edges": 10,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1,
+      "path": 6,
+      "port": 1,
+      "service": 1
+    },
+    "graph_path": "/home/zss/MCP-v2/Kali-Security-MCP-main/workspace/tasks/lab_reg_20260727/graph/graph.json"
+  },
+  "next_actions": [
+    {
+      "node_id": "621474220581",
+      "node_type": "url",
+      "value": "http://127.0.0.1:18081",
+      "action": "insight_verify:3ad3dc1f43e7",
+      "confidence": 0.9,
+      "source": "playbook"
+    },
+    {
+      "node_id": "6503733645c7",
+      "node_type": "host",
+      "value": "127.0.0.1",
+      "action": "insight_verify:ebfd0b95d11f",
+      "confidence": 0.95,
+      "source": "playbook"
+    },
+    {
+      "node_id": "6503733645c7",
+      "node_type": "host",
+      "value": "127.0.0.1",
+      "action": "insight_verify:1dd5895e26ea",
+      "confidence": 0.95,
+      "source": "playbook"
+    }
+  ],
+  "findings": [
+    {
+      "title": "interesting_path:http://127.0.0.1:18081/admin",
+      "status": "verified",
+      "target": "http://127.0.0.1:18081/admin"
+    },
+    {
+      "title": "interesting_path:http://127.0.0.1:18081/api",
+      "status": "verified",
+      "target": "http://127.0.0.1:18081/api"
+    },
+    {
+      "title": "interesting_path:http://127.0.0.1:18081/console",
+      "status": "verified",
+      "target": "http://127.0.0.1:18081/console"
+    },
+    {
+      "title": "api_endpoint:http://127.0.0.1:18081/api",
+      "status": "verified",
+      "target": "http://127.0.0.1:18081/api"
+    },
+    {
+      "title": "auth_entry:http://127.0.0.1:18081/login",
+      "status": "verified",
+      "target": "http://127.0.0.1:18081/login"
+    },
+    {
+      "title": "open_port:127.0.0.1:22/ssh",
+      "status": "verified",
+      "target": "127.0.0.1:22"
+    },
+    {
+      "title": "insight_http_probe:http://127.0.0.1",
+      "status": "candidate",
+      "target": "http://127.0.0.1"
+    },
+    {
+      "title": "insight_https_probe:https://127.0.0.1",
+      "status": "candidate",
+      "target": "https://127.0.0.1"
+    },
+    {
+      "title": "insight_auth_surface:http://127.0.0.1:18081/login",
+      "status": "candidate",
+      "target": "http://127.0.0.1:18081/login"
+    },
+    {
+      "title": "insight_xdomain_file_inclusion_to_command_injection:http://127.0.0.1:18081",
+      "status": "candidate",
+      "target": "http://127.0.0.1:18081"
+    },
+    {
+      "title": "insight_xdomain_file_inclusion_to_file_upload:http://127.0.0.1:18081",
+      "status": "candidate",
+      "target": "http://127.0.0.1:18081"
+    }
+  ],
+  "targets_meta": [
+    "http://127.0.0.1:18081/"
+  ],
+  "phase": "FINGERPRINT",
+  "status": "resumed"
+}

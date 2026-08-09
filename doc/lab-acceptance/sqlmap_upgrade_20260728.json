@@ -1,0 +1,28 @@
+{
+  "date": "2026-07-28",
+  "host": "zss@192.168.157.8",
+  "attempted": true,
+  "upgraded": true,
+  "previous_version": "1.9.8#stable",
+  "previous_package": "1.9.8-1",
+  "current_version": "1.10.6#stable",
+  "package_installed": "1.10.6-1",
+  "package_candidate": "1.10.6-1",
+  "upgrade_path": "apt: sudo apt-get install --only-upgrade sqlmap (kali-rolling)",
+  "commands": [
+    "sudo apt-get update -qq",
+    "sudo apt-get install --only-upgrade -y sqlmap"
+  ],
+  "verify": {
+    "sqlmap_version": "1.10.6#stable",
+    "dpkg": "ii  sqlmap 1.10.6-1 all",
+    "apt_policy": "installed == candidate == 1.10.6-1"
+  },
+  "notes": [
+    "apt-get update: nodesource node_22.x InRelease OpenPGP/SHA1 policy warning; kali indexes still usable",
+    "host ops only; product recipe unchanged",
+    "password/credentials never written to repo or acceptance files"
+  ],
+  "product_bug": false,
+  "recipe_changed": false
+}

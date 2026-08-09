@@ -1,0 +1,13 @@
+{
+  "task_id": "chain_clear_dbg",
+  "created_at": "2026-07-27T15:55:34+00:00",
+  "updated_at": "2026-07-27T15:55:34+00:00",
+  "phase": "REPORT",
+  "status": "chain_done",
+  "targets": [
+    "http://lab.local/"
+  ],
+  "depth": "quick",
+  "notes": "run_surface_chain sequential (no run_goal)",
+  "report_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\chain_clear_dbg\\report\\chain_summary.json"
+}

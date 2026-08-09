@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "task_id": "chain_clear_dbg",
+  "target": "http://lab.local/",
+  "mode": "surface_chain",
+  "order": [
+    "web_surface"
+  ],
+  "depths": {
+    "web_surface": "quick"
+  },
+  "steps": [
+    {
+      "playbook": "web_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 0,
+      "verified_after": 0,
+      "error": null,
+      "skipped": false,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    }
+  ],
+  "aborted": false,
+  "by_status": {},
+  "findings": [],
+  "graph_summary": {
+    "task_id": "chain_clear_dbg",
+    "nodes": 2,
+    "edges": 0,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1
+    },
+    "graph_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\chain_clear_dbg\\graph\\graph.json"
+  },
+  "next_actions": [
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "fingerprint",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "shallow_dir",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "nuclei_subset",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "da07ba40487e",
+      "node_type": "host",
+      "value": "lab.local",
+      "action": "http_probe",
+      "confidence": 0.9,
+      "source": "scan"
+    }
+  ],
+  "actions_count": 1,
+  "handoff_json": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\chain_clear_dbg\\handoff\\handoff.json",
+  "progress_md": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\chain_clear_dbg\\handoff\\progress.md",
+  "continue_ok": true,
+  "observer": {
+    "duplicate_count": 0,
+    "suggestions_count": 0,
+    "suggestions": []
+  },
+  "insights": {
+    "skipped": true,
+    "created_count": 0,
+    "reason": null,
+    "error": null
+  },
+  "report_md": "/tmp/x.md",
+  "report_export_error": null
+}

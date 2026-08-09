@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "kali": {
+      "command": "C:\\Windows\\py.exe",
+      "args": [
+        "-3",
+        "mcp_server.py",
+        "--tool-profile",
+        "harness"
+      ],
+      "cwd": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main",
+      "env": {
+        "KALI_MCP_TOOL_PROFILE": "harness",
+        "KALI_MCP_WORKSPACE": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace"
+      }
+    },
+    "sequential-thinking": {
+      "command": "/usr/bin/mcp-server-sequential-thinking"
+    },
+    "mcp-feedback-web": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-feedback-web"
+      ]
+    }
+  }
+}

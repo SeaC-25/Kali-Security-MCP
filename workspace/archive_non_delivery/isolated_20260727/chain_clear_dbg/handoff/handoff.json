@@ -1,0 +1,71 @@
+{
+  "task_id": "chain_clear_dbg",
+  "compiled_at": "2026-07-27T15:55:34+00:00",
+  "phase": "REPORT",
+  "status": "chain_done",
+  "targets": [
+    "http://lab.local/"
+  ],
+  "depth": "quick",
+  "graph_summary": {
+    "task_id": "chain_clear_dbg",
+    "nodes": 2,
+    "edges": 0,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1
+    },
+    "graph_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\chain_clear_dbg\\graph\\graph.json"
+  },
+  "done_tools": [
+    "run_surface_chain"
+  ],
+  "actions_count": 1,
+  "verified_count": 0,
+  "candidate_count": 0,
+  "verified_titles": [],
+  "candidate_titles": [],
+  "dead_nodes": [],
+  "next_actions": [
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "fingerprint",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "shallow_dir",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "8d05ac03ba73",
+      "node_type": "url",
+      "value": "http://lab.local",
+      "action": "nuclei_subset",
+      "confidence": 0.9,
+      "source": "scan"
+    },
+    {
+      "node_id": "da07ba40487e",
+      "node_type": "host",
+      "value": "lab.local",
+      "action": "http_probe",
+      "confidence": 0.9,
+      "source": "scan"
+    }
+  ],
+  "do_not_rescan": [
+    {
+      "tool": "run_surface_chain",
+      "target": "http://lab.local/",
+      "args_digest": "3ee86007bdcab251"
+    }
+  ]
+}

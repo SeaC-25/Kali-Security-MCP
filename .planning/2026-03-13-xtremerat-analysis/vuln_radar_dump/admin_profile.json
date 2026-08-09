@@ -1,0 +1,28 @@
+{
+    "id": 1,
+    "username": "admin",
+    "email": "admin@vulnradar.local",
+    "avatar": "",
+    "is_admin": true,
+    "node_key": "8d5283464e8424c0c078be8c6e7b3434",
+    "reg_ip": "",
+    "monthly_tasks_used": 40,
+    "created_at": "2026-02-14T18:48:54.557+08:00",
+    "last_login": "2026-03-13T20:35:34.742+08:00",
+    "last_login_ip": "220.200.241.40",
+    "level": {
+        "id": 99,
+        "name": "\u7ba1\u7406\u5458",
+        "max_concurrent_tasks": -1,
+        "max_monthly_tasks": -1,
+        "max_targets_per_task": -1,
+        "allow_subdomain": true,
+        "allow_deepport": true,
+        "allow_private_plugin": true,
+        "allow_custom_dict": true,
+        "allow_yaml_import": true,
+        "allow_export_report": true,
+        "allow_api_access": true,
+        "scan_scope": 1
+    }
+}

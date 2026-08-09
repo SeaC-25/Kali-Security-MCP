@@ -1,0 +1,54 @@
+{
+  "task_id": "rpt_probe",
+  "compiled_at": "2026-07-27T14:23:44+00:00",
+  "phase": "RECON",
+  "status": "open",
+  "targets": [],
+  "depth": "standard",
+  "graph_summary": {
+    "task_id": "rpt_probe",
+    "nodes": 1,
+    "edges": 0,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1
+    },
+    "graph_path": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\rpt_probe\\graph\\graph.json"
+  },
+  "done_tools": [],
+  "actions_count": 0,
+  "verified_count": 1,
+  "candidate_count": 0,
+  "verified_titles": [
+    "t"
+  ],
+  "candidate_titles": [],
+  "dead_nodes": [],
+  "next_actions": [
+    {
+      "node_id": "00e4842df4c5",
+      "node_type": "url",
+      "value": "http://x",
+      "action": "fingerprint",
+      "confidence": 0.9,
+      "source": "default"
+    },
+    {
+      "node_id": "00e4842df4c5",
+      "node_type": "url",
+      "value": "http://x",
+      "action": "shallow_dir",
+      "confidence": 0.9,
+      "source": "default"
+    },
+    {
+      "node_id": "00e4842df4c5",
+      "node_type": "url",
+      "value": "http://x",
+      "action": "nuclei_subset",
+      "confidence": 0.9,
+      "source": "default"
+    }
+  ],
+  "do_not_rescan": []
+}

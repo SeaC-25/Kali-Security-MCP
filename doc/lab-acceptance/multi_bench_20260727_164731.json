@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "measured_at": "2026-07-27T16:48:49.506040+00:00",
+  "host_note": "wall times from this process only; not a capacity claim",
+  "sequential": {
+    "mode": "sequential",
+    "elapsed_sec": 78.214,
+    "ok": true,
+    "per_target": [
+      {
+        "task_id": "lab_multi_bench_20260727_164731_s1",
+        "ok": true,
+        "error": null,
+        "verified": 0
+      },
+      {
+        "task_id": "lab_multi_bench_20260727_164731_s2",
+        "ok": true,
+        "error": null,
+        "verified": 0
+      }
+    ],
+    "depth": "quick",
+    "playbooks": "web_surface",
+    "target_count": 2,
+    "url": "http://127.0.0.1:18081/"
+  },
+  "parallel": {
+    "mode": "parallel",
+    "elapsed_sec": 0.062,
+    "ok": true,
+    "per_target": [
+      {
+        "task_id": "lab_multi_bench_20260727_164731_p2",
+        "ok": true,
+        "error": null,
+        "verified": 0
+      },
+      {
+        "task_id": "lab_multi_bench_20260727_164731_p1",
+        "ok": true,
+        "error": null,
+        "verified": 0
+      }
+    ],
+    "depth": "quick",
+    "playbooks": "web_surface",
+    "target_count": 2,
+    "url": "http://127.0.0.1:18081/"
+  }
+}

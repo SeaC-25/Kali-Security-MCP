@@ -1,0 +1,23 @@
+{
+  "task_id": "dbg_next",
+  "updated_at": "2026-07-27T15:47:09+00:00",
+  "nodes": [
+    {
+      "id": "7097486ef322",
+      "type": "url",
+      "value": "http://lab",
+      "confidence": 0.9,
+      "last_seen": "2026-07-27T15:47:09+00:00",
+      "evidence_paths": [],
+      "next_checks": [
+        "insight_verify:abc123"
+      ],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "web_surface"
+      },
+      "source": "scan"
+    }
+  ],
+  "edges": []
+}

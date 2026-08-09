@@ -1,0 +1,39 @@
+{
+  "task_id": "chain_clear_dbg",
+  "updated_at": "2026-07-27T15:55:34+00:00",
+  "nodes": [
+    {
+      "id": "8d05ac03ba73",
+      "type": "url",
+      "value": "http://lab.local",
+      "confidence": 0.9,
+      "last_seen": "2026-07-27T15:55:34+00:00",
+      "evidence_paths": [],
+      "next_checks": [
+        "fingerprint",
+        "shallow_dir",
+        "nuclei_subset"
+      ],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "web_surface"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "da07ba40487e",
+      "type": "host",
+      "value": "lab.local",
+      "confidence": 0.9,
+      "last_seen": "2026-07-27T15:55:34+00:00",
+      "evidence_paths": [],
+      "next_checks": [
+        "http_probe"
+      ],
+      "dead_reason": null,
+      "meta": {},
+      "source": "scan"
+    }
+  ],
+  "edges": []
+}

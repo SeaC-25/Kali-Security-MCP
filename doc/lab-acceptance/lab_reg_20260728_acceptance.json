@@ -1,0 +1,144 @@
+{
+  "schema": "lab_e2e_acceptance_v1",
+  "generated_at": "2026-07-27T17:29:00.458291+00:00",
+  "host": "zss",
+  "root": "/home/zss/MCP-v2/Kali-Security-MCP-main",
+  "forbidden": {
+    "task_ids": [
+      "probe",
+      "rpt-probe",
+      "rpt_probe"
+    ],
+    "note": "Do not use rpt_probe for acceptance deliverables",
+    "no_run_goal": true,
+    "no_drive_executor": true
+  },
+  "fixed_steps": [
+    "1. Ensure lab listens: curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/",
+    "2. If down: bash utils/lab/start_lab.sh",
+    "3. Export: PYTHONPATH=$PWD KALI_MCP_WORKSPACE=$PWD/workspace KALI_MCP_HTTPX_BIN=/home/zss/go/bin/httpx; clear proxies",
+    "4. New task_id (NEVER rpt_probe), e.g. lab_reg_YYYYMMDD",
+    "5. python utils/lab/run_chain.py http://127.0.0.1:18081/ <task_id>  # depth=mixed",
+    "6. Assert: four surfaces ok, verified>0, report.md, status=chain_done phase=REPORT",
+    "7. continue_from_handoff: must NOT write status=resumed; insight_verify not sticky by default",
+    "8. pytest tests/test_p0_harness.py -q",
+    "9. Write JSON summary under doc/lab-acceptance/"
+  ],
+  "ensure_lab": {
+    "started": false,
+    "probe": {
+      "ok": true,
+      "url": "http://127.0.0.1:18081/",
+      "listen": true,
+      "checks": {
+        "/": 200,
+        "/login": 200,
+        "/admin": 200,
+        "/api/health": 200,
+        "/console": 200
+      },
+      "error": null
+    }
+  },
+  "lab": {
+    "ok": true,
+    "url": "http://127.0.0.1:18081/",
+    "listen": true,
+    "checks": {
+      "/": 200,
+      "/login": 200,
+      "/admin": 200,
+      "/api/health": 200,
+      "/console": 200
+    },
+    "error": null
+  },
+  "pytest": {
+    "ran": false,
+    "command": "/home/zss/MCP-v2/Kali-Security-MCP-main/.venv/bin/python -m pytest tests/test_p0_harness.py -q",
+    "hint": "pass --pytest to execute"
+  },
+  "chain": {
+    "task_id": "lab_reg_20260728",
+    "target": "http://127.0.0.1:18081/",
+    "depth": "mixed",
+    "chain_ok": true,
+    "four_surfaces_ok": true,
+    "surfaces": [
+      "web_surface",
+      "api_surface",
+      "auth_surface",
+      "svc_surface"
+    ],
+    "steps": [
+      {
+        "pb": "web_surface",
+        "ok": true,
+        "verified": null
+      },
+      {
+        "pb": "api_surface",
+        "ok": true,
+        "verified": null
+      },
+      {
+        "pb": "auth_surface",
+        "ok": true,
+        "verified": null
+      },
+      {
+        "pb": "svc_surface",
+        "ok": true,
+        "verified": null
+      }
+    ],
+    "verified": 6,
+    "by_status": {
+      "verified": 6
+    },
+    "report_md": "/home/zss/MCP-v2/Kali-Security-MCP-main/workspace/tasks/lab_reg_20260728/report/report.md",
+    "report_md_exists": true,
+    "status": "chain_done",
+    "phase": "REPORT",
+    "chain_done_and_report": true,
+    "continue_ok": true,
+    "continue_idempotent": true,
+    "mutated_to_resumed": false,
+    "insight_sticky": false,
+    "insight_default_not_sticky": true,
+    "next_count_with_insights": 0,
+    "insights": {
+      "skipped": false,
+      "created_count": 5,
+      "reason": null,
+      "error": null
+    },
+    "actions_count": 45,
+    "elapsed_ms": 83188.019,
+    "continue_result": {
+      "ok": true,
+      "status": null,
+      "phase": null
+    },
+    "meta_before_continue": {
+      "status": "chain_done",
+      "phase": "REPORT"
+    },
+    "meta_after_continue": {
+      "status": "chain_done",
+      "phase": "REPORT"
+    },
+    "acceptance_ok": true,
+    "gates": {
+      "chain_ok": true,
+      "four_surfaces_ok": true,
+      "report_md_exists": true,
+      "chain_done_and_report": true,
+      "continue_idempotent": true,
+      "insight_default_not_sticky": true,
+      "verified_gt_0": true
+    },
+    "ran": true
+  },
+  "overall_ok": true
+}

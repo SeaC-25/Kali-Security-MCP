@@ -1,0 +1,9 @@
+=== web curl pack ===
+URL=/ CODE=200 TITLE_OR_SNIP=<!doctype html><html><head><title>Crow5 Lab</title></head> <body> <h1>Crow5 Research Lab</h1> <ul> <li><a href="/login">
+URL=/login CODE=200 TITLE_OR_SNIP=<!doctype html><html><head><title>Login</title></head> <body> <h1>Login</h1> <form method="POST" action="/login"> <label
+URL=/admin/ CODE=200 TITLE_OR_SNIP=<!doctype html><html><head><title>Admin</title></head> <body><h1>Admin Panel</h1><p>secret-admin-panel FLAG_LAB_OK</p></
+URL=/api/ CODE=200 TITLE_OR_SNIP={"service": "crow5-lab-api", "status": "ok", "endpoints": ["/api/health", "/api/v1/users"]}
+URL=/api/health CODE=200 TITLE_OR_SNIP={"status": "ok", "health": "up"}
+URL=/console CODE=200 TITLE_OR_SNIP=<!doctype html><html><head><title>Console</title></head> <body><h1>Console Login</h1> <form><input name="username"><inpu
+URL=/robots.txt CODE=200 TITLE_OR_SNIP=User-agent: * Disallow: /admin/ Disallow: /api/v1/ 
+URL=/search?q=test CODE=200 TITLE_OR_SNIP=<!doctype html><html><body><h1>Search</h1><p>q=test</p></body></html>

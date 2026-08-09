@@ -1,0 +1,15 @@
+{
+  "updated_at": "2026-07-27T14:23:44+00:00",
+  "findings": [
+    {
+      "title": "t",
+      "target": "http://x",
+      "status": "verified",
+      "source": "t",
+      "finding_id": "e7d0dec44893",
+      "created_at": "2026-07-27T14:23:44+00:00",
+      "updated_at": "2026-07-27T14:23:44+00:00",
+      "technique_ids": []
+    }
+  ]
+}

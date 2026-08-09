@@ -1,0 +1,8 @@
+Crow5 lab listening on http://127.0.0.1:18081/
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - "GET /api/v1/users HTTP/1.1" 200 -
+127.0.0.1 - "GET /login HTTP/1.1" 200 -
+127.0.0.1 - "GET /admin/ HTTP/1.1" 200 -
+127.0.0.1 - "GET /robots.txt HTTP/1.1" 200 -

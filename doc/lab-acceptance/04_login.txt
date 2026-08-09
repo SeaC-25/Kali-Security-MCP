@@ -1,0 +1,17 @@
+=== login fail ===
+<html><body>login failed</body></html>
+HTTP=401
+
+=== login ok ===
+<html><body>login ok <a href='/admin/secret'>secret</a></body></html>
+HTTP=200
+
+=== admin secret with cookie ===
+<!doctype html><html><head><title>Secret</title></head>
+<body><h1>Admin Secret</h1><p>FLAG{lab_auth_ok}</p></body></html>
+HTTP=200
+
+=== admin secret without cookie ===
+unauthorized
+HTTP=401
+

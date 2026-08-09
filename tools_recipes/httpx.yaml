@@ -1,0 +1,23 @@
+id: httpx
+tool: httpx
+description: ProjectDiscovery httpx probe with closed stdin defaults
+# Lab note: set KALI_MCP_HTTPX_BIN to Go binary (e.g. /home/zss/go/bin/httpx); avoid Python httpx
+min_version_note: "ProjectDiscovery Go httpx; requires -u and -no-stdin"
+notes: >
+  Binary resolved by registry (_resolve_projectdiscovery_httpx) when recipe applied.
+  PATH Python package named httpx is wrong for this recipe.
+params:
+  target_keys: [target, url, targets, host]
+  required: [target]
+  defaults:
+    silent: true
+    status_code: true
+    title: true
+    server: true
+    timeout: 5
+    retries: 0
+    no_stdin: true
+command:
+  template: "{binary} -u {target} -silent -status-code -title -server -timeout {timeout} -retries {retries} -no-stdin"
+  extra_args_key: additional_args
+cache_ttl: 3600
