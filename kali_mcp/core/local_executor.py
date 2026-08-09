@@ -49,6 +49,15 @@ except ImportError:
     _HAS_OUTPUT_PARSERS = False
     logger.debug("output_parsers 未加载，使用原始输出")
 
+# K0-5: 工具使用日志 — 自剪枝 (K5-2) 依赖；加载/写入失败静默降级
+try:
+    from kali_mcp.core.usage_log import UsageLogger
+
+    _usage_logger = UsageLogger()
+except Exception:
+    _usage_logger = None
+    logger.debug("usage_log 未加载，跳过使用日志")
+
 # v5.1: 可选事件总线 — 不存在时静默降级
 _event_bus = None
 
@@ -261,6 +270,21 @@ class LocalCommandExecutor:
         start_time = time.time()
         result = self.execute_command(command, timeout=tool_timeout)
         duration = round(time.time() - start_time, 2)
+
+        # K0-5: 使用日志 — 记录执行遥测；失败绝不影响执行
+        if _usage_logger is not None:
+            try:
+                _usage_logger.record(
+                    tool=tool_name,
+                    args_hash=_usage_logger.hash_params(data),
+                    duration_s=duration,
+                    timed_out="timeout" in str(result.get("error", "")).lower(),
+                    success=bool(result.get("success", False)),
+                    cache_hit=bool(result.get("cache_hit", False)),
+                    target=data.get("target") or data.get("url") or "",
+                )
+            except Exception:
+                logger.debug("usage log record failed (non-fatal)")
 
         result["duration"] = duration
         result["tool_name"] = tool_name
