@@ -207,6 +207,32 @@ class LocalCommandExecutor:
         Returns:
             执行结果
         """
+        # K2: 结果缓存 — 构建/执行前先查缓存；命中直接返回（缓存绝不影响执行）
+        skip_cache = bool(data.get("no_cache") or data.get("skip_cache"))
+        if not skip_cache:
+            try:
+                from kali_mcp.core.result_cache import result_cache as _result_cache
+
+                _cached, _hit = _result_cache.get(tool_name, data)
+                if _hit and _cached is not None and isinstance(_cached, dict):
+                    hit = dict(_cached)
+                    hit["cached"] = True
+                    hit["cache_hit"] = True
+                    hit["result"] = _cached
+                    hit["tool_name"] = tool_name
+                    hit["duration"] = 0.0
+                    hit["execution_time"] = 0.0
+                    if "return_code" not in hit:
+                        hit["return_code"] = 0 if hit.get("success") else 1
+                    logger.info(
+                        "result cache hit tool=%s target=%s",
+                        tool_name,
+                        data.get("target") or data.get("url") or "",
+                    )
+                    return hit
+            except Exception as e:
+                logger.debug(f"result cache get failed (non-fatal): {e}")
+
         command = self._build_tool_command(tool_name, data)
         if not command:
             in_whitelist = tool_name in ALLOWED_TOOLS
@@ -216,53 +242,6 @@ class LocalCommandExecutor:
                 reason = f"工具 '{tool_name}' 不在白名单中，拒绝执行"
             logger.error(reason)
             return {"success": False, "error": reason, "tool_name": tool_name}
-
-        # Phase4: result cache TTL — same tool+target+params skips re-exec
-        skip_cache = bool(data.get("no_cache") or data.get("skip_cache"))
-        cache_target = str(
-            data.get("target")
-            or data.get("url")
-            or data.get("domain")
-            or data.get("host")
-            or ""
-        )
-        cache_params = {
-            k: v
-            for k, v in data.items()
-            if k
-            not in {
-                "task_id",
-                "phase",
-                "no_cache",
-                "skip_cache",
-                "additional_args",
-            }
-        }
-        result_cache = None
-        if not skip_cache:
-            try:
-                from kali_mcp.core.result_cache import get_result_cache
-
-                result_cache = get_result_cache()
-                cached = result_cache.get(tool_name, cache_target, cache_params)
-                if cached is not None and isinstance(cached.result, dict):
-                    hit = dict(cached.result)
-                    hit["cached"] = True
-                    hit["cache_hit"] = True
-                    hit["tool_name"] = tool_name
-                    hit["duration"] = 0.0
-                    hit["execution_time"] = 0.0
-                    if "return_code" not in hit:
-                        hit["return_code"] = 0 if hit.get("success") else 1
-                    logger.info(
-                        "result cache hit tool=%s target=%s",
-                        tool_name,
-                        cache_target,
-                    )
-                    return hit
-            except Exception as e:
-                logger.debug(f"result cache get failed (non-fatal): {e}")
-                result_cache = None
 
         # v5.1: 工具级超时
         tool_timeout = EXEC_CONFIG["tool_timeouts"].get(tool_name, EXEC_CONFIG["default_timeout"])
@@ -316,21 +295,17 @@ class LocalCommandExecutor:
             except Exception as e:
                 logger.debug(f"输出解析失败 (非致命): {e}")
 
-        # 成功结果写入缓存（失败不缓存）
-        if result_cache is not None and result.get("success") and not skip_cache:
+        # K2: 成功结果写入缓存（失败不缓存）；缓存失败绝不影响执行
+        if result.get("success") and not skip_cache:
             try:
+                from kali_mcp.core.result_cache import result_cache as _result_cache
+
                 to_store = {
                     k: v
                     for k, v in result.items()
                     if k not in {"graph_ingest"}
                 }
-                result_cache.set(
-                    tool_name,
-                    cache_target,
-                    cache_params,
-                    to_store,
-                    float(duration or 0),
-                )
+                _result_cache.set(tool_name, data, to_store)
             except Exception as e:
                 logger.debug(f"result cache set failed (non-fatal): {e}")
 
