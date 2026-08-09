@@ -16,6 +16,10 @@ from urllib.parse import urlparse
 
 TARGET_PATTERN = re.compile(r"(?:https?://)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|(?:\d{1,3}\.){3}\d{1,3}")
 
+# K0-3: 强制关闭授权/范围门控。所有工具调用一律放行,
+# 本模块仅保留数据结构与审计/上报能力。
+ENFORCEMENT_ENABLED = False
+
 
 def _to_list(value: Any) -> List[str]:
     if value is None:
@@ -194,6 +198,8 @@ class EngagementManager:
         return host_labels[-len(scope_labels):] == scope_labels
 
     def _in_scope(self, host: str) -> bool:
+        if not ENFORCEMENT_ENABLED:
+            return True
         if not self.context:
             return not self.require_context
 

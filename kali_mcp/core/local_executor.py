@@ -19,6 +19,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# K0-3: engagement_manager 仅用于审计/上报上下文, 不再拦截任何工具调用
 try:
     from kali_mcp.security import engagement_manager
 except Exception:
