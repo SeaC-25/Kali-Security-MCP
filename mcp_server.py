@@ -337,6 +337,12 @@ def setup_mcp_server(
         return enabled
 
     # ==================== 多智能体集群系统初始化 (v4.0) ====================
+    # K4: 17-agent cluster archived to optional path; thin board is default.
+    # The agent_registry/agent_coordinator/llm_brain cluster (17 agents) is no
+    # longer constructed on the default path; the classes stay importable
+    # (module-level imports above) but idle. Construct the legacy cluster only
+    # when explicitly opted in via K4_LEGACY_CLUSTER=1. The LLM-key gate is
+    # already encoded in MULTI_AGENT_SYSTEM_AVAILABLE (K0-4).
     global MULTI_AGENT_STATE
 
     multi_agent_coordinator = None
@@ -344,7 +350,11 @@ def setup_mcp_server(
 
     logger.info(f"[DEBUG] 开始多智能体系统初始化, MULTI_AGENT_SYSTEM_AVAILABLE={MULTI_AGENT_SYSTEM_AVAILABLE}")
 
-    should_init_multi_agent = MULTI_AGENT_SYSTEM_AVAILABLE and _llm_api_key_available() and _module_enabled("multi_agent")
+    should_init_multi_agent = (
+        MULTI_AGENT_SYSTEM_AVAILABLE
+        and os.environ.get("K4_LEGACY_CLUSTER") == "1"
+        and _module_enabled("multi_agent")
+    )
     if should_init_multi_agent:
         try:
             from kali_mcp.core.mesh_message_bus import MeshMessageBus

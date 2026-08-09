@@ -30,6 +30,7 @@ except ImportError:
 
 from .workflow_tools import register_wf_tools
 from .meta_tools import register_meta_tools
+from .board_tools import register_board_tools
 
 
 __all__ = [
@@ -53,4 +54,5 @@ __all__ = [
     "register_browser_tools",
     "register_wf_tools",
     "register_meta_tools",
+    "register_board_tools",
 ]
