@@ -420,6 +420,13 @@ def setup_mcp_server(
     # ==================== 按类别注册MCP工具 (v5.0 模块化) ====================
     logger.info("📦 开始注册MCP工具模块...")
 
+    # K1: surface converged; archived modules unregistered (see PLAN)
+    # Only keep-set modules register below; the archived modules' register
+    # calls were removed so their tools never register (module files stay on
+    # disk). Keep modules register wholesale, then the post-registration prune
+    # trims them to K1_KEEP_TOOLS. Archived tools remain reachable via kali_run.
+    from kali_mcp.mcp_tools.meta_tools import register_meta_tools, K1_KEEP_TOOLS
+
     def _safe_register(module_key: str, label: str, fn, *fn_args):
         if not _module_enabled(module_key):
             return
@@ -429,38 +436,14 @@ def setup_mcp_server(
         except Exception as e:
             logger.warning(f"  ⚠️ {label}注册失败: {e}")
 
-    _safe_register("assessment", "授权评估工具", register_assessment_tools, mcp, executor, agent_adapter)
     _safe_register("recon", "信息收集工具", register_recon_tools, mcp, executor)
     if _llm_api_key_available():
         _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
     else:
         logger.info("skipped ai_session (no LLM API key)")
     _safe_register("code_audit", "代码审计工具", register_code_audit_tools, mcp, executor)
-    _safe_register("misc", "杂项工具", register_misc_tools, mcp, executor, _TASKS, _WORKFLOWS)
-    _safe_register("apt", "APT攻击链工具", register_apt_tools, mcp, executor, _ADAPTIVE_ATTACKS, agent_adapter)
-    _safe_register(
-        "ctf",
-        "CTF工具",
-        register_ctf_tools,
-        mcp,
-        executor,
-        _CTF_MODE_ENABLED,
-        _CTF_SESSIONS,
-        _CURRENT_CTF_SESSION,
-        _DETECTED_FLAGS,
-        _CTF_CHALLENGES,
-    )
-    _safe_register("advanced_ctf", "增强CTF工具", register_advanced_ctf_tools, mcp, executor, agent_adapter)
     _safe_register("session", "会话管理工具", register_session_tools, mcp, executor, _ATTACK_SESSIONS, _CURRENT_ATTACK_SESSION_ID)
     _safe_register("pwn", "PWN工具", register_pwn_tools, mcp, executor, agent_adapter)
-    _safe_register("adaptive", "自适应执行工具", register_adaptive_tools, mcp, executor)
-    _safe_register("vuln_mgmt", "漏洞管理工具", register_vuln_mgmt_tools, mcp, executor)
-    _safe_register("chain_mgmt", "攻击链管理工具", register_chain_mgmt_tools, mcp, executor)
-    _safe_register("pentagi_bridge", "Pentagi扩展工具", register_pentagi_bridge_tools, mcp, executor)
-    if _llm_api_key_available():
-        _safe_register("llm_react", "LLM ReAct工具", register_llm_react_tools, mcp, executor)
-    else:
-        logger.info("skipped llm_react (no LLM API key)")
 
     # P0 harness tools (always-on orchestration surface: task/graph/playbook/verify/chain)
     _safe_register("harness", "P0 Harness编排工具", register_harness_tools, mcp, executor)
@@ -472,11 +455,18 @@ def setup_mcp_server(
         except Exception as e:
             logger.warning(f"  ⚠️ 漏洞数据库工具注册失败: {e}")
 
-    _safe_register("deep_test", "深度测试引擎工具", register_deep_test_tools, mcp, executor, DEEP_TEST_ENGINE_AVAILABLE)
+    # K1 meta surface: kali_run (fallback executor for archived tools)
+    _safe_register("meta", "K1元工具(通用执行)", register_meta_tools, mcp, executor)
 
-    # v6.0: 反检测浏览器引擎工具
-    if _BROWSER_TOOLS_IMPORT_OK and register_browser_tools is not None:
-        _safe_register("browser", "反检测浏览器引擎工具", register_browser_tools, mcp, executor, BROWSER_ENGINE_AVAILABLE)
+    # K1: prune the MCP surface to the keep-set. Keep modules registered
+    # wholesale above, so drop non-keep tools here; archived modules were
+    # never registered at all. Archived tools stay reachable via kali_run.
+    _k1_tm = getattr(mcp, "_tool_manager", None)
+    if _k1_tm is not None and hasattr(_k1_tm, "_tools"):
+        for _k1_name in list(_k1_tm._tools.keys()):
+            if _k1_name not in K1_KEEP_TOOLS:
+                _k1_tm._tools.pop(_k1_name, None)
+        logger.info(f"✅ K1: MCP surface converged to {len(_k1_tm._tools)} tools")
 
     logger.info("📦 所有MCP工具模块注册完成")
 

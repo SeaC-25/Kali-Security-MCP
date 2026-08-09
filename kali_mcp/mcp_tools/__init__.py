@@ -29,6 +29,7 @@ except ImportError:
     register_browser_tools = None
 
 from .workflow_tools import register_wf_tools
+from .meta_tools import register_meta_tools
 
 
 __all__ = [
@@ -51,4 +52,5 @@ __all__ = [
     "register_harness_tools",
     "register_browser_tools",
     "register_wf_tools",
+    "register_meta_tools",
 ]
