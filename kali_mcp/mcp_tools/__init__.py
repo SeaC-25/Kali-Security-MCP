@@ -28,6 +28,8 @@ try:
 except ImportError:
     register_browser_tools = None
 
+from .workflow_tools import register_wf_tools
+
 
 __all__ = [
     "register_recon_tools",
@@ -48,4 +50,5 @@ __all__ = [
     "register_assessment_tools",
     "register_harness_tools",
     "register_browser_tools",
+    "register_wf_tools",
 ]
