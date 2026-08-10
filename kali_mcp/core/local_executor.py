@@ -247,7 +247,8 @@ class LocalCommandExecutor:
         tool_timeout = EXEC_CONFIG["tool_timeouts"].get(tool_name, EXEC_CONFIG["default_timeout"])
 
         start_time = time.time()
-        result = self.execute_command(command, timeout=tool_timeout)
+        # K0-2/K细测: 按后端模式分流执行 — ssh 后端走远程，否则本地 subprocess
+        result = self._run_tool_command(command, timeout=tool_timeout)
         duration = round(time.time() - start_time, 2)
 
         # K0-5: 使用日志 — 记录执行遥测；失败绝不影响执行
@@ -393,6 +394,26 @@ class LocalCommandExecutor:
             logger.debug(f"active-task graph hook failed (non-fatal): {e}")
 
         return result
+
+    def _run_tool_command(self, command: str, timeout: int = None) -> Dict[str, Any]:
+        """按后端模式执行工具命令：ssh 后端远程执行，否则本地 subprocess。
+
+        返回 dict 含 success/output/error/return_code（与 execute_command 同构），
+        远程失败时降级本地并记录原因（不抛异常）。
+        """
+        cmd_timeout = timeout or self.timeout
+        try:
+            from kali_mcp.core.backend import resolve_backend, ssh_execute
+
+            if resolve_backend().get("mode") == "ssh":
+                remote = ssh_execute(command, timeout=cmd_timeout)
+                if remote.get("success") or remote.get("output"):
+                    return remote
+                # 远程失败（连接/认证/未配置密码）：记录并回退本地
+                logger.warning(f"ssh backend execute failed, fallback to local: {remote.get('error', '')[:200]}")
+        except Exception as e:  # noqa: BLE001
+            logger.debug(f"backend routing failed (non-fatal), local fallback: {e}")
+        return self.execute_command(command, timeout=cmd_timeout)
 
     def execute_with_retry(self, tool_name: str, data: Dict[str, Any],
                            retry_count: int = None, retry_delay: int = None) -> Dict[str, Any]:

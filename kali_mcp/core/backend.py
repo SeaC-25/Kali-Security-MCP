@@ -6,6 +6,7 @@ Kali 后端解析器：动态检测工具执行后端 (local / ssh / docker)。
 工具执行方式；检测失败不应阻塞服务器启动。
 """
 
+import os
 import shutil
 from pathlib import Path
 
@@ -143,3 +144,85 @@ def tool_available(tool_name):
 def tool_missing_message(tool_name):
     """生成工具缺失的友好提示与安装建议。"""
     return _resolver.tool_missing_message(tool_name)
+
+
+# ---------------------------------------------------------------------------
+# SSH 远程执行（细测补接线：探测链之外的真实执行路径）
+#   resolve_backend() 只回答"后端在哪"；ssh_execute() 实际把工具命令送过去跑。
+#   连接参数来源：~/.ssh/config 的 Host 块 (HostName/User/Port) +
+#   KALI_SSH_PASSWORD 环境变量（密码不落盘到 config）。
+# ---------------------------------------------------------------------------
+
+_ssh_client = None
+_ssh_host_target = None
+
+
+def _ssh_parse_target():
+    """从 ~/.ssh/config 解析第一个非通配 Host 的连接目标。返回 (host, user, port) 或 None。"""
+    import os
+
+    config = Path(os.path.expanduser("~/.ssh/config"))
+    if not config.is_file():
+        return None
+    hostname = user = port = None
+    in_host = False
+    try:
+        for raw in config.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            low = line.lower()
+            if low.startswith("host "):
+                # 上一个 Host 块结束：有目标则返回
+                if in_host and hostname:
+                    return (hostname, user or os.environ.get("USER", "root"), port or 22)
+                in_host = not any(a in ("*", "?") for a in line[5:].split())
+                hostname = user = port = None
+            elif in_host:
+                if low.startswith("hostname "):
+                    hostname = line.split(None, 1)[1]
+                elif low.startswith("user "):
+                    user = line.split(None, 1)[1]
+                elif low.startswith("port "):
+                    try:
+                        port = int(line.split(None, 1)[1])
+                    except ValueError:
+                        port = None
+        if in_host and hostname:
+            return (hostname, user or os.environ.get("USER", "root"), port or 22)
+    except OSError:
+        pass
+    return None
+
+
+def ssh_execute(command, timeout: int = 60):
+    """通过 SSH 在远程 Kali 后端执行命令。返回 {success, output, error, return_code}。
+
+    - 连接目标从 ~/.ssh/config 解析；密码读 KALI_SSH_PASSWORD 环境变量。
+    - paramiko 缺失 / 无目标 / 连接失败 → 返回 error dict（不抛异常，调用方可降级本地）。
+    """
+    global _ssh_client, _ssh_host_target
+    try:
+        import paramiko
+    except ImportError:
+        return {"success": False, "output": "", "error": "paramiko not installed; cannot execute via ssh backend", "return_code": -1}
+    target = _ssh_parse_target()
+    if not target:
+        return {"success": False, "output": "", "error": "no ssh host configured (~/.ssh/config)", "return_code": -1}
+    host, user, port = target
+    password = os.environ.get("KALI_SSH_PASSWORD", "")
+    try:
+        if _ssh_client is None or _ssh_host_target != (host, user, port):
+            _ssh_client = paramiko.SSHClient()
+            _ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            _ssh_client.connect(host, port=port, username=user, password=password, timeout=10, allow_agent=True, look_for_keys=True)
+            _ssh_host_target = (host, user, port)
+        stdin, stdout, stderr = _ssh_client.exec_command(command, timeout=timeout)
+        out = stdout.read().decode("utf-8", "replace")
+        err = stderr.read().decode("utf-8", "replace")
+        rc = stdout.channel.recv_exit_status()
+        return {"success": rc == 0, "output": out, "error": err if rc != 0 else "", "return_code": rc}
+    except Exception as e:  # noqa: BLE001
+        _ssh_client = None
+        _ssh_host_target = None
+        return {"success": False, "output": "", "error": f"ssh execute failed: {e}", "return_code": -1}
