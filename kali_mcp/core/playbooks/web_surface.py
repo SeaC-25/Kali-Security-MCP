@@ -77,6 +77,23 @@ def _extract_gobuster_paths(raw: str, base_url: str) -> List[str]:
 
 
 def _run_tool(executor, tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    # nuclei 无模板目录时会挂死等下载：主路径统一先探测模板，缺失则跳过
+    if tool_name == "nuclei":
+        probe_cmd = "nuclei -version >/dev/null 2>&1 && (test -d ~/nuclei-templates -o -d /root/nuclei-templates -o -d /home/zss/nuclei-templates) && echo HAS_TMPL || echo NO_TMPL"
+        if hasattr(executor, "_run_tool_command"):
+            probe = executor._run_tool_command(probe_cmd, timeout=15)
+        elif hasattr(executor, "execute_command"):
+            probe = executor.execute_command(probe_cmd, timeout=15)
+        else:
+            probe = {"output": ""}
+        if "HAS_TMPL" not in (probe.get("output") or ""):
+            return {
+                "success": True,
+                "output": "[nuclei skipped: no templates installed; run 'nuclei -update-templates' on the backend]",
+                "error": "",
+                "return_code": 0,
+                "skipped": "no_nuclei_templates",
+            }
     if hasattr(executor, "execute_tool_with_data"):
         return executor.execute_tool_with_data(tool_name, data)
     # fallback: build simple commands for dry environments
@@ -231,9 +248,9 @@ def _run_web_surface_body(
         steps.append(step)
         return step
 
-    # 1) live / http probe
+    # 1) live / http probe — httpx 在 Kali 上可能是 Python CLI (无 -u)，统一用 curl 探测
     if profile.get("httpx"):
-        _step("httpx", {"target": url, "url": url}, "RECON")
+        _step("curl", {"url": url, "target": url, "headers": {"User-Agent": "kali-mcp-probe"}, "timeout": 8}, "RECON")
     else:
         _step("whatweb", {"target": url, "url": url}, "RECON")
 
