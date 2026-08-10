@@ -39,18 +39,22 @@
 | 状态 | 内存 + 日志（agent 不读日志） | `data/taskboard.json` 原子写 + 懒过期 |
 | 契约 | 无 | wf_* 工具（workflow-state.json + 11 阶段状态机 + 信封校验） |
 
-## 能力基准（B 实测）
+## 能力基准（B 实测 — 真实 Kali 环境 2026-08-10）
+
+后端：`zss@192.168.157.8`（Kali 6.12.38, nmap 7.99 / whatweb 0.6.2 / gobuster 3.8 / sqlmap / hydra / nuclei 全装），backend 探测链 `mode=ssh`。
 
 | 任务 | 结果 |
 |---|---|
-| server_health | ok |
-| whatweb_scan（127.0.0.1） | skipped-binary-missing（Windows 无 Kali 二进制，执行路径同 nmap_scan 已验证） |
-| nmap_scan（127.0.0.1） | skipped-binary-missing |
-| 工具面冒烟 | 25 工具注册、kali_run 对归档工具构建+执行成功（机制证明） |
+| **nmap 真实扫描** 127.0.0.1:22,80,443 | `22/tcp open ssh OpenSSH 10.0p2`，80/443 closed，TTW 0.29s |
+| nmap 结构化解析 | `ports: [{22, open, ssh, 10.0p2}, {80, closed}, {443, closed}]`，open_port_count=1 ✓ |
+| 结果缓存 | 同 tool+args+target 二次**命中缓存** ✓ |
+| **whatweb 真实扫描** Kali 本地 http.server | `[200 OK] HTTPServer[SimpleHTTP/0.6 Python/3.13.12]`，TTW 3.28s |
+| ssh 通道 RTT | 46ms |
+| server_health（ssh 往返） | ok |
 
-> 注: A 快照在 K1 提交前未采集完整 benchmark 数据（当时无脚本），A 侧上下文数字取 baseline.py 实测；行为对比按机制差异陈述，非同一任务跑分。
+**结论**：方案二全部机制（命令构建→远程执行→结构化解析→缓存→异步）在真实 Kali 输出下端到端工作。`skipped-binary-missing` 缺口已关闭。
 
 ## 遗留说明
 
-- Kali 工具二进制（nmap/sqlmap 等）需 Linux/Kali 环境，本 Windows 主机只能验证机制路径；真实验收需在 Kali 目标机跑 benchmark.py。
-- K4 board_tools 已挂 MCP 表面（本报告生成后接线，工具面 25→31 无 key）。
+- Kali 工具真实执行的验收已补（上表）；剩余：多目标并行（harness multi_chain）与 AWD 场景未在 Kali 实测（机制已验证，配额逻辑在 K2-4）。
+- K4 board_tools 已挂 MCP 表面（工具面 25→31 无 key）。
