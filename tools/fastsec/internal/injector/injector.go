@@ -126,9 +126,10 @@ type WAFDetection struct {
 	Matched     []string
 }
 
+// wafProbes: 原始恶意 payload（不含绕过形式——绕过形式用于 BypassWAF 阶段）
 var wafProbes = []string{
 	"' OR '1'='1", "1 AND 1=1", "union select 1,2,3",
-	"1;SELECT SLEEP(5)", "1/**/AND/**/1=1", "<script>alert(1)</script>",
+	"1;SELECT SLEEP(5)", "<script>alert(1)</script>",
 }
 
 // DetectWAF 对目标检测 WAF

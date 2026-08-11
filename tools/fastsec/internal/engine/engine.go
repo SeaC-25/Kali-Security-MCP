@@ -87,15 +87,63 @@ func (e *Engine) Run(baseURL string, templates []*template.Template) []template.
 }
 
 // expandPayloads generates payload combinations for a request.
+// maxPayloadCombos: 笛卡尔积上限（防模板 payloads 爆炸）
+const maxPayloadCombos = 1000
+
 func expandPayloads(rq template.Request) []map[string]string {
 	if len(rq.Payloads) == 0 {
 		return nil
 	}
-	// clusterbomb: full cross-product
+	// 预计算组合数，超限截断（每 key 最多取前 N）
 	keys := make([]string, 0, len(rq.Payloads))
 	for k := range rq.Payloads {
 		keys = append(keys, k)
 	}
+	total := 1
+	trimmed := map[string][]string{}
+	for _, k := range keys {
+		vals := rq.Payloads[k]
+		if len(vals) > 0 {
+			total *= len(vals)
+		}
+		trimmed[k] = vals
+	}
+	// 超限：每 key 截断到能控制总量
+	if total > maxPayloadCombos {
+		// 每个 key 只取前几个，保证 total <= max
+		factor := 1
+		_ = factor
+		for _, k := range keys {
+			vals := trimmed[k]
+			// 单 key 超限直接截断
+			if len(vals) > maxPayloadCombos {
+				trimmed[k] = vals[:maxPayloadCombos]
+			}
+		}
+		// 多 key 组合超限：逐 key 截断
+		for {
+			total = 1
+			for _, k := range keys {
+				total *= len(trimmed[k])
+			}
+			if total <= maxPayloadCombos {
+				break
+			}
+			// 截断最大的 key 一半
+			biggest := keys[0]
+			for _, k := range keys {
+				if len(trimmed[k]) > len(trimmed[biggest]) {
+					biggest = k
+				}
+			}
+			vals := trimmed[biggest]
+			trimmed[biggest] = vals[:len(vals)/2]
+			if len(trimmed[biggest]) == 0 {
+				break
+			}
+		}
+	}
+	// 生成笛卡尔积（已控制上限）
 	var out []map[string]string
 	var rec func(i int, acc map[string]string)
 	rec = func(i int, acc map[string]string) {
@@ -108,7 +156,7 @@ func expandPayloads(rq template.Request) []map[string]string {
 			return
 		}
 		k := keys[i]
-		for _, v := range rq.Payloads[k] {
+		for _, v := range trimmed[k] {
 			acc[k] = v
 			rec(i+1, acc)
 		}

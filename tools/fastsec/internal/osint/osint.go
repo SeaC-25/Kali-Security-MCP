@@ -61,6 +61,10 @@ func fetch(url string, cli *stealth.Client) string {
 // Aggregate: 多源聚合 + 去重 + 排序
 func Aggregate(domain string, cli *stealth.Client) Result {
 	res := Result{Domain: domain}
+	// 域名校验：非空 + 合法格式
+	if domain == "" || !strings.Contains(domain, ".") || strings.ContainsAny(domain, " /") {
+		return res
+	}
 	emails := map[string]bool{}
 	subdomains := map[string]bool{}
 
