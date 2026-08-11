@@ -1,6 +1,4 @@
 // Package diff: behavioral difference detection engine.
-// nuclei 是模板匹配器（找已知漏洞）；本引擎检测参数变异后的响应行为差异，
-// 可发现未知的 IDOR / 越权 / 逻辑漏洞——不需要任何模板。
 package diff
 
 import (
@@ -22,10 +20,8 @@ type Config struct {
 	DelayMinMs  int
 	DelayMaxMs  int
 	Proxy       string
-	// Mutations to try for each discovered parameter
-	Mutations []string
-	// Headers to carry (e.g. auth cookie)
-	Headers map[string]string
+	Mutations   []string
+	Headers     map[string]string
 }
 
 func DefaultConfig() *Config {
@@ -44,14 +40,13 @@ func DefaultConfig() *Config {
 
 // Finding describes a behavioral difference.
 type Finding struct {
-	URL      string
-	Param    string
-	BaseResp string   // baseline response fingerprint
-	Mutations []Diff  // mutations that produced different behavior
-	Severity string
+	URL       string
+	Param     string
+	BaseResp  string
+	Mutations []Diff
+	Severity  string
 }
 
-// Diff describes one mutation's deviation from baseline.
 type Diff struct {
 	Value       string
 	StatusDiff  bool
@@ -62,7 +57,6 @@ type Diff struct {
 	BodyLenNew  int
 }
 
-// fingerprint normalizes a response to a compact comparable form.
 type fingerprint struct {
 	status int
 	length int
@@ -79,15 +73,30 @@ func fpOf(status int, body []byte) fingerprint {
 	return fingerprint{status: status, length: len(body), sample: sample}
 }
 
-// scanParam mutates one parameter and compares responses against baseline.
+func get(client *stealth.Client, u string, headers map[string]string) (int, []byte) {
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return 0, nil
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, nil
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	resp.Body.Close()
+	return resp.StatusCode, body
+}
+
 func scanParam(client *stealth.Client, baseURL, param, value string, cfg *Config, sem chan struct{}, results chan<- Finding, wg *sync.WaitGroup) {
 	defer wg.Done()
 	sem <- struct{}{}
 	defer func() { <-sem }()
 
-	// baseline: param=1
 	base := mutate(baseURL, param, value)
-	bresp, bbody := get(client, base)
+	bresp, bbody := get(client, base, cfg.Headers)
 	if bresp == 0 {
 		return
 	}
@@ -99,13 +108,12 @@ func scanParam(client *stealth.Client, baseURL, param, value string, cfg *Config
 			continue
 		}
 		u := mutate(baseURL, param, m)
-		s, body := get(client, u)
+		s, body := get(client, u, cfg.Headers)
 		if s == 0 {
 			continue
 		}
 		nfp := fpOf(s, body)
 		statusDiff := s != bfp.status
-		// body diff: length change OR sample change (with min threshold)
 		bodyDiff := nfp.length != bfp.length || (bfp.sample != "" && nfp.sample != bfp.sample)
 		if statusDiff || bodyDiff {
 			diffs = append(diffs, Diff{
@@ -130,26 +138,7 @@ func scanParam(client *stealth.Client, baseURL, param, value string, cfg *Config
 	}
 }
 
-func get(client *stealth.Client, u string) (int, []byte) {
-	req, err := http.NewRequest("GET", u, nil)
-	if err != nil {
-		return 0, nil
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, nil
-	}
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
-	resp.Body.Close()
-	return resp.StatusCode, body
-}
-
 func mutate(baseURL, param, value string) string {
-	sep := "?"
-	if strings.Contains(baseURL, "?") {
-		sep = "&"
-	}
-	// replace existing param if present
 	u, err := url.Parse(baseURL)
 	if err == nil {
 		q := u.Query()
@@ -157,11 +146,14 @@ func mutate(baseURL, param, value string) string {
 		u.RawQuery = q.Encode()
 		return u.String()
 	}
+	sep := "?"
+	if strings.Contains(baseURL, "?") {
+		sep = "&"
+	}
 	return baseURL + sep + url.QueryEscape(param) + "=" + url.QueryEscape(value)
 }
 
 // Scan runs difference detection against a URL.
-// baseParams: params to test (e.g. ["id","user","uid","page","file"])
 func Scan(baseURL string, baseParams []string, cfg *Config) []Finding {
 	if cfg == nil {
 		cfg = DefaultConfig()

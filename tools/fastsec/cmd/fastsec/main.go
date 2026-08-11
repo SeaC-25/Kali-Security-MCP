@@ -1,4 +1,4 @@
-// fastsec — AI 原生扫描引擎：nuclei 模板兼容 + 3-gate 确认 + 行为差异检测 + 反检测。
+// fastsec — AI 原生扫描引擎：模板兼容 + 3-gate + 行为差异 + 状态化序列 + 参数分级。
 package main
 
 import (
@@ -10,8 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	"fastsec/internal/diff"
 	"fastsec/internal/engine"
+	"fastsec/internal/priority"
+	"fastsec/internal/session"
 	"fastsec/internal/template"
 )
 
@@ -21,6 +25,8 @@ func main() {
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
 	diffParams := flag.String("diff", "", "behavioral diff params (comma list, e.g. id,user,uid,page)")
+	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
+	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
 	minDelay := flag.Int("delay-min", 300, "min delay ms between requests")
 	maxDelay := flag.Int("delay-max", 800, "max delay ms between requests")
@@ -57,18 +63,77 @@ func main() {
 		os.Exit(2)
 	}
 
-	// 行为差异模式（不需要模板，nuclei 没有的能力）
+	// 状态化攻击序列模式（登录→操作→对比，nuclei 无状态做不到）
+	if *seqFile != "" {
+		data, err := os.ReadFile(*seqFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "读取序列文件失败: %v\n", err)
+			os.Exit(1)
+		}
+		var seq struct {
+			BaseURL string         `yaml:"base_url"`
+			Steps   []session.Step `yaml:"steps"`
+		}
+		if err := yaml.Unmarshal(data, &seq); err != nil {
+			fmt.Fprintf(os.Stderr, "序列 YAML 解析失败: %v\n", err)
+			os.Exit(1)
+		}
+		cfg := &session.Config{
+			BaseURL:     seq.BaseURL,
+			Steps:       seq.Steps,
+			Concurrency: *concurrency,
+			Timeout:     time.Duration(*timeout) * time.Second,
+			DelayMinMs:  *minDelay,
+			DelayMaxMs:  *maxDelay,
+			Proxy:       *proxy,
+		}
+		for _, t := range targets {
+			cfg.BaseURL = t
+			fmt.Printf("=== 状态化序列 %s ===\n", t)
+			runner := session.New(cfg)
+			results := runner.Run()
+			fmt.Print(session.Format(results))
+		}
+		return
+	}
+
+	// 行为差异模式 + 参数分级
 	if *diffParams != "" {
 		cfg := diff.DefaultConfig()
 		cfg.Concurrency = *concurrency
 		cfg.DelayMinMs = *minDelay
 		cfg.DelayMaxMs = *maxDelay
 		cfg.Proxy = *proxy
+		if *headerFlag != "" {
+			for _, pair := range strings.Split(*headerFlag, ";") {
+				kv := strings.SplitN(pair, ":", 2)
+				if len(kv) == 2 {
+					cfg.Headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+				}
+			}
+		}
 		params := strings.Split(*diffParams, ",")
+		var allFindings map[string][]string
 		for _, t := range targets {
 			fmt.Printf("=== 差异检测 %s ===\n", t)
 			fs := diff.Scan(t, params, cfg)
 			fmt.Print(diff.Format(fs))
+			// collect per-param deviations
+			if allFindings == nil {
+				allFindings = map[string][]string{}
+			}
+			for _, f := range fs {
+				for _, d := range f.Mutations {
+					desc := fmt.Sprintf("status %d->%d len %d->%d",
+						d.StatusBase, d.StatusNew, d.BodyLenBase, d.BodyLenNew)
+					allFindings[f.Param] = append(allFindings[f.Param], desc)
+				}
+			}
+		}
+		// 参数优先排序
+		if len(allFindings) > 0 {
+			scores := priority.ScoreDiffs(allFindings)
+			fmt.Print(priority.Format(scores, *topN))
 		}
 		return
 	}
@@ -91,7 +156,7 @@ func main() {
 			os.Exit(1)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "错误: 需要 -t 模板文件、-d 模板目录、或 -diff 参数列表")
+		fmt.Fprintln(os.Stderr, "错误: 需要 -t 模板、-d 模板目录、-diff 参数、或 -seq 序列")
 		os.Exit(2)
 	}
 	if len(templates) == 0 {
@@ -105,6 +170,14 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
+		if *headerFlag != "" {
+			for _, pair := range strings.Split(*headerFlag, ";") {
+				kv := strings.SplitN(pair, ":", 2)
+				if len(kv) == 2 {
+					cfg.Headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+				}
+			}
+		}
 	cfg.VerifyGate = !*noVerify
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {

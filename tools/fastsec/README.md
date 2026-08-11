@@ -19,43 +19,58 @@
 | raw 请求 | 完整 HTTP/1.1 原始请求解析 | |
 | DSL matcher | status_code/contains/len 求值 | |
 
-## 推陈出新：行为差异引擎（-diff）
+## 推陈出新：行为差异引擎（-diff）+ 状态化序列（-seq）+ 参数分级（-top）
 
-nuclei 是**模板匹配器**——只能找模板里写过的已知漏洞。fastsec 的 `-diff` 模式做**行为分析**：
+nuclei 是**模板匹配器**——只能找模板里写过的已知漏洞，且无状态（每个请求独立）。
 
+### 1. 行为差异引擎（-diff）— nuclei 没有
 ```
 对每个参数做变异（1/2/0/-1/999999/admin/...），
 对比每个响应与基线的 状态码+长度+样本 差异。
 响应变了 = 参数暴露了不同数据 = 潜在 IDOR/越权/逻辑漏洞。
 ```
+不需要任何模板。实测 `?id=1` vs `?id=2` 长度 56→55 → 越权信号。
 
-**不需要任何模板**。实测：`?id=1` vs `?id=2` 长度 56→55 → 越权信号。
+### 2. 状态化攻击序列（-seq）— nuclei 无状态做不到
+```
+登录 → 提取 token → 带 token 访问受保护端点 → 对比行为
+```
+步骤间变量传递（正则提取 → {{var}} 注入）、cookie 会话保持、must_contain 校验。
+实测：登录提取 `sess-abc123` → 访问 profile → 发现 `userId=2` 状态 200→401。
+
+### 3. 参数优先排序（-top）— 聚焦海量候选
+```
+参数名语义权重（id/userId/order 高，search/q 低）
++ 变异差异度（状态码变化 > 长度变化）
+→ Top N 排序，告诉 AI/人先挖哪个
+```
+实测：userId 被评为 #1 high（score=19）。
 
 ```bash
-# 检测 IDOR/越权
-fastsec -u http://target/user -diff id,user,uid,page,file
+# 1. 差异检测（发现候选参数）
+fastsec -u http://target/user -diff id,user,uid,page,file -H "Cookie: session=..."
 
-# 真实目标（授权）示例
-fastsec -u http://target/api/orders -diff orderId,userId -H "Cookie: session=..."
+# 2. 状态化序列（登录→操作→对比）
+fastsec -u http://target -seq seq.yaml
+
+# 3. 参数分级（聚焦最可疑的）
+fastsec -u http://target/user -diff id,userId,page -top 5
 ```
 
 ## 源码结构
 
 ```
 tools/fastsec/
-├── cmd/fastsec/main.go       # CLI：-u/-l/-t/-d/-diff/-c/-delay/-proxy/-no-verify/-json
+├── cmd/fastsec/main.go       # CLI：-u/-l/-t/-d/-diff/-seq/-top/-c/-delay/-proxy/-json
 ├── internal/
 │   ├── template/             # nuclei 模板解析（gopkg.in/yaml.v3）
-│   │   ├── model.go          # Template/Request/Matcher/Extractor + Payloads
-│   │   └── parse.go          # yaml 结构 + raw 请求解析 + 柔性 tags/payloads
 │   ├── engine/               # 并发调度 + matcher + DSL + extractor
-│   │   ├── engine.go         # Run + 变量替换 + payloads 展开 + 3-gate 过滤
-│   │   └── matcher.go        # status/word/regex/dsl/binary 匹配 + DSL 求值
 │   ├── diff/                 # ★ 行为差异引擎（nuclei 没有）
-│   │   └── diff.go           # 参数变异 → 响应对比 → IDOR/越权发现
+│   ├── session/              # ★ 状态化攻击序列（nuclei 没有）
+│   ├── priority/             # ★ 参数优先排序（nuclei 没有）
 │   ├── stealth/              # 反检测：真实浏览器 UA + 节奏 + 代理
 │   └── verify/               # 3-gate 确认（CyberStrike 方法论）
-└── templates/                # 自研模板（默认路径/备份/配置/管理/敏感文件）
+└── templates/                # 自研模板
 ```
 
 ## 官方模板库
