@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -63,14 +64,21 @@ func (e *Engine) Run(baseURL string, templates []*template.Template) []template.
 	var wg sync.WaitGroup
 	for _, tpl := range templates {
 		for _, req := range tpl.Requests {
-			for _, path := range req.Path {
-				wg.Add(1)
-				sem <- struct{}{}
-				go func(t *template.Template, rq template.Request, p string) {
-					defer wg.Done()
-					defer func() { <-sem }()
-					e.scanOne(baseURL, t, rq, p)
-				}(tpl, req, path)
+			// payloads expansion (clusterbomb/pitchfork)
+			combos := expandPayloads(req)
+			if len(combos) == 0 {
+				combos = []map[string]string{{}}
+			}
+			for _, combo := range combos {
+				for _, path := range req.Path {
+					wg.Add(1)
+					sem <- struct{}{}
+					go func(t *template.Template, rq template.Request, p string, pl map[string]string) {
+						defer wg.Done()
+						defer func() { <-sem }()
+						e.scanOne(baseURL, t, rq, p, pl)
+					}(tpl, req, path, combo)
+				}
 			}
 		}
 	}
@@ -78,23 +86,72 @@ func (e *Engine) Run(baseURL string, templates []*template.Template) []template.
 	return e.results
 }
 
-func (e *Engine) scanOne(baseURL string, tpl *template.Template, rq template.Request, path string) {
-	url := strings.ReplaceAll(path, "{{BaseURL}}", baseURL)
+// expandPayloads generates payload combinations for a request.
+func expandPayloads(rq template.Request) []map[string]string {
+	if len(rq.Payloads) == 0 {
+		return nil
+	}
+	// clusterbomb: full cross-product
+	keys := make([]string, 0, len(rq.Payloads))
+	for k := range rq.Payloads {
+		keys = append(keys, k)
+	}
+	var out []map[string]string
+	var rec func(i int, acc map[string]string)
+	rec = func(i int, acc map[string]string) {
+		if i == len(keys) {
+			m := map[string]string{}
+			for k, v := range acc {
+				m[k] = v
+			}
+			out = append(out, m)
+			return
+		}
+		k := keys[i]
+		for _, v := range rq.Payloads[k] {
+			acc[k] = v
+			rec(i+1, acc)
+		}
+		delete(acc, k)
+	}
+	rec(0, map[string]string{})
+	return out
+}
+
+// expandVars substitutes {{BaseURL}}/{{Hostname}}/{{path}}/{{var}} in a string.
+func expandVars(s, baseURL string, payload map[string]string) string {
+	s = strings.ReplaceAll(s, "{{BaseURL}}", baseURL)
+	u, err := url.Parse(baseURL)
+	host := baseURL
+	if err == nil && u.Host != "" {
+		host = u.Host
+	}
+	s = strings.ReplaceAll(s, "{{Hostname}}", host)
+	s = strings.ReplaceAll(s, "{{hostname}}", host)
+	for k, v := range payload {
+		s = strings.ReplaceAll(s, "{{"+k+"}}", v)
+	}
+	return s
+}
+
+func (e *Engine) scanOne(baseURL string, tpl *template.Template, rq template.Request, path string, payload map[string]string) {
+	url := expandVars(path, baseURL, payload)
 	method := rq.Method
 	if method == "" {
 		method = "GET"
 	}
 
 	var bodyReader io.Reader
-	if rq.Body != "" {
-		bodyReader = strings.NewReader(rq.Body)
+	bodyStr := expandVars(rq.Body, baseURL, payload)
+	if bodyStr != "" {
+		bodyReader = strings.NewReader(bodyStr)
 	}
 	req, err := http.NewRequest(method, url, bodyReader)
 	if err != nil {
 		return
 	}
 	for k, v := range rq.Headers {
-		req.Header.Set(k, v)
+		req.Header.Set(k, expandVars(v, baseURL, payload))
 	}
 	for k, v := range e.cfg.Headers {
 		req.Header.Set(k, v)
@@ -120,7 +177,6 @@ func (e *Engine) scanOne(baseURL string, tpl *template.Template, rq template.Req
 		return
 	}
 
-	// 3-gate confirmation: 只有验证通过的才上报（零误报核心）
 	if e.cfg.VerifyGate {
 		if !verify.ThreeGate(e.client.HTTP(), req, resp, body, e.cfg.Timeout) {
 			return
@@ -128,6 +184,14 @@ func (e *Engine) scanOne(baseURL string, tpl *template.Template, rq template.Req
 	}
 
 	extracted := Extract(&rq, body, headerStr)
+	pl := ""
+	if len(payload) > 0 {
+		parts := make([]string, 0, len(payload))
+		for k, v := range payload {
+			parts = append(parts, k+"="+v)
+		}
+		pl = strings.Join(parts, "&")
+	}
 	e.mu.Lock()
 	e.results = append(e.results, template.MatchResult{
 		TemplateID: tpl.ID,
@@ -136,6 +200,7 @@ func (e *Engine) scanOne(baseURL string, tpl *template.Template, rq template.Req
 		Extracted:  extracted,
 		StatusCode: status,
 		Verified:   true,
+		Payload:    pl,
 	})
 	e.mu.Unlock()
 }
@@ -164,7 +229,11 @@ func FormatResults(results []template.MatchResult) string {
 		if sev == "" {
 			sev = "info"
 		}
-		sb.WriteString(fmt.Sprintf("  [%s] %s (%s) 已验证\n", sev, r.Matched, r.TemplateID))
+		pl := ""
+		if r.Payload != "" {
+			pl = " [" + r.Payload + "]"
+		}
+		sb.WriteString(fmt.Sprintf("  [%s] %s (%s) 已验证%s\n", sev, r.Matched, r.TemplateID, pl))
 		for _, ex := range r.Extracted {
 			sb.WriteString(fmt.Sprintf("      提取: %s\n", ex))
 		}

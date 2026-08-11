@@ -4,11 +4,86 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
-// ParseFile loads one template YAML file (nuclei subset, zero-dep parser).
+// yaml 结构（对齐 nuclei 官方模板）
+type yamlTemplate struct {
+	ID     string `yaml:"id"`
+	Info   struct {
+		Name     string      `yaml:"name"`
+		Severity string      `yaml:"severity"`
+		Tags     yamlStrList `yaml:"tags"`
+		Author   string      `yaml:"author"`
+	} `yaml:"info"`
+	HTTP []yamlHTTP `yaml:"http"`
+}
+
+// yamlStrList accepts both "a,b,c" and ["a","b"].
+type yamlStrList []string
+
+func (y *yamlStrList) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		var s string
+		if err := node.Decode(&s); err != nil {
+			return err
+		}
+		parts := strings.Split(s, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, p)
+			}
+		}
+		*y = out
+		return nil
+	case yaml.SequenceNode:
+		var arr []string
+		if err := node.Decode(&arr); err != nil {
+			return err
+		}
+		*y = arr
+		return nil
+	}
+	return fmt.Errorf("unexpected yaml kind %d for string list", node.Kind)
+}
+
+type yamlHTTP struct {
+	Method      string            `yaml:"method"`
+	Path        []string          `yaml:"path"`
+	Raw         []string          `yaml:"raw"`
+	Headers     map[string]string `yaml:"headers"`
+	Body        string            `yaml:"body"`
+	Matchers    []yamlMatcher     `yaml:"matchers"`
+	Extractors  []yamlExtractor   `yaml:"extractors"`
+	Redirects   bool              `yaml:"redirects"`
+	Payloads    map[string]yamlStrList `yaml:"payloads"`
+	Attack      string            `yaml:"attack"`
+	StopAtFirst bool              `yaml:"stop-at-first-match"`
+}
+
+type yamlMatcher struct {
+	Type      string       `yaml:"type"`
+	Words     []string     `yaml:"words"`
+	Regex     []string     `yaml:"regex"`
+	Status    []int        `yaml:"status"`
+	Part      string       `yaml:"part"`
+	Condition string       `yaml:"condition"`
+	DSL       yamlStrList  `yaml:"dsl"`
+}
+
+type yamlExtractor struct {
+	Type  string   `yaml:"type"`
+	Regex []string `yaml:"regex"`
+	Words []string `yaml:"words"`
+	Part  string   `yaml:"part"`
+	Group int      `yaml:"group"`
+}
+
+// ParseFile loads one nuclei-compatible template.
 func ParseFile(path string) (*Template, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -17,280 +92,166 @@ func ParseFile(path string) (*Template, error) {
 	return Parse(string(data), path)
 }
 
-// Parse parses template YAML text into a Template.
+// Parse parses a nuclei-format template into our engine model.
 func Parse(text, path string) (*Template, error) {
-	t := &Template{Path: path}
-	lines := strings.Split(text, "\n")
-	var section string
-	var curReq *Request
-	var curMatch *Matcher
-	var curExt *Extractor
-
-	for _, raw := range lines {
-		line := strings.TrimRight(raw, "\r")
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-		indent := len(line) - len(strings.TrimLeft(line, " "))
-		if indent == 0 {
-			switch {
-			case trimmed == "info:":
-				section = "info"
-			case trimmed == "requests:":
-				section = "requests"
-			default:
-				section = ""
-			}
-			continue
-		}
-		if section == "info" && indent == 2 {
-			key, val, ok := splitKV(trimmed)
-			if !ok {
-				continue
-			}
-			switch key {
-			case "name":
-				t.Info.Name = unquote(val)
-			case "severity":
-				t.Info.Severity = unquote(val)
-			case "author":
-				t.Info.Author = unquote(val)
-			}
-			continue
-		}
-		if section == "requests" || section == "request" {
-			// new request item at indent 2: "- method: GET" or "- raw:"
-			if indent == 2 && strings.HasPrefix(trimmed, "- ") {
-				body := strings.TrimSpace(trimmed[2:])
-				// strip trailing colon for labeled items like "- request:"
-				label := strings.TrimSuffix(body, ":")
-				if label == "request" || label == "http" || label == "raw" || label == "" {
-					t.Requests = append(t.Requests, Request{Method: "GET"})
-					curReq = &t.Requests[len(t.Requests)-1]
-					section = "request"
-				} else if strings.HasPrefix(body, "method:") {
-					// "- method: POST" inline
-					t.Requests = append(t.Requests, Request{Method: "GET"})
-					curReq = &t.Requests[len(t.Requests)-1]
-					curReq.Method = unquote(strings.TrimSpace(body[len("method:"):]))
-					section = "request"
-				}
-				continue
-			}
-			if indent == 2 {
-				key, val, ok := splitKV(trimmed)
-				if !ok {
-					continue
-				}
-				switch key {
-				case "method":
-					if curReq != nil {
-						curReq.Method = unquote(val)
-					}
-				case "body":
-					if curReq != nil {
-						curReq.Body = unquote(val)
-					}
-				case "stop-at-first-match":
-					if curReq != nil {
-						curReq.StopAtFirstMatch = val == "true"
-					}
-				}
-				continue
-			}
-			if indent == 4 {
-				key, val, ok := splitKV(trimmed)
-				if !ok {
-					continue
-				}
-				if key == "path" && curReq != nil {
-					p := unquote(val)
-					if p != "" {
-						curReq.Path = append(curReq.Path, p)
-					}
-				}
-				// 其他已知 4-indent 字段进入对应子区（matchers/extractors/headers）
-				if key == "matchers:" && curReq != nil {
-					section = "matchers"
-				}
-				if key == "extractors:" && curReq != nil {
-					section = "extractors"
-				}
-				if key == "headers:" && curReq != nil {
-					if curReq.Headers == nil {
-						curReq.Headers = map[string]string{}
-					}
-					section = "headers"
-				}
-				continue
-			}
-			// path list items at indent 6: "      - {{BaseURL}}/x"
-			if indent == 6 && strings.HasPrefix(trimmed, "- ") && curReq != nil && section == "request" {
-				item := strings.TrimSpace(trimmed)
-				item = strings.TrimPrefix(item, "- ")
-				p := unquote(item)
-				if p != "" && (strings.Contains(p, "{{BaseURL}}") || strings.HasPrefix(p, "/") || strings.HasPrefix(p, "http")) {
-					curReq.Path = append(curReq.Path, p)
-				}
-				continue
-			}
-		}
-		if section == "matchers" {
-			if indent == 4 && strings.HasPrefix(trimmed, "- ") {
-				curMatch = &Matcher{Part: "body"}
-				if curReq != nil {
-					curReq.Matchers = append(curReq.Matchers, *curMatch)
-					curMatch = &curReq.Matchers[len(curReq.Matchers)-1]
-				}
-				continue
-			}
-			if curMatch == nil {
-				continue
-			}
-			if indent == 6 {
-				key, val, ok := splitKV(trimmed)
-				if !ok {
-					continue
-				}
-				switch key {
-				case "type":
-					curMatch.Type = unquote(val)
-				case "part":
-					curMatch.Part = unquote(val)
-				case "condition":
-					curMatch.Condition = unquote(val)
-				case "status:":
-					curMatch.Type = "status"
-				case "words:":
-					curMatch.Type = "word"
-				case "regex:":
-					curMatch.Type = "regex"
-				}
-				continue
-			}
-			if indent == 8 && curMatch != nil {
-				item := strings.TrimSpace(trimmed)
-				item = strings.TrimPrefix(item, "- ")
-				item = unquote(item)
-				if curMatch.Type == "status" {
-					if n, err := strconv.Atoi(item); err == nil {
-						curMatch.Status = append(curMatch.Status, n)
-					}
-				} else if curMatch.Type == "word" {
-					curMatch.Words = append(curMatch.Words, item)
-				} else if curMatch.Type == "regex" {
-					curMatch.Regex = append(curMatch.Regex, item)
-				}
-			}
-			if indent == 6 && strings.HasPrefix(trimmed, "- ") && curMatch != nil {
-				item := strings.TrimPrefix(trimmed, "- ")
-				item = unquote(item)
-				if curMatch.Type == "status" {
-					if n, err := strconv.Atoi(item); err == nil {
-						curMatch.Status = append(curMatch.Status, n)
-					}
-				} else if curMatch.Type == "word" {
-					curMatch.Words = append(curMatch.Words, item)
-				} else if curMatch.Type == "regex" {
-					curMatch.Regex = append(curMatch.Regex, item)
-				}
-			}
-			continue
-		}
-		if section == "extractors" {
-			if indent == 4 && strings.HasPrefix(trimmed, "- ") {
-				curExt = &Extractor{Part: "body"}
-				if curReq != nil {
-					curReq.Extractors = append(curReq.Extractors, *curExt)
-					curExt = &curReq.Extractors[len(curReq.Extractors)-1]
-				}
-				continue
-			}
-			if curExt == nil {
-				continue
-			}
-			if indent == 6 {
-				key, val, ok := splitKV(trimmed)
-				if !ok {
-					continue
-				}
-				switch key {
-				case "type":
-					curExt.Type = unquote(val)
-				case "part":
-					curExt.Part = unquote(val)
-				case "group":
-					if n, err := strconv.Atoi(unquote(val)); err == nil {
-						curExt.Group = n
-					}
-				case "regex:":
-					curExt.Type = "regex"
-				case "words:":
-					curExt.Type = "word"
-				}
-				continue
-			}
-			if indent == 8 && curExt != nil {
-				item := unquote(strings.TrimSpace(strings.TrimPrefix(trimmed, "- ")))
-				if curExt.Type == "regex" {
-					curExt.Regex = append(curExt.Regex, item)
-				} else if curExt.Type == "word" {
-					curExt.Words = append(curExt.Words, item)
-				}
-			}
-			continue
-		}
-		if section == "headers" && indent == 6 {
-			key, val, ok := splitKV(trimmed)
-			if ok && curReq != nil {
-				curReq.Headers[key] = unquote(val)
-			}
-			continue
-		}
+	var yt yamlTemplate
+	if err := yaml.Unmarshal([]byte(text), &yt); err != nil {
+		return nil, fmt.Errorf("yaml parse %s: %w", path, err)
+	}
+	t := &Template{
+		ID:   yt.ID,
+		Path: path,
+		Info: Info{
+			Name:     yt.Info.Name,
+			Severity: yt.Info.Severity,
+			Tags:     yt.Info.Tags,
+			Author:   yt.Info.Author,
+		},
 	}
 	if t.ID == "" {
 		t.ID = strings.TrimSuffix(filepath.Base(path), ".yaml")
 	}
+
+	for _, h := range yt.HTTP {
+		req := Request{
+			Method:           h.Method,
+			Headers:          h.Headers,
+			Body:             h.Body,
+			StopAtFirstMatch: h.StopAtFirst,
+			Redirects:        h.Redirects,
+			Attack:           h.Attack,
+		}
+		if req.Method == "" {
+			req.Method = "GET"
+		}
+		// payloads
+		if len(h.Payloads) > 0 {
+			req.Payloads = map[string][]string{}
+			for k, v := range h.Payloads {
+				req.Payloads[k] = []string(v)
+			}
+		}
+		if len(h.Path) > 0 {
+			req.Path = append(req.Path, h.Path...)
+		}
+		for _, raw := range h.Raw {
+			method, p, hdrs, body := parseRaw(raw)
+			if method != "" && p != "" {
+				req.Path = append(req.Path, p)
+				req.Method = method
+				for k, v := range hdrs {
+					if req.Headers == nil {
+						req.Headers = map[string]string{}
+					}
+					req.Headers[k] = v
+				}
+				if body != "" {
+					req.Body = body
+				}
+			}
+		}
+		for _, m := range h.Matchers {
+			mm := Matcher{
+				Type:      m.Type,
+				Words:     m.Words,
+				Regex:     m.Regex,
+				Status:    m.Status,
+				Part:      m.Part,
+				Condition: m.Condition,
+			}
+			if mm.Part == "" {
+				mm.Part = "body"
+			}
+			if m.Type == "" {
+				switch {
+				case len(m.Status) > 0:
+					mm.Type = "status"
+				case len(m.Words) > 0:
+					mm.Type = "word"
+				case len(m.Regex) > 0:
+					mm.Type = "regex"
+				case len(m.DSL) > 0:
+					mm.Type = "dsl"
+					mm.Regex = []string(m.DSL)
+				}
+			}
+			if mm.Type == "dsl" && len(mm.Regex) == 0 {
+				mm.Regex = []string(m.DSL)
+			}
+			req.Matchers = append(req.Matchers, mm)
+		}
+		for _, e := range h.Extractors {
+			ee := Extractor{
+				Type:  e.Type,
+				Regex: e.Regex,
+				Words: e.Words,
+				Part:  e.Part,
+				Group: e.Group,
+			}
+			if ee.Part == "" {
+				ee.Part = "body"
+			}
+			req.Extractors = append(req.Extractors, ee)
+		}
+		t.Requests = append(t.Requests, req)
+	}
+
 	if len(t.Requests) == 0 {
-		return nil, fmt.Errorf("no requests in template %s", path)
+		return nil, fmt.Errorf("no http requests in %s", path)
 	}
 	return t, nil
 }
 
-func splitKV(line string) (string, string, bool) {
-	idx := strings.Index(line, ":")
-	if idx < 0 {
-		return "", "", false
+// parseRaw parses a nuclei raw HTTP request block.
+func parseRaw(raw string) (method, path string, headers map[string]string, body string) {
+	raw = strings.TrimSpace(raw)
+	lines := strings.Split(raw, "\n")
+	if len(lines) == 0 {
+		return "", "", nil, ""
 	}
-	key := strings.TrimSpace(line[:idx])
-	val := strings.TrimSpace(line[idx+1:])
-	return key, val, true
+	parts := strings.Fields(strings.TrimSpace(lines[0]))
+	if len(parts) < 2 {
+		return "", "", nil, ""
+	}
+	method = parts[0]
+	path = parts[1]
+	headers = map[string]string{}
+	bodyStart := -1
+	for i := 1; i < len(lines); i++ {
+		l := strings.TrimSpace(lines[i])
+		if l == "" {
+			bodyStart = i + 1
+			break
+		}
+		kv := strings.SplitN(l, ":", 2)
+		if len(kv) == 2 {
+			headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		}
+	}
+	if bodyStart >= 0 && bodyStart < len(lines) {
+		body = strings.Join(lines[bodyStart:], "\n")
+	}
+	return method, path, headers, body
 }
 
-func unquote(s string) string {
-	s = strings.TrimSpace(s)
-	if len(s) >= 2 && ((s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'')) {
-		return s[1 : len(s)-1]
-	}
-	return s
-}
-
-// LoadDir loads all .yaml templates from a directory.
+// LoadDir loads all .yaml templates from a directory (recursive).
 func LoadDir(dir string) ([]*Template, error) {
 	var out []*Template
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".yaml") {
-			continue
+	_ = filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
 		}
-		t, err := ParseFile(filepath.Join(dir, e.Name()))
+		if !strings.HasSuffix(p, ".yaml") && !strings.HasSuffix(p, ".yml") {
+			return nil
+		}
+		if strings.Contains(p, "/workflows/") {
+			return nil
+		}
+		t, err := ParseFile(p)
 		if err == nil {
 			out = append(out, t)
 		}
-	}
+		return nil
+	})
 	return out, nil
 }

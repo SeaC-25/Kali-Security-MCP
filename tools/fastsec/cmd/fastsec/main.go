@@ -3,16 +3,19 @@
 // 用法:
 //   fastsec -u http://target -t /path/to/template.yaml
 //   fastsec -u http://target -d /path/to/templates/
+//   fastsec -l targets.txt -d templates/          # 多目标
 //   fastsec -u http://target -t tpl.yaml -c 50 -delay-min 200 -delay-max 600
 //   fastsec -u http://target -t tpl.yaml -proxy http://127.0.0.1:8080
 //   fastsec -u http://target -t tpl.yaml -no-verify
+//   fastsec -u http://target -d templates/ -json out.json
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,7 +24,8 @@ import (
 )
 
 func main() {
-	url := flag.String("u", "", "target URL (required)")
+	url := flag.String("u", "", "target URL (required unless -l)")
+	listFile := flag.String("l", "", "target list file (one URL per line)")
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -33,10 +37,30 @@ func main() {
 	cookies := flag.String("cookie", "", "cookie header value")
 	timeout := flag.Int("timeout", 10, "per-request timeout seconds")
 	verbose := flag.Bool("v", false, "verbose")
+	_ = verbose
+	jsonOut := flag.String("json", "", "write results as JSON to file")
 	flag.Parse()
 
-	if *url == "" {
-		fmt.Fprintln(os.Stderr, "错误: 需要 -u 目标 URL")
+	var targets []string
+	if *url != "" {
+		targets = []string{*url}
+	} else if *listFile != "" {
+		f, err := os.Open(*listFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "打开目标列表失败: %v\n", err)
+			os.Exit(1)
+		}
+		sc := bufio.NewScanner(f)
+		for sc.Scan() {
+			t := strings.TrimSpace(sc.Text())
+			if t != "" && !strings.HasPrefix(t, "#") {
+				targets = append(targets, t)
+			}
+		}
+		f.Close()
+	}
+	if len(targets) == 0 {
+		fmt.Fprintln(os.Stderr, "错误: 需要 -u 目标 URL 或 -l 目标列表文件")
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -84,18 +108,38 @@ func main() {
 	}
 
 	if *verbose {
-		fmt.Printf("[fastsec] 目标=%s 模板=%d 并发=%d 延迟=%d-%dms 3-gate=%v\n",
-			*url, len(templates), cfg.Concurrency, cfg.DelayMinMs, cfg.DelayMaxMs, cfg.VerifyGate)
-		for _, t := range templates {
-			fmt.Printf("  模板: %s (%s, %s)\n", filepath.Base(t.Path), t.ID, t.Info.Severity)
-		}
+		fmt.Printf("[fastsec] 目标=%d 模板=%d 并发=%d 延迟=%d-%dms 3-gate=%v\n",
+			len(targets), len(templates), cfg.Concurrency, cfg.DelayMinMs, cfg.DelayMaxMs, cfg.VerifyGate)
 	}
 
 	eng := engine.New(cfg)
 	t0 := time.Now()
-	results := eng.Run(*url, templates)
+	var all []map[string]any
+	for _, tgt := range targets {
+		results := eng.Run(tgt, templates)
+		if *verbose || *jsonOut == "" {
+			fmt.Printf("\n=== %s ===\n", tgt)
+			fmt.Print(engine.FormatResults(results))
+		}
+		for _, r := range results {
+			all = append(all, map[string]any{
+				"template":   r.TemplateID,
+				"severity":   r.Severity,
+				"url":        r.Matched,
+				"verified":   r.Verified,
+				"extracted":  r.Extracted,
+				"status":     r.StatusCode,
+			})
+		}
+	}
 	dur := time.Since(t0)
 
-	fmt.Print(engine.FormatResults(results))
-	fmt.Printf("\n[fastsec] 完成: %d 匹配 / %d 模板, 耗时 %s\n", len(results), len(templates), dur.Round(time.Millisecond))
+	if *jsonOut != "" {
+		out, _ := json.MarshalIndent(all, "", "  ")
+		os.WriteFile(*jsonOut, out, 0644)
+		fmt.Printf("\n[fastsec] JSON 结果写入 %s (%d 条)\n", *jsonOut, len(all))
+	} else {
+		fmt.Printf("\n[fastsec] 完成: %d 匹配 / %d 目标 / %d 模板, 耗时 %s\n",
+			len(all), len(targets), len(templates), dur.Round(time.Millisecond))
+	}
 }

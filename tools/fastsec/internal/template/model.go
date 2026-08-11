@@ -1,10 +1,10 @@
 package template
 
-// Template is a nuclei-compatible scan template (YAML subset).
+// Template is a nuclei-compatible scan template.
 type Template struct {
 	ID       string    `yaml:"id"`
 	Info     Info      `yaml:"info"`
-	Requests []Request `yaml:"requests"`
+	Requests []Request `yaml:"-"`
 	Path     string    `yaml:"-"`
 }
 
@@ -17,17 +17,20 @@ type Info struct {
 
 // Request is one HTTP request block in a template.
 type Request struct {
-	Method           string            `yaml:"method"`
-	Path             []string          `yaml:"path"`
-	Headers          map[string]string `yaml:"headers"`
-	Body             string            `yaml:"body"`
-	Matchers         []Matcher         `yaml:"matchers"`
-	Extractors       []Extractor       `yaml:"extractors"`
-	StopAtFirstMatch bool              `yaml:"stop-at-first-match"`
+	Method           string              `yaml:"method"`
+	Path             []string            `yaml:"path"`
+	Headers          map[string]string   `yaml:"headers"`
+	Body             string              `yaml:"body"`
+	Matchers         []Matcher           `yaml:"matchers"`
+	Extractors       []Extractor         `yaml:"extractors"`
+	StopAtFirstMatch bool                `yaml:"stop-at-first-match"`
+	Redirects        bool                `yaml:"redirects"`
+	Payloads         map[string][]string `yaml:"payloads"`
+	Attack           string              `yaml:"attack"`
 }
 
 type Matcher struct {
-	Type      string   `yaml:"type"` // status | word | regex
+	Type      string   `yaml:"type"`
 	Words     []string `yaml:"words"`
 	Regex     []string `yaml:"regex"`
 	Status    []int    `yaml:"status"`
@@ -51,4 +54,5 @@ type MatchResult struct {
 	Extracted  []string
 	StatusCode int
 	Verified   bool
+	Payload    string
 }
