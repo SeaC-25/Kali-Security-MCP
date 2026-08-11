@@ -186,6 +186,10 @@ func (r *Runner) diffStep(client *http.Client, step Step, base Result) []string 
 				continue
 			}
 			req.Header.Set("User-Agent", stealth.RandomUA())
+			// 携带步骤认证头（token/cookie 等），否则需认证的越权检测全漏
+			for k, v := range step.Headers {
+				req.Header.Set(k, r.expand(v))
+			}
 			resp, err := client.Do(req)
 			if err != nil {
 				continue

