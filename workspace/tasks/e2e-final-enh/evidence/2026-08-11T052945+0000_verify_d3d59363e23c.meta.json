@@ -1,0 +1,14 @@
+{
+  "task_id": "e2e-final-enh",
+  "name": "verify_d3d59363e23c",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_d3d59363e23c.txt",
+  "created_at": "2026-08-11T05:29:45+00:00",
+  "bytes": 1728,
+  "meta": {
+    "finding_id": "d3d59363e23c",
+    "command": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui\"",
+    "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+    "return_code": 0,
+    "success": true
+  }
+}

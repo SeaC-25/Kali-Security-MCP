@@ -1,0 +1,12 @@
+{
+  "task_id": "e2e-enh",
+  "name": "api_probe__api_v1",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051658+0000_api_probe__api_v1.txt",
+  "created_at": "2026-08-11T05:16:58+00:00",
+  "bytes": 43,
+  "meta": {
+    "path": "/api/v1",
+    "status": "000",
+    "url": "http://127.0.0.1:9/api/v1"
+  }
+}

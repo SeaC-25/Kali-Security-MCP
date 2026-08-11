@@ -1,0 +1,235 @@
+{
+  "task_id": "e2e-enh3",
+  "playbook": "auth_surface",
+  "target": "http://175.27.191.147:4180",
+  "depth": "quick",
+  "hits": [],
+  "steps": [
+    {
+      "path": "/login",
+      "url": "http://175.27.191.147:4180/login",
+      "status": "200",
+      "duration_ms": 143.08,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/admin/login",
+      "url": "http://175.27.191.147:4180/admin/login",
+      "status": "200",
+      "duration_ms": 123.54,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/user/login",
+      "url": "http://175.27.191.147:4180/user/login",
+      "status": "200",
+      "duration_ms": 136.4,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/signin",
+      "url": "http://175.27.191.147:4180/signin",
+      "status": "200",
+      "duration_ms": 126.73,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/sign-in",
+      "url": "http://175.27.191.147:4180/sign-in",
+      "status": "200",
+      "duration_ms": 121.98,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/auth/login",
+      "url": "http://175.27.191.147:4180/auth/login",
+      "status": "200",
+      "duration_ms": 126.29,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/account/login",
+      "url": "http://175.27.191.147:4180/account/login",
+      "status": "200",
+      "duration_ms": 130.15,
+      "hit": false,
+      "success": true
+    },
+    {
+      "path": "/wp-login.php",
+      "url": "http://175.27.191.147:4180/wp-login.php",
+      "status": "200",
+      "duration_ms": 124.51,
+      "hit": false,
+      "success": true
+    }
+  ],
+  "auto_verified": [],
+  "findings": [
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger",
+      "target": "http://175.27.191.147:4180/swagger",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052146+0000_api_probe__swagger.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_c5e3047c45b1.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "c5e3047c45b1",
+      "created_at": "2026-08-11T05:21:46+00:00",
+      "updated_at": "2026-08-11T05:21:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 129.17,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_c5e3047c45b1.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052146+0000_api_probe__swagger-ui.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_4d4aaf69295c.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "4d4aaf69295c",
+      "created_at": "2026-08-11T05:21:46+00:00",
+      "updated_at": "2026-08-11T05:21:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 152.42,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_4d4aaf69295c.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui.html",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui.html\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052146+0000_api_probe__swagger-ui.html.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_ad98c2a30c8a.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "ad98c2a30c8a",
+      "created_at": "2026-08-11T05:21:46+00:00",
+      "updated_at": "2026-08-11T05:21:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 128.96,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_ad98c2a30c8a.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/openapi.json",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/openapi.json\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052146+0000_api_probe__openapi.json.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_e2269d7c1dae.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "e2269d7c1dae",
+      "created_at": "2026-08-11T05:21:46+00:00",
+      "updated_at": "2026-08-11T05:21:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 134.9,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_e2269d7c1dae.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/v2/api-docs",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/v2/api-docs\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052146+0000_api_probe__v2_api-docs.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_4b22487f97ce.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "4b22487f97ce",
+      "created_at": "2026-08-11T05:21:46+00:00",
+      "updated_at": "2026-08-11T05:21:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 136.62,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\evidence\\2026-08-11T052147+0000_verify_4b22487f97ce.txt"
+      }
+    }
+  ],
+  "graph_summary": {
+    "task_id": "e2e-enh3",
+    "nodes": 9,
+    "edges": 2,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1,
+      "path": 6
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\graph\\graph.json"
+  },
+  "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh3\\handoff\\handoff.json"
+}

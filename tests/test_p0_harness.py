@@ -707,7 +707,9 @@ class TestP0Harness(unittest.TestCase):
 
         names = list_playbooks()
         self.assertEqual(
-            names, ["api_surface", "auth_surface", "svc_surface", "web_surface"]
+            names,
+            ["api_surface", "auth_surface", "internal_lateral",
+             "stealth", "svc_surface", "web_surface"],
         )
 
     def test_api_surface_with_mock_executor(self):
@@ -908,7 +910,9 @@ class TestP0Harness(unittest.TestCase):
         self.assertEqual(calls[1]["depth"], "quick")
         self.assertEqual(calls[2]["depth"], "quick")
         self.assertEqual(calls[3]["depth"], "quick")
-        self.assertEqual(len(out.get("steps") or []), 4)
+        self.assertEqual(calls[4]["depth"], "quick")
+        self.assertEqual(calls[5]["depth"], "quick")
+        self.assertEqual(len(out.get("steps") or []), len(DEFAULT_SURFACE_ORDER))
         self.assertTrue(all(s.get("ok") for s in out["steps"]))
         ws = get_workspace("chain_mock1", create=True)
         self.assertTrue((ws.report_dir / "chain_summary.json").exists())
@@ -1663,7 +1667,8 @@ class TestP0Harness(unittest.TestCase):
 
         with patch("kali_mcp.core.playbooks.run_playbook", side_effect=_pb), patch(
             "kali_mcp.core.playbooks.list_playbooks",
-            return_value=["web_surface", "api_surface", "auth_surface", "svc_surface"],
+            return_value=["web_surface", "api_surface", "auth_surface",
+                          "svc_surface", "internal_lateral", "stealth"],
         ), patch(
             "kali_mcp.core.report_export.export_task_report",
             return_value={

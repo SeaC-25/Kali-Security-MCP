@@ -1,0 +1,82 @@
+{
+  "task_id": "dbg1",
+  "updated_at": "2026-08-11T05:24:49+00:00",
+  "nodes": [
+    {
+      "id": "ba5f706b3bcc",
+      "type": "url",
+      "value": "http://175.27.191.147:4180",
+      "confidence": 0.9,
+      "last_seen": "2026-08-11T05:24:49+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\dbg1\\evidence\\2026-08-11T052449+0000_web_surface_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\dbg1\\evidence\\2026-08-11T052449+0000_web_surface_whatweb.txt"
+      ],
+      "next_checks": [
+        "fingerprint",
+        "shallow_dir",
+        "nuclei_subset"
+      ],
+      "dead_reason": null,
+      "meta": {
+        "playbook": "web_surface",
+        "last_tool": "whatweb"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "b562469ef3f9",
+      "type": "host",
+      "value": "175.27.191.147",
+      "confidence": 0.9,
+      "last_seen": "2026-08-11T05:24:49+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\dbg1\\evidence\\2026-08-11T052449+0000_web_surface_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\dbg1\\evidence\\2026-08-11T052449+0000_web_surface_whatweb.txt"
+      ],
+      "next_checks": [
+        "http_probe"
+      ],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "whatweb",
+        "summary": "WhatWeb 扫描 http://175.27.191.147:4180/: 识别到 7 项技术"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "848f31b4363d",
+      "type": "tech",
+      "value": "0m",
+      "confidence": 0.6,
+      "last_seen": "2026-08-11T05:24:49+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\dbg1\\evidence\\2026-08-11T052449+0000_web_surface_whatweb.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "tool": "whatweb"
+      },
+      "source": "scan"
+    }
+  ],
+  "edges": [
+    {
+      "id": "1044e9e95ca1",
+      "type": "exposes",
+      "src": "b562469ef3f9",
+      "dst": "ba5f706b3bcc",
+      "confidence": 0.5,
+      "meta": {}
+    },
+    {
+      "id": "0338449b4492",
+      "type": "runs",
+      "src": "ba5f706b3bcc",
+      "dst": "848f31b4363d",
+      "confidence": 0.5,
+      "meta": {}
+    }
+  ]
+}

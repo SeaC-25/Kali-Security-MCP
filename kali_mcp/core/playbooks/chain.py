@@ -34,6 +34,8 @@ DEFAULT_SURFACE_ORDER: List[str] = [
     "api_surface",
     "auth_surface",
     "svc_surface",
+    "internal_lateral",
+    "stealth",
 ]
 
 DEFAULT_DEPTHS: Dict[str, str] = {
@@ -41,6 +43,8 @@ DEFAULT_DEPTHS: Dict[str, str] = {
     "api_surface": "quick",
     "auth_surface": "quick",
     "svc_surface": "quick",
+    "internal_lateral": "quick",
+    "stealth": "quick",
 }
 
 

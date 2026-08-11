@@ -158,6 +158,103 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         additional_args_sanitize="arg",
     ),
 
+    # ---- 高性能/内网横向工具（2026-08 增强）----
+    "rustscan": ToolSpec(
+        binary="rustscan",
+        params=[
+            ToolParam(name="target", flag="-a", sanitize="arg"),
+            ToolParam(name="ports", flag="-p", sanitize="arg", default="1-65535"),
+            ToolParam(name="ulimit", flag="--ulimit", sanitize="arg", default="5000"),
+        ],
+        timeout=180,
+        additional_args_sanitize="arg",
+    ),
+    "naabu": ToolSpec(
+        binary="naabu",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+            ToolParam(name="ports", flag="-p", sanitize="arg", default="80,443,22,3389,8080,8443"),
+            ToolParam(name="rate", flag="-rate", sanitize="arg", default="1000", join="="),
+        ],
+        timeout=180,
+        additional_args_sanitize="arg",
+    ),
+    "kerbrute": ToolSpec(
+        binary="kerbrute",
+        params=[
+            ToolParam(name="mode", flag="", sanitize="arg", default="userenum", position="first"),
+            ToolParam(name="target", flag="-d", sanitize="arg"),
+            ToolParam(name="users", flag="", sanitize="arg"),
+            ToolParam(name="passwords", flag="", sanitize="arg"),
+        ],
+        timeout=300,
+        additional_args_sanitize="arg",
+    ),
+    "nxc": ToolSpec(
+        binary="nxc",
+        params=[
+            ToolParam(name="proto", flag="", sanitize="arg", default="smb", position="first"),
+            ToolParam(name="target", flag="", sanitize="arg"),
+            ToolParam(name="user", flag="-u", sanitize="arg"),
+            ToolParam(name="password", flag="-p", sanitize="arg"),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+    "evil-winrm": ToolSpec(
+        binary="evil-winrm",
+        params=[
+            ToolParam(name="target", flag="-i", sanitize="arg"),
+            ToolParam(name="user", flag="-u", sanitize="arg"),
+            ToolParam(name="password", flag="-p", sanitize="arg"),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+    "GetUserSPNs": ToolSpec(
+        binary="GetUserSPNs.py",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+            ToolParam(name="dc", flag="-dc-ip", sanitize="arg"),
+            ToolParam(name="request", flag="-request", sanitize="arg", default="", join=""),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+    "secretsdump": ToolSpec(
+        binary="secretsdump.py",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+        ],
+        timeout=180,
+        additional_args_sanitize="arg",
+    ),
+    "psexec": ToolSpec(
+        binary="psexec.py",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+    "smbexec": ToolSpec(
+        binary="smbexec.py",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+    "GetNPUsers": ToolSpec(
+        binary="GetNPUsers.py",
+        params=[
+            ToolParam(name="target", flag="", sanitize="arg", position="first"),
+            ToolParam(name="dc", flag="-dc-ip", sanitize="arg"),
+        ],
+        timeout=120,
+        additional_args_sanitize="arg",
+    ),
+
     "fping": ToolSpec(
         binary="fping",
         params=[

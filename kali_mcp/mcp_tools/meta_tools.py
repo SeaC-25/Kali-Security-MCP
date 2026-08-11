@@ -58,6 +58,10 @@ K1_KEEP_TOOLS = frozenset({
     "kali_run",
     # K2 async surface
     "scan_start", "scan_collect", "scan_wait", "scan_jobs",
+    # 高性能/内网横向（2026-08 增强）
+    "rustscan_scan", "naabu_scan", "kerbrute_attack", "nxc_attack",
+    "evil_winrm_attack", "GetUserSPNs_scan", "secretsdump_scan",
+    "psexec_attack", "smbexec_attack", "GetNPUsers_scan",
     # K3 orchestrate workflow
     "wf_init", "wf_transition", "wf_record_result", "wf_record_issue",
     "wf_status", "wf_pack_turn",

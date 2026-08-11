@@ -1,0 +1,179 @@
+{
+  "ok": false,
+  "task_id": "e2e-enh4",
+  "target": "http://175.27.191.147:4180/",
+  "mode": "surface_chain",
+  "order": [
+    "web_surface",
+    "api_surface",
+    "auth_surface",
+    "svc_surface",
+    "internal_lateral",
+    "stealth"
+  ],
+  "depths": {
+    "web_surface": "quick",
+    "api_surface": "quick",
+    "auth_surface": "quick",
+    "svc_surface": "quick",
+    "internal_lateral": "quick",
+    "stealth": "quick"
+  },
+  "steps": [
+    {
+      "playbook": "web_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 0,
+      "verified_after": 0,
+      "error": null,
+      "skipped": false,
+      "duration_ms": 92374.717,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    },
+    {
+      "playbook": "api_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 5,
+      "verified_after": 5,
+      "error": null,
+      "skipped": false,
+      "duration_ms": 4125.964,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    },
+    {
+      "playbook": "auth_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 5,
+      "verified_after": 5,
+      "error": null,
+      "skipped": false,
+      "duration_ms": 1082.211,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    },
+    {
+      "playbook": "svc_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 6,
+      "verified_after": 5,
+      "error": null,
+      "skipped": false,
+      "duration_ms": 59.857,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    },
+    {
+      "playbook": "internal_lateral",
+      "depth": "quick",
+      "ok": false,
+      "findings_total_after": 6,
+      "verified_after": 5,
+      "error": "'dict' object has no attribute 'strip'",
+      "skipped": false,
+      "duration_ms": 0.606,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    },
+    {
+      "playbook": "stealth",
+      "depth": "quick",
+      "ok": false,
+      "findings_total_after": 6,
+      "verified_after": 5,
+      "error": "'dict' object has no attribute 'strip'",
+      "skipped": false,
+      "duration_ms": 16758.183,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    }
+  ],
+  "aborted": false,
+  "elapsed_ms": 114536.33,
+  "by_status": {
+    "verified": 5,
+    "false_positive": 1
+  },
+  "findings": [
+    {
+      "finding_id": "e061963e35d2",
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger",
+      "status": "verified"
+    },
+    {
+      "finding_id": "a1859672621c",
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui",
+      "status": "verified"
+    },
+    {
+      "finding_id": "c1896c811b9c",
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui.html",
+      "status": "verified"
+    },
+    {
+      "finding_id": "043e5364e33c",
+      "title": "api_endpoint:http://175.27.191.147:4180/openapi.json",
+      "status": "verified"
+    },
+    {
+      "finding_id": "6d3e4ba1fee3",
+      "title": "api_endpoint:http://175.27.191.147:4180/v2/api-docs",
+      "status": "verified"
+    },
+    {
+      "finding_id": "e6b809a65203",
+      "title": "open_port:175.27.191.147:22/ssh",
+      "status": "false_positive"
+    }
+  ],
+  "graph_summary": {
+    "task_id": "e2e-enh4",
+    "nodes": 11,
+    "edges": 4,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1,
+      "path": 6,
+      "port": 1,
+      "service": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh4\\graph\\graph.json"
+  },
+  "next_actions": [],
+  "actions_count": 44,
+  "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh4\\handoff\\handoff.json",
+  "progress_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh4\\handoff\\progress.md",
+  "continue_ok": true,
+  "observer": {
+    "duplicate_count": 0,
+    "suggestions_count": 0,
+    "suggestions": []
+  },
+  "insights": {
+    "skipped": false,
+    "created_count": 3,
+    "reason": null,
+    "error": null
+  },
+  "report_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh4\\report\\report.md",
+  "report_export_error": null
+}

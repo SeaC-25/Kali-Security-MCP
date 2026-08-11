@@ -1,0 +1,258 @@
+{
+  "task_id": "e2e-final-enh",
+  "compiled_at": "2026-08-11T05:30:09+00:00",
+  "phase": "REPORT",
+  "status": "chain_partial",
+  "targets": [
+    "http://175.27.191.147:4180/"
+  ],
+  "depth": "quick",
+  "graph_summary": {
+    "task_id": "e2e-final-enh",
+    "nodes": 11,
+    "edges": 4,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1,
+      "path": 6,
+      "port": 1,
+      "service": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\graph\\graph.json"
+  },
+  "done_tools": [
+    "run_surface_chain",
+    "curl",
+    "whatweb",
+    "nuclei",
+    "observer_analyze",
+    "run_surface_chain_step",
+    "curl_api_probe",
+    "verify_finding",
+    "curl_auth_probe",
+    "nmap",
+    "propose_insights",
+    "export_task_report"
+  ],
+  "actions_count": 47,
+  "verified_count": 5,
+  "candidate_count": 3,
+  "verified_titles": [
+    "api_endpoint:http://175.27.191.147:4180/swagger",
+    "api_endpoint:http://175.27.191.147:4180/swagger-ui",
+    "api_endpoint:http://175.27.191.147:4180/swagger-ui.html",
+    "api_endpoint:http://175.27.191.147:4180/openapi.json",
+    "api_endpoint:http://175.27.191.147:4180/v2/api-docs"
+  ],
+  "candidate_titles": [
+    "insight_http_probe:http://175.27.191.147",
+    "insight_https_probe:https://175.27.191.147",
+    "insight_auth_surface:http://175.27.191.147:4180/login"
+  ],
+  "dead_nodes": [],
+  "next_actions": [],
+  "do_not_rescan": [
+    {
+      "tool": "run_surface_chain",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "05b799f90418fac1"
+    },
+    {
+      "tool": "curl",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "226a965961e44a1d"
+    },
+    {
+      "tool": "curl",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "76025b5550af35f4"
+    },
+    {
+      "tool": "whatweb",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "5f21888dedbf71e9"
+    },
+    {
+      "tool": "whatweb",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "f967e14b1aec212e"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "14a391ba2a017cc7"
+    },
+    {
+      "tool": "run_surface_chain_step",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "7015bc2ac8ac69bd"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/api/v1",
+      "args_digest": "08795c755bfc1edf"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/api/v2",
+      "args_digest": "6f040e4d873141e3"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/swagger",
+      "args_digest": "9522cc1af1d7a0d9"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "args_digest": "c58290f360351722"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "args_digest": "d7a6b430ef819064"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "args_digest": "311af56eceeb1b73"
+    },
+    {
+      "tool": "curl_api_probe",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "args_digest": "79ce5def772acbe8"
+    },
+    {
+      "tool": "verify_finding",
+      "target": "http://175.27.191.147:4180/swagger",
+      "args_digest": "de87f9f0758b4b3b"
+    },
+    {
+      "tool": "verify_finding",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "args_digest": "9fc3d945df40bf5d"
+    },
+    {
+      "tool": "verify_finding",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "args_digest": "0a51848ef21e2ae8"
+    },
+    {
+      "tool": "verify_finding",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "args_digest": "d2eb87e949961a2b"
+    },
+    {
+      "tool": "verify_finding",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "args_digest": "c1257eb4485e8857"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "14a391ba2a017cc7"
+    },
+    {
+      "tool": "run_surface_chain_step",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "fb21c6682f76a4bc"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/login",
+      "args_digest": "ecfda3bb6faf5805"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/admin/login",
+      "args_digest": "578c9ef7017d727a"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/user/login",
+      "args_digest": "5b238be8a4273a3b"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/signin",
+      "args_digest": "3eb1e1831f82a0ba"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/sign-in",
+      "args_digest": "5515a7656cceacc0"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/auth/login",
+      "args_digest": "e873e83800e2238a"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/account/login",
+      "args_digest": "0d30ef1dd35977d7"
+    },
+    {
+      "tool": "curl_auth_probe",
+      "target": "http://175.27.191.147:4180/wp-login.php",
+      "args_digest": "28657b9b3e99639b"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "14a391ba2a017cc7"
+    },
+    {
+      "tool": "run_surface_chain_step",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "f84fa3b9bade6401"
+    },
+    {
+      "tool": "nmap",
+      "target": "175.27.191.147",
+      "args_digest": "cdbc12d51b0af2ee"
+    },
+    {
+      "tool": "nmap",
+      "target": "175.27.191.147",
+      "args_digest": "cdbc12d51b0af2ee"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "3ff575b55bd06f11"
+    },
+    {
+      "tool": "run_surface_chain_step",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "5d0833ac53554152"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "3ff575b55bd06f11"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "3ff575b55bd06f11"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "3ff575b55bd06f11"
+    },
+    {
+      "tool": "propose_insights",
+      "target": "",
+      "args_digest": "c07e4956783cf7bd"
+    },
+    {
+      "tool": "export_task_report",
+      "target": "http://175.27.191.147:4180/",
+      "args_digest": "16962b7f667eb2a4"
+    }
+  ]
+}

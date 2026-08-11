@@ -1,0 +1,56 @@
+{
+  "task_id": "e2e-enh",
+  "updated_at": "2026-08-11T05:17:11+00:00",
+  "nodes": [
+    {
+      "id": "f962c263f050",
+      "type": "url",
+      "value": "http://127.0.0.1:9",
+      "confidence": 0.9,
+      "last_seen": "2026-08-11T05:17:11+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051520+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051522+0000_exec_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051523+0000_exec_gobuster.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051654+0000_exec_nuclei.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "playbook": "auth_surface",
+        "last_tool": "nuclei"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "7f5c4e24dcbb",
+      "type": "host",
+      "value": "127.0.0.1",
+      "confidence": 0.9,
+      "last_seen": "2026-08-11T05:16:54+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051520+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051522+0000_exec_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051523+0000_exec_gobuster.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051654+0000_exec_nuclei.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "nuclei",
+        "summary": "Nuclei 扫描 http://127.0.0.1:9/: 未发现漏洞"
+      },
+      "source": "scan"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c00a7a5dd721",
+      "type": "exposes",
+      "src": "7f5c4e24dcbb",
+      "dst": "f962c263f050",
+      "confidence": 0.5,
+      "meta": {}
+    }
+  ]
+}

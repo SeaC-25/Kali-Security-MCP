@@ -1,0 +1,68 @@
+{
+  "task_id": "e2e-enh",
+  "playbook": "web_surface",
+  "target": "http://127.0.0.1:9/",
+  "depth": "standard",
+  "meta": {
+    "task_id": "e2e-enh",
+    "created_at": "2026-08-11T05:15:19+00:00",
+    "updated_at": "2026-08-11T05:16:54+00:00",
+    "phase": "EVIDENCE",
+    "status": "playbook_done",
+    "targets": [
+      "http://127.0.0.1:9/"
+    ],
+    "depth": "standard",
+    "notes": "run_surface_chain sequential (no run_goal)"
+  },
+  "graph_summary": {
+    "task_id": "e2e-enh",
+    "nodes": 2,
+    "edges": 1,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\graph\\graph.json"
+  },
+  "findings": [],
+  "auto_verified": [],
+  "steps": [
+    {
+      "tool": "curl",
+      "success": false,
+      "duration_ms": 1428.92,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051520+0000_exec_curl.txt",
+      "summary": "curl 执行失败: 无输出",
+      "graph_nodes_touched": 2
+    },
+    {
+      "tool": "whatweb",
+      "success": true,
+      "duration_ms": 1655.54,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051522+0000_exec_whatweb.txt",
+      "summary": "WhatWeb 扫描 http://127.0.0.1:9/: 无输出",
+      "graph_nodes_touched": 2
+    },
+    {
+      "tool": "gobuster",
+      "success": false,
+      "duration_ms": 873.56,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051523+0000_exec_gobuster.txt",
+      "summary": "Gobuster 扫描 http://127.0.0.1:9/: 未发现任何路径",
+      "graph_nodes_touched": 2
+    },
+    {
+      "tool": "nuclei",
+      "success": false,
+      "duration_ms": 91745.12,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051654+0000_exec_nuclei.txt",
+      "summary": "Nuclei 扫描 http://127.0.0.1:9/: 未发现漏洞",
+      "graph_nodes_touched": 2
+    }
+  ],
+  "next_actions": [],
+  "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\handoff\\handoff.json",
+  "progress_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\handoff\\progress.md"
+}

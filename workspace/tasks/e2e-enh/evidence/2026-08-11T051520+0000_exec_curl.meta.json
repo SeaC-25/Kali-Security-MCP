@@ -1,0 +1,14 @@
+{
+  "task_id": "e2e-enh",
+  "name": "exec_curl",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051520+0000_exec_curl.txt",
+  "created_at": "2026-08-11T05:15:20+00:00",
+  "bytes": 91,
+  "meta": {
+    "tool": "curl",
+    "command": "curl -s -S -L -m 30 -X GET -H 'User-Agent: kali-mcp-probe' http://127.0.0.1:9/",
+    "return_code": 7,
+    "success": false,
+    "cached": false
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "task_id": "e2e-enh",
+  "playbook": "api_surface",
+  "target": "http://127.0.0.1:9",
+  "depth": "quick",
+  "hits": [],
+  "steps": [
+    {
+      "path": "/api",
+      "url": "http://127.0.0.1:9/api",
+      "status": "000",
+      "duration_ms": 2062.29,
+      "success": false
+    },
+    {
+      "path": "/api/v1",
+      "url": "http://127.0.0.1:9/api/v1",
+      "status": "000",
+      "duration_ms": 2052.47,
+      "success": false
+    },
+    {
+      "path": "/api/v2",
+      "url": "http://127.0.0.1:9/api/v2",
+      "status": "000",
+      "duration_ms": 2057.33,
+      "success": false
+    },
+    {
+      "path": "/swagger",
+      "url": "http://127.0.0.1:9/swagger",
+      "status": "000",
+      "duration_ms": 2052.39,
+      "success": false
+    },
+    {
+      "path": "/swagger-ui",
+      "url": "http://127.0.0.1:9/swagger-ui",
+      "status": "000",
+      "duration_ms": 2054.16,
+      "success": false
+    },
+    {
+      "path": "/swagger-ui.html",
+      "url": "http://127.0.0.1:9/swagger-ui.html",
+      "status": "000",
+      "duration_ms": 2051.19,
+      "success": false
+    },
+    {
+      "path": "/openapi.json",
+      "url": "http://127.0.0.1:9/openapi.json",
+      "status": "000",
+      "duration_ms": 2064.81,
+      "success": false
+    },
+    {
+      "path": "/v2/api-docs",
+      "url": "http://127.0.0.1:9/v2/api-docs",
+      "status": "000",
+      "duration_ms": 2047.89,
+      "success": false
+    }
+  ],
+  "auto_verified": [],
+  "findings": [],
+  "graph_summary": {
+    "task_id": "e2e-enh",
+    "nodes": 2,
+    "edges": 1,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\graph\\graph.json"
+  },
+  "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\handoff\\handoff.json"
+}

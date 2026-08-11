@@ -1,0 +1,11 @@
+{
+  "task_id": "task_20c04af9ab36",
+  "name": "stealth_scan",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\task_20c04af9ab36\\evidence\\2026-08-11T053311+0000_stealth_scan.txt",
+  "created_at": "2026-08-11T05:33:11+00:00",
+  "bytes": 790,
+  "meta": {
+    "tool": "curl",
+    "success": true
+  }
+}

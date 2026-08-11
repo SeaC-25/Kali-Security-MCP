@@ -1,0 +1,1364 @@
+{
+  "task_id": "e2e-final2-enh",
+  "exported_at": "2026-08-11T05:33:12+00:00",
+  "meta": {
+    "task_id": "e2e-final2-enh",
+    "created_at": "2026-08-11T05:31:05+00:00",
+    "updated_at": "2026-08-11T05:32:52+00:00",
+    "phase": "FINGERPRINT",
+    "status": "playbook_done",
+    "targets": [
+      "http://175.27.191.147:4180/"
+    ],
+    "depth": "quick",
+    "notes": "run_surface_chain sequential (no run_goal)"
+  },
+  "graph_summary": {
+    "task_id": "e2e-final2-enh",
+    "nodes": 9,
+    "edges": 2,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1,
+      "path": 6
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\graph\\graph.json"
+  },
+  "findings": [
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger",
+      "target": "http://175.27.191.147:4180/swagger",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__swagger.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_77583c4d5149.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "77583c4d5149",
+      "created_at": "2026-08-11T05:32:45+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 130.94,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_77583c4d5149.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_a2a9bfb9b8f6.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "a2a9bfb9b8f6",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 131.93,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_a2a9bfb9b8f6.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui.html",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui.html\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.html.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_131f5c5a93ca.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "131f5c5a93ca",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 128.4,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_131f5c5a93ca.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/openapi.json",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/openapi.json\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__openapi.json.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_033469767ad5.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "033469767ad5",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 122.5,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_033469767ad5.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/v2/api-docs",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/v2/api-docs\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__v2_api-docs.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_33188808a62d.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "33188808a62d",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 119.75,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_33188808a62d.txt"
+      }
+    },
+    {
+      "title": "insight_auth_surface:http://175.27.191.147:4180/login",
+      "target": "http://175.27.191.147:4180/login",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://175.27.191.147:4180/login\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1078"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; check login entry as candidate auth surface",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "3664cdb8bb94",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    },
+    {
+      "title": "insight_api_health:http://175.27.191.147:4180/api/health",
+      "target": "http://175.27.191.147:4180/api/health",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk \"http://175.27.191.147:4180/api/health\"",
+      "expected_signal": "ok",
+      "source": "insight",
+      "technique_ids": [
+        "T1595"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; probe common health API path",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "5916f09080a1",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    },
+    {
+      "title": "insight_admin_path:http://175.27.191.147:4180/admin",
+      "target": "http://175.27.191.147:4180/admin",
+      "severity": "low",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://175.27.191.147:4180/admin\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1190"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; probe admin path exposure",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "6f850ebd3bbd",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    }
+  ],
+  "verified": [
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger",
+      "target": "http://175.27.191.147:4180/swagger",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__swagger.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_77583c4d5149.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "77583c4d5149",
+      "created_at": "2026-08-11T05:32:45+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 130.94,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_77583c4d5149.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_a2a9bfb9b8f6.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "a2a9bfb9b8f6",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 131.93,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_a2a9bfb9b8f6.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/swagger-ui.html",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/swagger-ui.html\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.html.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_131f5c5a93ca.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "131f5c5a93ca",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:46+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 128.4,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_131f5c5a93ca.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/openapi.json",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/openapi.json\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__openapi.json.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_033469767ad5.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "033469767ad5",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 122.5,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_033469767ad5.txt"
+      }
+    },
+    {
+      "title": "api_endpoint:http://175.27.191.147:4180/v2/api-docs",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "severity": "medium",
+      "status": "verified",
+      "reproduce_cmd": "curl -sS --noproxy \"*\" -L \"http://175.27.191.147:4180/v2/api-docs\"",
+      "expected_signal": "re:(?i)(api|json|swagger|openapi|graphql|health|status|ok|html|200|401|403)",
+      "source": "playbook",
+      "technique_ids": [
+        "T1595"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__v2_api-docs.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_33188808a62d.txt"
+      ],
+      "meta": {
+        "status": "200",
+        "playbook": "api_surface"
+      },
+      "finding_id": "33188808a62d",
+      "created_at": "2026-08-11T05:32:46+00:00",
+      "updated_at": "2026-08-11T05:32:47+00:00",
+      "last_verify": {
+        "matched": true,
+        "return_code": 0,
+        "duration_ms": 119.75,
+        "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_33188808a62d.txt"
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "title": "insight_auth_surface:http://175.27.191.147:4180/login",
+      "target": "http://175.27.191.147:4180/login",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://175.27.191.147:4180/login\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1078"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; check login entry as candidate auth surface",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "3664cdb8bb94",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    },
+    {
+      "title": "insight_api_health:http://175.27.191.147:4180/api/health",
+      "target": "http://175.27.191.147:4180/api/health",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk \"http://175.27.191.147:4180/api/health\"",
+      "expected_signal": "ok",
+      "source": "insight",
+      "technique_ids": [
+        "T1595"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; probe common health API path",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "5916f09080a1",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    },
+    {
+      "title": "insight_admin_path:http://175.27.191.147:4180/admin",
+      "target": "http://175.27.191.147:4180/admin",
+      "severity": "low",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://175.27.191.147:4180/admin\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1190"
+      ],
+      "meta": {
+        "bound_node_id": "d9dc6a45ae94",
+        "bound_node_type": "url",
+        "bound_node_value": "http://175.27.191.147:4180",
+        "reasoning": "URL node present; probe admin path exposure",
+        "phase": "FINGERPRINT",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "6f850ebd3bbd",
+      "created_at": "2026-08-11T05:33:12+00:00",
+      "updated_at": "2026-08-11T05:33:12+00:00"
+    }
+  ],
+  "other_findings": [],
+  "recent_actions": [
+    {
+      "ts": "2026-08-11T05:31:05+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain",
+      "args_digest": "05b799f90418fac1",
+      "exit": null,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_start"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:31:07+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "curl",
+      "args_digest": "3849d983d5a11de1",
+      "exit": 0,
+      "duration_ms": 1550.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053107+0000_exec_curl.txt",
+      "finding_ids": [],
+      "source": "executor",
+      "extra": {
+        "nodes_touched": 2,
+        "cache_hit": false
+      }
+    },
+    {
+      "ts": "2026-08-11T05:31:07+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "curl",
+      "args_digest": "76025b5550af35f4",
+      "exit": 0,
+      "duration_ms": 1579.91,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053107+0000_exec_curl.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:31:11+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "FINGERPRINT",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "whatweb",
+      "args_digest": "ef5ef22ee249b52b",
+      "exit": 0,
+      "duration_ms": 3850.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053111+0000_exec_whatweb.txt",
+      "finding_ids": [],
+      "source": "executor",
+      "extra": {
+        "nodes_touched": 3,
+        "cache_hit": false
+      }
+    },
+    {
+      "ts": "2026-08-11T05:31:11+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "FINGERPRINT",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "whatweb",
+      "args_digest": "f967e14b1aec212e",
+      "exit": 0,
+      "duration_ms": 3866.11,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053111+0000_exec_whatweb.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:43+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "nuclei",
+      "args_digest": "e966c60149e6010e",
+      "exit": 1,
+      "duration_ms": 90880.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053243+0000_exec_nuclei.txt",
+      "finding_ids": [],
+      "source": "executor",
+      "extra": {
+        "nodes_touched": 2,
+        "cache_hit": false
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:43+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "nuclei",
+      "args_digest": "25558542cf699982",
+      "exit": 1,
+      "duration_ms": 91742.67,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053243+0000_exec_nuclei.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:43+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "14a391ba2a017cc7",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:43+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "7015bc2ac8ac69bd",
+      "exit": 0,
+      "duration_ms": 97218.174,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "web_surface",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:45+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/api",
+      "tool": "curl_api_probe",
+      "args_digest": "02b61998cf714a9b",
+      "exit": 7,
+      "duration_ms": 2413.37,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__api.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "301"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:45+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/api/v1",
+      "tool": "curl_api_probe",
+      "args_digest": "08795c755bfc1edf",
+      "exit": 0,
+      "duration_ms": 126.57,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__api_v1.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "404"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:45+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/api/v2",
+      "tool": "curl_api_probe",
+      "args_digest": "6f040e4d873141e3",
+      "exit": 0,
+      "duration_ms": 131.43,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__api_v2.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "404"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:45+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/swagger",
+      "tool": "curl_api_probe",
+      "args_digest": "9522cc1af1d7a0d9",
+      "exit": 0,
+      "duration_ms": 145.16,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053245+0000_api_probe__swagger.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "tool": "curl_api_probe",
+      "args_digest": "c58290f360351722",
+      "exit": 0,
+      "duration_ms": 136.77,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "tool": "curl_api_probe",
+      "args_digest": "d7a6b430ef819064",
+      "exit": 0,
+      "duration_ms": 148.62,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__swagger-ui.html.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "tool": "curl_api_probe",
+      "args_digest": "311af56eceeb1b73",
+      "exit": 0,
+      "duration_ms": 124.56,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__openapi.json.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "tool": "curl_api_probe",
+      "args_digest": "79ce5def772acbe8",
+      "exit": 0,
+      "duration_ms": 130.04,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_api_probe__v2_api-docs.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "api_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/swagger",
+      "tool": "verify_finding",
+      "args_digest": "11e73f001e355b45",
+      "exit": 0,
+      "duration_ms": 130.94,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_77583c4d5149.txt",
+      "finding_ids": [
+        "77583c4d5149"
+      ],
+      "source": "verify",
+      "extra": {
+        "status": "verified",
+        "matched": true
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/swagger-ui",
+      "tool": "verify_finding",
+      "args_digest": "ad7a50dfeaf11322",
+      "exit": 0,
+      "duration_ms": 131.93,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_a2a9bfb9b8f6.txt",
+      "finding_ids": [
+        "a2a9bfb9b8f6"
+      ],
+      "source": "verify",
+      "extra": {
+        "status": "verified",
+        "matched": true
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:46+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/swagger-ui.html",
+      "tool": "verify_finding",
+      "args_digest": "34fd2c20bb55ce0c",
+      "exit": 0,
+      "duration_ms": 128.4,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053246+0000_verify_131f5c5a93ca.txt",
+      "finding_ids": [
+        "131f5c5a93ca"
+      ],
+      "source": "verify",
+      "extra": {
+        "status": "verified",
+        "matched": true
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/openapi.json",
+      "tool": "verify_finding",
+      "args_digest": "051226d109e5faff",
+      "exit": 0,
+      "duration_ms": 122.5,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_033469767ad5.txt",
+      "finding_ids": [
+        "033469767ad5"
+      ],
+      "source": "verify",
+      "extra": {
+        "status": "verified",
+        "matched": true
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "VERIFY",
+      "target": "http://175.27.191.147:4180/v2/api-docs",
+      "tool": "verify_finding",
+      "args_digest": "5430b5d71357ec70",
+      "exit": 0,
+      "duration_ms": 119.75,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_verify_33188808a62d.txt",
+      "finding_ids": [
+        "33188808a62d"
+      ],
+      "source": "verify",
+      "extra": {
+        "status": "verified",
+        "matched": true
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "14a391ba2a017cc7",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "fb21c6682f76a4bc",
+      "exit": 0,
+      "duration_ms": 4132.349,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "api_surface",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/login",
+      "tool": "curl_auth_probe",
+      "args_digest": "ecfda3bb6faf5805",
+      "exit": 0,
+      "duration_ms": 126.28,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_auth_probe__login.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/admin/login",
+      "tool": "curl_auth_probe",
+      "args_digest": "578c9ef7017d727a",
+      "exit": 0,
+      "duration_ms": 126.11,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_auth_probe__admin_login.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/user/login",
+      "tool": "curl_auth_probe",
+      "args_digest": "5b238be8a4273a3b",
+      "exit": 0,
+      "duration_ms": 124.34,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_auth_probe__user_login.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/signin",
+      "tool": "curl_auth_probe",
+      "args_digest": "3eb1e1831f82a0ba",
+      "exit": 0,
+      "duration_ms": 125.39,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_auth_probe__signin.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:47+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/sign-in",
+      "tool": "curl_auth_probe",
+      "args_digest": "5515a7656cceacc0",
+      "exit": 0,
+      "duration_ms": 126.68,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053247+0000_auth_probe__sign-in.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:48+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/auth/login",
+      "tool": "curl_auth_probe",
+      "args_digest": "e873e83800e2238a",
+      "exit": 0,
+      "duration_ms": 123.6,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053248+0000_auth_probe__auth_login.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:48+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/account/login",
+      "tool": "curl_auth_probe",
+      "args_digest": "0d30ef1dd35977d7",
+      "exit": 0,
+      "duration_ms": 132.47,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053248+0000_auth_probe__account_login.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:48+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/wp-login.php",
+      "tool": "curl_auth_probe",
+      "args_digest": "28657b9b3e99639b",
+      "exit": 0,
+      "duration_ms": 117.56,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053248+0000_auth_probe__wp-login.php.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "auth_surface",
+        "status": "200"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:48+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "14a391ba2a017cc7",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:48+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "f84fa3b9bade6401",
+      "exit": 0,
+      "duration_ms": 1068.985,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "auth_surface",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:52+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "175.27.191.147",
+      "tool": "nmap",
+      "args_digest": "8ea623f42100582d",
+      "exit": 0,
+      "duration_ms": 4070.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053252+0000_exec_nmap.txt",
+      "finding_ids": [],
+      "source": "executor",
+      "extra": {
+        "nodes_touched": 1,
+        "cache_hit": false
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:52+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "175.27.191.147",
+      "tool": "nmap",
+      "args_digest": "8ea623f42100582d",
+      "exit": 0,
+      "duration_ms": 4081.11,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\evidence\\2026-08-11T053252+0000_svc_nmap.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "svc_surface"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:52+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "3ff575b55bd06f11",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [
+          {
+            "kind": "duplicate_call",
+            "tool": "nmap",
+            "target": "175.27.191.147",
+            "args_digest": "8ea623f42100582d",
+            "count": 2,
+            "advice": "skip_or_cache",
+            "message": "same tool+target+args repeated 2 times; prefer skip/cache"
+          }
+        ],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:52+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "5d0833ac53554152",
+      "exit": 0,
+      "duration_ms": 4103.29,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "svc_surface",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:56+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "3ff575b55bd06f11",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [
+          {
+            "kind": "duplicate_call",
+            "tool": "nmap",
+            "target": "175.27.191.147",
+            "args_digest": "8ea623f42100582d",
+            "count": 2,
+            "advice": "skip_or_cache",
+            "message": "same tool+target+args repeated 2 times; prefer skip/cache"
+          }
+        ],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:32:56+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "914a26254a471f86",
+      "exit": 1,
+      "duration_ms": 4069.414,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "internal_lateral",
+        "depth": "quick",
+        "ok": false,
+        "error": "'priv_escalation_check'"
+      }
+    },
+    {
+      "ts": "2026-08-11T05:33:12+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "3ff575b55bd06f11",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [
+          {
+            "kind": "duplicate_call",
+            "tool": "nmap",
+            "target": "175.27.191.147",
+            "args_digest": "8ea623f42100582d",
+            "count": 2,
+            "advice": "skip_or_cache",
+            "message": "same tool+target+args repeated 2 times; prefer skip/cache"
+          }
+        ],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:33:12+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "RECON",
+      "target": "http://175.27.191.147:4180/",
+      "tool": "run_surface_chain_step",
+      "args_digest": "47bb0261a950cfb3",
+      "exit": 0,
+      "duration_ms": 15908.772,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "stealth",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-11T05:33:12+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "3ff575b55bd06f11",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [
+          {
+            "kind": "duplicate_call",
+            "tool": "nmap",
+            "target": "175.27.191.147",
+            "args_digest": "8ea623f42100582d",
+            "count": 2,
+            "advice": "skip_or_cache",
+            "message": "same tool+target+args repeated 2 times; prefer skip/cache"
+          }
+        ],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-11T05:33:12+00:00",
+      "task_id": "e2e-final2-enh",
+      "phase": "FINGERPRINT",
+      "target": "",
+      "tool": "propose_insights",
+      "args_digest": "c07e4956783cf7bd",
+      "exit": 0,
+      "duration_ms": 20.963,
+      "evidence_path": "",
+      "finding_ids": [
+        "3664cdb8bb94",
+        "5916f09080a1",
+        "6f850ebd3bbd"
+      ],
+      "source": "insight",
+      "extra": {
+        "rejected_sample": [],
+        "event": "propose_insights",
+        "created_count": 3,
+        "engine_map_loaded": true
+      }
+    }
+  ],
+  "attack_coverage": {
+    "ok": true,
+    "task_id": "e2e-final2-enh",
+    "all": {
+      "findings_total": 8,
+      "labeled_count": 8,
+      "unlabeled_count": 0,
+      "labeled_ratio": 1.0,
+      "techniques": [
+        "T1078",
+        "T1190",
+        "T1595"
+      ],
+      "technique_counts": {
+        "T1595": 6,
+        "T1078": 1,
+        "T1190": 1
+      },
+      "tactics_present": [
+        "Initial Access",
+        "Reconnaissance"
+      ],
+      "by_status": {
+        "verified": {
+          "T1595": 5
+        },
+        "candidate": {
+          "T1078": 1,
+          "T1595": 1,
+          "T1190": 1
+        }
+      },
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    },
+    "verified_only": {
+      "findings_total": 5,
+      "labeled_count": 5,
+      "unlabeled_count": 0,
+      "labeled_ratio": 1.0,
+      "techniques": [
+        "T1595"
+      ],
+      "technique_counts": {
+        "T1595": 5
+      },
+      "tactics_present": [
+        "Reconnaissance"
+      ],
+      "by_status": {
+        "verified": {
+          "T1595": 5
+        }
+      },
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    }
+  },
+  "observer": {
+    "duplicate_count": 1,
+    "suggestions": [
+      {
+        "kind": "duplicate_call",
+        "tool": "nmap",
+        "target": "175.27.191.147",
+        "args_digest": "8ea623f42100582d",
+        "count": 2,
+        "advice": "skip_or_cache",
+        "message": "same tool+target+args repeated 2 times; prefer skip/cache"
+      }
+    ],
+    "should_slow_down": true
+  },
+  "handoff": {
+    "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\handoff\\handoff.json",
+    "progress_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2-enh\\handoff\\progress.md"
+  }
+}

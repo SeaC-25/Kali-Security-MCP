@@ -1,0 +1,14 @@
+{
+  "task_id": "e2e-enh",
+  "name": "exec_gobuster",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-enh\\evidence\\2026-08-11T051523+0000_exec_gobuster.txt",
+  "created_at": "2026-08-11T05:15:23+00:00",
+  "bytes": 92,
+  "meta": {
+    "tool": "gobuster",
+    "command": "gobuster dir -u http://127.0.0.1:9/ -w /usr/share/wordlists/dirb/common.txt -t 20 --no-error -q",
+    "return_code": 1,
+    "success": false,
+    "cached": false
+  }
+}

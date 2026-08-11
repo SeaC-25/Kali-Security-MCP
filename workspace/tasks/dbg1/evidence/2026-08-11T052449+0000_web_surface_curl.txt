@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#030508" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' http: https: ws: wss:; object-src 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>骐跃天工</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Long+Cang&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;600;700;900&family=Zhi+Mang+Xing&display=swap"
+      rel="stylesheet"
+      crossorigin
+    />
+    <style>
+      /* 字体未就绪时先用统一回退，减少 FOUT 导致的各浏览器跳动 */
+      html {
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-O0V7P5Uf.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-XNdd2YUy.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-Bct6LoCm.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

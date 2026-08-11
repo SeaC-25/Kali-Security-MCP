@@ -1,0 +1,252 @@
+{
+  "task_id": "e2e-final-enh",
+  "updated_at": "2026-08-11T05:30:09+00:00",
+  "nodes": [
+    {
+      "id": "0f701e4e80d3",
+      "type": "url",
+      "value": "http://175.27.191.147:4180",
+      "confidence": 0.9,
+      "last_seen": "2026-08-11T05:29:45+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052806+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052809+0000_exec_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052941+0000_exec_nuclei.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_df466d3a88df.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_d3d59363e23c.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_156697c2c184.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_e87e54f4f513.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_339d1607c281.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "playbook": "auth_surface",
+        "last_tool": "nuclei",
+        "status": "verified"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "09476319eb5a",
+      "type": "host",
+      "value": "175.27.191.147",
+      "confidence": 0.95,
+      "last_seen": "2026-08-11T05:29:50+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052806+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052809+0000_exec_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052941+0000_exec_nuclei.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052950+0000_exec_nmap.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "nmap",
+        "summary": "Nmap 扫描 175.27.191.147: 发现 1 个开放端口: 22(ssh)",
+        "playbook": "svc_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "0d388c454cd2",
+      "type": "tech",
+      "value": "0m",
+      "confidence": 0.6,
+      "last_seen": "2026-08-11T05:28:09+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052809+0000_exec_whatweb.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "tool": "whatweb",
+        "last_tool": "web_surface"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "c1d4c890c630",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/api",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:44+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052944+0000_api_probe__api.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "301",
+        "playbook": "api_surface",
+        "last_tool": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "f9139d6589ab",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/swagger",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:44+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052944+0000_api_probe__swagger.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_df466d3a88df.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_d3d59363e23c.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_156697c2c184.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "verified",
+        "playbook": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "44ff0a847006",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/swagger-ui",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:44+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052944+0000_api_probe__swagger-ui.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_d3d59363e23c.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_156697c2c184.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "verified",
+        "playbook": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "e97a4cca71f2",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/swagger-ui.html",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:44+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052944+0000_api_probe__swagger-ui.html.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_156697c2c184.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "verified",
+        "playbook": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "a3cf0d575136",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/openapi.json",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:45+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_api_probe__openapi.json.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_e87e54f4f513.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "verified",
+        "playbook": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "3cdd630a7893",
+      "type": "path",
+      "value": "http://175.27.191.147:4180/v2/api-docs",
+      "confidence": 0.75,
+      "last_seen": "2026-08-11T05:29:45+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_api_probe__v2_api-docs.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052945+0000_verify_339d1607c281.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "status": "verified",
+        "playbook": "api_surface"
+      },
+      "source": "playbook"
+    },
+    {
+      "id": "4ae473890e84",
+      "type": "port",
+      "value": "175.27.191.147:22",
+      "confidence": 0.8,
+      "last_seen": "2026-08-11T05:29:50+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052950+0000_exec_nmap.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "port": "22",
+        "service": "ssh",
+        "last_tool": "nmap",
+        "fingerprinted": true
+      },
+      "source": "scan"
+    },
+    {
+      "id": "9d274c513b0b",
+      "type": "service",
+      "value": "175.27.191.147:22/ssh",
+      "confidence": 0.7,
+      "last_seen": "2026-08-11T05:29:50+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final-enh\\evidence\\2026-08-11T052950+0000_exec_nmap.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "service": "ssh",
+        "port": "22",
+        "last_tool": "nmap",
+        "fingerprinted": true
+      },
+      "source": "scan"
+    }
+  ],
+  "edges": [
+    {
+      "id": "8d5cce53cab4",
+      "type": "exposes",
+      "src": "09476319eb5a",
+      "dst": "0f701e4e80d3",
+      "confidence": 0.5,
+      "meta": {}
+    },
+    {
+      "id": "e23c043036b6",
+      "type": "runs",
+      "src": "0f701e4e80d3",
+      "dst": "0d388c454cd2",
+      "confidence": 0.5,
+      "meta": {}
+    },
+    {
+      "id": "bb8481bf7247",
+      "type": "exposes",
+      "src": "09476319eb5a",
+      "dst": "4ae473890e84",
+      "confidence": 0.5,
+      "meta": {}
+    },
+    {
+      "id": "2c6940b00a09",
+      "type": "runs",
+      "src": "4ae473890e84",
+      "dst": "9d274c513b0b",
+      "confidence": 0.5,
+      "meta": {}
+    }
+  ]
+}
