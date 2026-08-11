@@ -23,6 +23,9 @@ import (
 	"fastsec/internal/dir"
 	"fastsec/internal/engine"
 	"fastsec/internal/fingerprint"
+	"fastsec/internal/forensic"
+	"fastsec/internal/portscan"
+	"fastsec/internal/username"
 	"fastsec/internal/injector"
 	"fastsec/internal/kerberos"
 	"fastsec/internal/orchestrate"
@@ -69,6 +72,10 @@ func main() {
 	kerberosDomain := flag.String("domain", "", "Kerberos domain")
 	cmsURL := flag.String("cms", "", "CMS detection target URL")
 	auditPath := flag.String("audit", "", "static audit path (file or dir)")
+	filePath := flag.String("file", "", "forensic file analysis")
+	userSearch := flag.String("user", "", "username search across platforms")
+	scanTarget := flag.String("scan", "", "port scan target")
+	scanRange := flag.String("scan-range", "1-1000", "port scan range (start-end)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -97,7 +104,8 @@ func main() {
 	// 模式 flag 优先（brute/dir/soceng/orchestrate/osint 不需要 -u）
 	hasMode := *bruteTarget != "" || *dirURL != "" || *socengName != "" ||
 		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != "" ||
-		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != ""
+		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != "" ||
+		*filePath != "" || *userSearch != "" || *scanTarget != ""
 
 	var targets []string
 	if *url != "" {
@@ -376,6 +384,36 @@ func main() {
 	if *auditPath != "" {
 		findings := audit.Audit(*auditPath, 0)
 		fmt.Print(audit.Format(findings, 20))
+		return
+	}
+
+	// 文件分析模式（替代 binwalk）
+	if *filePath != "" {
+		a, err := forensic.ScanFile(*filePath)
+		if err != nil {
+			fmt.Printf("[forensic] error: %v\n", err)
+		} else {
+			fmt.Print(forensic.Format(a))
+		}
+		return
+	}
+
+	// 用户名搜索模式（替代 sherlock）
+	if *userSearch != "" {
+		res := username.Search(*userSearch, 8*time.Second, *concurrency)
+		fmt.Print(username.Format(res))
+		return
+	}
+
+	// 端口扫描模式（替代 nmap 端口部分）
+	if *scanTarget != "" {
+		var start, end int
+		fmt.Sscanf(*scanRange, "%d-%d", &start, &end)
+		if start == 0 {
+			start, end = 1, 1000
+		}
+		res := portscan.ScanRange(*scanTarget, start, end, 500*time.Millisecond, *concurrency)
+		fmt.Print(portscan.Format(res))
 		return
 	}
 
