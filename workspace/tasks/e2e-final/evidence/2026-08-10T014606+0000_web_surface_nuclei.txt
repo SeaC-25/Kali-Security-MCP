@@ -1,0 +1,1 @@
+[nuclei skipped: no templates installed; run 'nuclei -update-templates' on the backend]

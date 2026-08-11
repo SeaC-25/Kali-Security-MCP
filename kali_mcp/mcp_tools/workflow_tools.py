@@ -58,7 +58,7 @@ def wf_transition(to_stage: str) -> Dict[str, Any]:
     """Advance the workflow to ``to_stage`` (illegal moves are rejected)."""
     try:
         with wf.state_lock(STATE_FILE):
-            state, err = _read_state()
+            state, err = _ensure_state()
             if err:
                 return {"ok": False, "error": err}
             updated = wf.transition(state, to_stage)
@@ -77,7 +77,7 @@ def wf_record_result(result: Dict[str, Any]) -> Dict[str, Any]:
     """Validate a result envelope and append it to the state's results."""
     try:
         with wf.state_lock(STATE_FILE):
-            state, err = _read_state()
+            state, err = _ensure_state()
             if err:
                 return {"ok": False, "error": err}
             updated = wf.record_result(state, result)
@@ -98,7 +98,7 @@ def wf_record_issue(
     """Route an issue to its responsible stage and record it in the state."""
     try:
         with wf.state_lock(STATE_FILE):
-            state, err = _read_state()
+            state, err = _ensure_state()
             if err:
                 return {"ok": False, "error": err}
             updated = wf.record_issue(state, issue, change_type=change_type)
@@ -116,7 +116,7 @@ def wf_record_issue(
 def wf_status() -> Dict[str, Any]:
     """Return a compact summary of the current workflow state."""
     try:
-        state, err = _read_state()
+        state, err = _ensure_state()
         if err:
             return {"ok": False, "error": err}
         stage = state["stage"]
@@ -143,6 +143,67 @@ def _read_state() -> tuple[Optional[Dict[str, Any]], Optional[str]]:
         return None, f"failed to load {STATE_FILE}: {exc}"
 
 
+
+def _ensure_state(goal_hint: str = "autonomous pentest workflow") -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """K3-3 auto-init: return current state; create one (zero-friction) if missing.
+
+    不加内部锁——调用方（wf_transition 等）已持 state_lock；pack/status 的
+    只读路径用原子写足够（write_state 内部 tempfile+os.replace）。
+    """
+    state, err = _read_state()
+    if err:
+        # state 文件缺失是唯一可自动修复的错误
+        if "no workflow state at" in err:
+            try:
+                if STATE_FILE.exists():
+                    return wf.load_state(STATE_FILE), None
+                st = wf.create_state(
+                    goal=goal_hint,
+                    success_criteria=[],
+                    complexity="medium",
+                )
+                wf.write_state(STATE_FILE, st)
+                return st, None
+            except Exception as exc:
+                return None, "auto-init failed: " + str(exc)
+        return None, err
+    return state, None
+
+
+
+def wf_pack_turn(max_chars: int = 900) -> Dict[str, Any]:
+    """Assemble a compact <=1KB turn summary from the workflow state.
+
+    Outputs stage / progress / open issues / recent results / recommended next
+    action, enough for the model to resume without loading the whole state.
+    """
+    try:
+        state, err = _ensure_state()
+        if err:
+            return {"ok": False, "error": err}
+        if state is None:
+            return {"ok": True, "pack": {"stage": None, "note": "no workflow state yet; call wf_init"}}
+        contract = state.get("contract", {})
+        results = state.get("results", [])
+        issues = state.get("issues", [])
+        last = results[-1] if results else None
+        pack = {
+            "stage": state.get("stage"),
+            "goal": contract.get("goal", ""),
+            "progress": str(len(results)) + " result(s)",
+            "open_issues": [str(i.get("summary", i.get("description", "")))[:60] for i in issues][:3],
+            "recent_result": {
+                "task": last.get("task") if last else None,
+                "outcome": last.get("outcome") if last else None,
+                "summary": (last.get("summary") or "")[:120] if last else None,
+            },
+            "next": last.get("recommended_next_action") if last else (wf.next_stages(state.get("stage"))[0] if state.get("stage") else None),
+        }
+        return {"ok": True, "pack": pack}
+    except Exception as exc:
+        return {"ok": False, "error": "wf_pack_turn failed: " + str(exc)}
+
+
 def register_wf_tools(mcp: Any, *args: Any, **kwargs: Any) -> None:
     """Register the wf_* workflow-state tools on a FastMCP instance."""
     mcp.tool()(wf_init)
@@ -150,3 +211,4 @@ def register_wf_tools(mcp: Any, *args: Any, **kwargs: Any) -> None:
     mcp.tool()(wf_record_result)
     mcp.tool()(wf_record_issue)
     mcp.tool()(wf_status)
+    mcp.tool()(wf_pack_turn)

@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "task_id": "e2e-final",
+  "target": "http://127.0.0.1:8080",
+  "mode": "surface_chain",
+  "order": [
+    "web_surface"
+  ],
+  "depths": {
+    "web_surface": "quick"
+  },
+  "steps": [
+    {
+      "playbook": "web_surface",
+      "depth": "quick",
+      "ok": true,
+      "findings_total_after": 1,
+      "verified_after": 0,
+      "error": null,
+      "skipped": false,
+      "duration_ms": 934.473,
+      "observer": {
+        "duplicate_count": 0,
+        "suggestions_count": 0
+      }
+    }
+  ],
+  "aborted": false,
+  "elapsed_ms": 995.254,
+  "by_status": {
+    "candidate": 1
+  },
+  "findings": [
+    {
+      "finding_id": "a943dba0d175",
+      "title": "nuclei_hit:http://127.0.0.1:8080",
+      "status": "candidate"
+    }
+  ],
+  "graph_summary": {
+    "task_id": "e2e-final",
+    "nodes": 3,
+    "edges": 2,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final\\graph\\graph.json"
+  },
+  "next_actions": [
+    {
+      "node_id": "c1326050cc55",
+      "node_type": "url",
+      "value": "http://127.0.0.1:8080",
+      "action": "verify_candidates",
+      "confidence": 0.9,
+      "source": "scan"
+    }
+  ],
+  "actions_count": 9,
+  "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final\\handoff\\handoff.json",
+  "progress_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final\\handoff\\progress.md",
+  "continue_ok": true,
+  "observer": {
+    "duplicate_count": 0,
+    "suggestions_count": 0,
+    "suggestions": []
+  },
+  "insights": {
+    "skipped": true,
+    "created_count": 0,
+    "reason": "not_stuck",
+    "error": null
+  },
+  "report_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final\\report\\report.md",
+  "report_export_error": null
+}

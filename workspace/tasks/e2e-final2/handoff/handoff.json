@@ -1,0 +1,87 @@
+{
+  "task_id": "e2e-final2",
+  "compiled_at": "2026-08-10T01:46:21+00:00",
+  "phase": "REPORT",
+  "status": "chain_done",
+  "targets": [
+    "http://127.0.0.1:8080"
+  ],
+  "depth": "quick",
+  "graph_summary": {
+    "task_id": "e2e-final2",
+    "nodes": 3,
+    "edges": 2,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2\\graph\\graph.json"
+  },
+  "done_tools": [
+    "run_surface_chain",
+    "curl",
+    "whatweb",
+    "nuclei",
+    "observer_analyze",
+    "run_surface_chain_step",
+    "export_task_report"
+  ],
+  "actions_count": 9,
+  "verified_count": 0,
+  "candidate_count": 1,
+  "verified_titles": [],
+  "candidate_titles": [
+    "nuclei_hit:http://127.0.0.1:8080"
+  ],
+  "dead_nodes": [],
+  "next_actions": [],
+  "do_not_rescan": [
+    {
+      "tool": "run_surface_chain",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "3ee86007bdcab251"
+    },
+    {
+      "tool": "curl",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "7141eafa59cc8987"
+    },
+    {
+      "tool": "whatweb",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "a84833e4a10eef3a"
+    },
+    {
+      "tool": "nuclei",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "9ec4257cbcea12c8"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "14a391ba2a017cc7"
+    },
+    {
+      "tool": "run_surface_chain_step",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "7015bc2ac8ac69bd"
+    },
+    {
+      "tool": "observer_analyze",
+      "target": "",
+      "args_digest": "14a391ba2a017cc7"
+    },
+    {
+      "tool": "export_task_report",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "16962b7f667eb2a4"
+    },
+    {
+      "tool": "run_surface_chain",
+      "target": "http://127.0.0.1:8080",
+      "args_digest": "ed8dc8e8b2b1c60f"
+    }
+  ]
+}

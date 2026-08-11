@@ -1,0 +1,14 @@
+{
+  "task_id": "e2e-test-4",
+  "name": "exec_nuclei",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-4\\evidence\\2026-08-10T013808+0000_exec_nuclei.txt",
+  "created_at": "2026-08-10T01:38:08+00:00",
+  "bytes": 0,
+  "meta": {
+    "tool": "nuclei",
+    "command": "nuclei -u http://127.0.0.1:8080 -s critical,high -silent -rl 150 -timeout 10",
+    "return_code": 1,
+    "success": false,
+    "cached": false
+  }
+}

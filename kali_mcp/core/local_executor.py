@@ -141,35 +141,47 @@ class LocalCommandExecutor:
         try:
             logger.debug(f"执行命令: {command}")
 
-            result = subprocess.run(
+            # K2-2: 用 Popen 捕获部分输出——超时时返回已产出 stdout 而非空失败
+            proc = subprocess.Popen(
                 command,
                 shell=True,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=cmd_timeout,
                 cwd=self.working_dir,
                 stdin=subprocess.DEVNULL,
             )
+            try:
+                stdout, stderr = proc.communicate(timeout=cmd_timeout)
+            except subprocess.TimeoutExpired:
+                # 收集超时前的部分输出：再次 communicate() 读完已产出字节
+                partial_out = ""
+                partial_err = ""
+                try:
+                    proc.kill()
+                    partial_out, partial_err = proc.communicate()
+                except Exception:
+                    pass
+                logger.warning(f"命令执行超时 ({cmd_timeout}秒), 返回部分输出: {command}")
+                return {
+                    "success": False,
+                    "error": f"Command timeout after {cmd_timeout} seconds",
+                    "output": partial_out[:4096],
+                    "partial": True,
+                    "error_output": partial_err[:1024],
+                    "return_code": -1,
+                    "command": command
+                }
 
-            success = result.returncode == 0
-
+            success = proc.returncode == 0
             return {
                 "success": success,
-                "output": result.stdout,
-                "error": result.stderr if not success else "",
-                "return_code": result.returncode,
+                "output": stdout,
+                "error": stderr if not success else "",
+                "return_code": proc.returncode,
                 "command": command
             }
 
-        except subprocess.TimeoutExpired:
-            logger.warning(f"命令执行超时 ({cmd_timeout}秒): {command}")
-            return {
-                "success": False,
-                "error": f"Command timeout after {cmd_timeout} seconds",
-                "output": "",
-                "return_code": -1,
-                "command": command
-            }
         except Exception as e:
             logger.error(f"命令执行失败: {command}, 错误: {str(e)}")
             return {

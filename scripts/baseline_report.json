@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-09T05:21:59+00:00",
+  "generated_at": "2026-08-11T04:26:24+00:00",
   "repo_root": "F:/springInFer-skill/Kali-Security-MCP-main/Kali-Security-MCP-main",
-  "tool_count": 192,
-  "modules": 19,
+  "tool_count": 193,
+  "modules": 22,
   "module_breakdown": {
     "__init__.py": {
       "tool_count": 0,
@@ -27,6 +27,10 @@
     "assessment_tools.py": {
       "tool_count": 11,
       "schema_bytes": 2926
+    },
+    "board_tools.py": {
+      "tool_count": 0,
+      "schema_bytes": 0
     },
     "browser_tools.py": {
       "tool_count": 12,
@@ -56,6 +60,10 @@
       "tool_count": 1,
       "schema_bytes": 984
     },
+    "meta_tools.py": {
+      "tool_count": 1,
+      "schema_bytes": 876
+    },
     "misc_tools.py": {
       "tool_count": 19,
       "schema_bytes": 8496
@@ -79,11 +87,15 @@
     "vuln_mgmt_tools.py": {
       "tool_count": 5,
       "schema_bytes": 2455
+    },
+    "workflow_tools.py": {
+      "tool_count": 0,
+      "schema_bytes": 0
     }
   },
   "schema_byte_estimate": {
-    "total_bytes": 86110,
-    "tools_measured": 192,
+    "total_bytes": 86986,
+    "tools_measured": 193,
     "per_module": {
       "__init__.py": 0,
       "adaptive_tools.py": 1689,
@@ -91,6 +103,7 @@
       "ai_tools.py": 9860,
       "apt_tools.py": 6201,
       "assessment_tools.py": 2926,
+      "board_tools.py": 0,
       "browser_tools.py": 7875,
       "chain_mgmt_tools.py": 1629,
       "code_audit_tools.py": 3330,
@@ -98,12 +111,14 @@
       "deep_test_tools.py": 14932,
       "harness_tools.py": 5301,
       "llm_react_tools.py": 984,
+      "meta_tools.py": 876,
       "misc_tools.py": 8496,
       "pentagi_bridge_tools.py": 1785,
       "pwn_tools.py": 6995,
       "recon_tools.py": 4806,
       "session_tools.py": 2738,
-      "vuln_mgmt_tools.py": 2455
+      "vuln_mgmt_tools.py": 2455,
+      "workflow_tools.py": 0
     }
   },
   "instructions_block": {
@@ -1076,6 +1091,13 @@
       "signature_bytes": 245,
       "docstring_bytes": 739,
       "schema_bytes": 984
+    },
+    {
+      "module": "meta_tools.py",
+      "name": "kali_run",
+      "signature_bytes": 92,
+      "docstring_bytes": 784,
+      "schema_bytes": 876
     },
     {
       "module": "misc_tools.py",

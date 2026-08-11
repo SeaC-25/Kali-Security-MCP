@@ -1,12 +1,12 @@
 # Kali MCP Baseline Report
 
-- Generated (UTC): 2026-08-09T05:21:59+00:00
+- Generated (UTC): 2026-08-11T04:26:24+00:00
 - Repo root: `F:/springInFer-skill/Kali-Security-MCP-main/Kali-Security-MCP-main`
 
 ## Registered tools
 
-- Tool count (`@mcp.tool()` in `kali_mcp/mcp_tools/*.py`): **192**
-- Schema byte estimate (signature + docstring): **86110** bytes across 192 tools
+- Tool count (`@mcp.tool()` in `kali_mcp/mcp_tools/*.py`): **193**
+- Schema byte estimate (signature + docstring): **86986** bytes across 193 tools
 
 ### Per-module breakdown
 
@@ -18,6 +18,7 @@
 | ai_tools.py | 21 | 9860 |
 | apt_tools.py | 12 | 6201 |
 | assessment_tools.py | 11 | 2926 |
+| board_tools.py | 0 | 0 |
 | browser_tools.py | 12 | 7875 |
 | chain_mgmt_tools.py | 4 | 1629 |
 | code_audit_tools.py | 6 | 3330 |
@@ -25,12 +26,14 @@
 | deep_test_tools.py | 28 | 14932 |
 | harness_tools.py | 18 | 5301 |
 | llm_react_tools.py | 1 | 984 |
+| meta_tools.py | 1 | 876 |
 | misc_tools.py | 19 | 8496 |
 | pentagi_bridge_tools.py | 9 | 1785 |
 | pwn_tools.py | 12 | 6995 |
 | recon_tools.py | 9 | 4806 |
 | session_tools.py | 8 | 2738 |
 | vuln_mgmt_tools.py | 5 | 2455 |
+| workflow_tools.py | 0 | 0 |
 
 ## Instructions block
 

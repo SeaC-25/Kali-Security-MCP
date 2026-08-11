@@ -1,0 +1,79 @@
+{
+  "task_id": "e2e-test-2",
+  "updated_at": "2026-08-10T01:34:10+00:00",
+  "nodes": [
+    {
+      "id": "98677015053d",
+      "type": "url",
+      "value": "http://127.0.0.1:8080",
+      "confidence": 0.9,
+      "last_seen": "2026-08-10T01:34:10+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013239+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013239+0000_web_surface_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013410+0000_exec_nuclei.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "playbook": "web_surface",
+        "last_tool": "nuclei"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "796ad08a41e4",
+      "type": "host",
+      "value": "127.0.0.1",
+      "confidence": 0.9,
+      "last_seen": "2026-08-10T01:34:10+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013239+0000_exec_curl.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013239+0000_web_surface_whatweb.txt",
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013410+0000_exec_nuclei.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "last_tool": "nuclei",
+        "summary": "Nuclei 扫描 http://127.0.0.1:8080: 未发现漏洞"
+      },
+      "source": "scan"
+    },
+    {
+      "id": "0b1e2c2513e3",
+      "type": "tech",
+      "value": "0m",
+      "confidence": 0.6,
+      "last_seen": "2026-08-10T01:32:39+00:00",
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-2\\evidence\\2026-08-10T013239+0000_web_surface_whatweb.txt"
+      ],
+      "next_checks": [],
+      "dead_reason": null,
+      "meta": {
+        "tool": "whatweb",
+        "last_tool": "web_surface"
+      },
+      "source": "scan"
+    }
+  ],
+  "edges": [
+    {
+      "id": "9705838a0e71",
+      "type": "exposes",
+      "src": "796ad08a41e4",
+      "dst": "98677015053d",
+      "confidence": 0.5,
+      "meta": {}
+    },
+    {
+      "id": "1af4afaa6827",
+      "type": "runs",
+      "src": "98677015053d",
+      "dst": "0b1e2c2513e3",
+      "confidence": 0.5,
+      "meta": {}
+    }
+  ]
+}

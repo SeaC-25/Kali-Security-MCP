@@ -1,0 +1,77 @@
+{
+  "updated_at": "2026-08-10T01:36:15+00:00",
+  "findings": [
+    {
+      "title": "insight_auth_surface:http://127.0.0.1:8080/login",
+      "target": "http://127.0.0.1:8080/login",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/login\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1078"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; check login entry as candidate auth surface",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "4430a2ea5d7f",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_api_health:http://127.0.0.1:8080/api/health",
+      "target": "http://127.0.0.1:8080/api/health",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk \"http://127.0.0.1:8080/api/health\"",
+      "expected_signal": "ok",
+      "source": "insight",
+      "technique_ids": [
+        "T1595"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe common health API path",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "2c7127d21cbb",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_admin_path:http://127.0.0.1:8080/admin",
+      "target": "http://127.0.0.1:8080/admin",
+      "severity": "low",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/admin\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1190"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe admin path exposure",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "241e9f89b0f8",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    }
+  ]
+}

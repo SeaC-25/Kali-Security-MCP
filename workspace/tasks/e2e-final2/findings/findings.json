@@ -1,0 +1,26 @@
+{
+  "updated_at": "2026-08-10T01:46:21+00:00",
+  "findings": [
+    {
+      "title": "nuclei_hit:http://127.0.0.1:8080",
+      "target": "http://127.0.0.1:8080",
+      "severity": "high",
+      "status": "candidate",
+      "reproduce_cmd": "nuclei -u http://127.0.0.1:8080 -severity critical,high -silent",
+      "expected_signal": "[",
+      "source": "playbook",
+      "technique_ids": [
+        "T1190"
+      ],
+      "evidence_paths": [
+        "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final2\\evidence\\2026-08-10T014621+0000_web_surface_nuclei.txt"
+      ],
+      "meta": {
+        "playbook": "web_surface"
+      },
+      "finding_id": "4fff7f4bf05f",
+      "created_at": "2026-08-10T01:46:21+00:00",
+      "updated_at": "2026-08-10T01:46:21+00:00"
+    }
+  ]
+}

@@ -32,6 +32,8 @@ ALL_MODULE_KEYS = {
     "deep_test",
     "assessment",
     "browser",
+    "async",
+    "wf",
 }
 
 # Modules always kept off for harness-only orchestration surface

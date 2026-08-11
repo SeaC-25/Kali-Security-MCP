@@ -79,7 +79,10 @@ def _extract_gobuster_paths(raw: str, base_url: str) -> List[str]:
 def _run_tool(executor, tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     # nuclei 无模板目录时会挂死等下载：主路径统一先探测模板，缺失则跳过
     if tool_name == "nuclei":
-        probe_cmd = "nuclei -version >/dev/null 2>&1 && (test -d ~/nuclei-templates -o -d /root/nuclei-templates -o -d /home/zss/nuclei-templates) && echo HAS_TMPL || echo NO_TMPL"
+        # nuclei -version 首次运行会慢(配置初始化)，直接检查模板目录存在性
+        probe_cmd = ("(test -d ~/nuclei-templates -o -d /root/nuclei-templates -o -d /home/zss/nuclei-templates "
+                     "-o -d ~/.local/nuclei-templates -o -d /home/zss/.local/nuclei-templates"
+                     ") && echo HAS_TMPL || echo NO_TMPL")
         if hasattr(executor, "_run_tool_command"):
             probe = executor._run_tool_command(probe_cmd, timeout=15)
         elif hasattr(executor, "execute_command"):
@@ -94,6 +97,15 @@ def _run_tool(executor, tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
                 "return_code": 0,
                 "skipped": "no_nuclei_templates",
             }
+        # 全模板扫描对单目标过慢（>55s）：默认限定常用模板子集
+        if not data.get("templates") and not data.get("templates_suffix"):
+            base = "/home/zss/.local/nuclei-templates"
+            data = dict(data)
+            data["templates_suffix"] = (
+                f" -t {base}/http/misconfiguration/,"
+                f"{base}/http/exposures/,"
+                f"{base}/http/technologies/"
+            )
     if hasattr(executor, "execute_tool_with_data"):
         return executor.execute_tool_with_data(tool_name, data)
     # fallback: build simple commands for dry environments

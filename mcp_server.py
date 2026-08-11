@@ -447,10 +447,10 @@ def setup_mcp_server(
             logger.warning(f"  ⚠️ {label}注册失败: {e}")
 
     _safe_register("recon", "信息收集工具", register_recon_tools, mcp, executor)
-    if _llm_api_key_available():
-        _safe_register("ai_session", "AI会话工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
-    else:
-        logger.info("skipped ai_session (no LLM API key)")
+    # ai_tools 是纯 CLI 工具包装（execute_command/nuclei/whatweb/masscan/ffuf 等），
+    # 零 LLM API 依赖（ai_context_manager/ml_strategy_optimizer 仅为本地对象透传）。
+    # 注册与否由工具档位(profile)决定，不再被 LLM-key 门控连坐（K0-4 修正）。
+    _safe_register("ai_session", "CLI扫描工具", register_ai_session_tools, mcp, executor, ai_context_manager, ml_strategy_optimizer)
     _safe_register("code_audit", "代码审计工具", register_code_audit_tools, mcp, executor)
     _safe_register("session", "会话管理工具", register_session_tools, mcp, executor, _ATTACK_SESSIONS, _CURRENT_ATTACK_SESSION_ID)
     _safe_register("pwn", "PWN工具", register_pwn_tools, mcp, executor, agent_adapter)
@@ -467,6 +467,14 @@ def setup_mcp_server(
 
     # K1 meta surface: kali_run (fallback executor for archived tools)
     _safe_register("meta", "K1元工具(通用执行)", register_meta_tools, mcp, executor)
+
+    # K2 async surface: scan_start/scan_collect/scan_wait/scan_jobs
+    from kali_mcp.mcp_tools.async_tools import register_async_tools
+    _safe_register("async", "K2异步扫描工具", register_async_tools, mcp, executor)
+
+    # K3 orchestrate workflow surface: wf_init/transition/record_result/record_issue/status/pack
+    from kali_mcp.mcp_tools.workflow_tools import register_wf_tools
+    _safe_register("wf", "K3工作流工具", register_wf_tools, mcp, executor)
 
     # K4 thin task board (file-backed, lease, ≤3 concurrency) — default surface
     try:

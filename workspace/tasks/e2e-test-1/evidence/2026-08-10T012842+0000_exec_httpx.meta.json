@@ -1,0 +1,14 @@
+{
+  "task_id": "e2e-test-1",
+  "name": "exec_httpx",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-1\\evidence\\2026-08-10T012842+0000_exec_httpx.txt",
+  "created_at": "2026-08-10T01:28:42+00:00",
+  "bytes": 0,
+  "meta": {
+    "tool": "httpx",
+    "command": "httpx -u http://127.0.0.1:8080 -silent -status-code -title -server -timeout 5 -retries 0 -no-stdin",
+    "return_code": 1,
+    "success": false,
+    "cached": false
+  }
+}

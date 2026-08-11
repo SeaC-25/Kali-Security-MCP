@@ -1,0 +1,13 @@
+{
+  "task_id": "e2e-test-1",
+  "created_at": "2026-08-10T01:28:41+00:00",
+  "updated_at": "2026-08-10T01:30:23+00:00",
+  "phase": "REPORT",
+  "status": "chain_done",
+  "targets": [
+    "http://127.0.0.1:8080"
+  ],
+  "depth": "quick",
+  "notes": "run_surface_chain sequential (no run_goal)",
+  "report_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-1\\report\\chain_summary.json"
+}

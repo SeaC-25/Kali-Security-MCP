@@ -56,6 +56,11 @@ K1_KEEP_TOOLS = frozenset({
     "task_list", "board_snapshot",
     # meta
     "kali_run",
+    # K2 async surface
+    "scan_start", "scan_collect", "scan_wait", "scan_jobs",
+    # K3 orchestrate workflow
+    "wf_init", "wf_transition", "wf_record_result", "wf_record_issue",
+    "wf_status", "wf_pack_turn",
 })
 
 # ---------------------------------------------------------------------------

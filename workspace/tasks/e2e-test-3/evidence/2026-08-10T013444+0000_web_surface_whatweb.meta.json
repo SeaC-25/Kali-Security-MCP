@@ -1,0 +1,15 @@
+{
+  "task_id": "e2e-test-3",
+  "name": "web_surface_whatweb",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\evidence\\2026-08-10T013444+0000_web_surface_whatweb.txt",
+  "created_at": "2026-08-10T01:34:44+00:00",
+  "bytes": 307,
+  "meta": {
+    "tool": "whatweb",
+    "data": {
+      "target": "http://127.0.0.1:8080",
+      "url": "http://127.0.0.1:8080"
+    },
+    "return_code": 0
+  }
+}

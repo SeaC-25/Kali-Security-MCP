@@ -1,0 +1,390 @@
+{
+  "task_id": "e2e-test-3",
+  "exported_at": "2026-08-10T01:36:15+00:00",
+  "meta": {
+    "task_id": "e2e-test-3",
+    "created_at": "2026-08-10T01:34:44+00:00",
+    "updated_at": "2026-08-10T01:36:15+00:00",
+    "phase": "EVIDENCE",
+    "status": "playbook_done",
+    "targets": [
+      "http://127.0.0.1:8080"
+    ],
+    "depth": "quick",
+    "notes": "run_surface_chain sequential (no run_goal)"
+  },
+  "graph_summary": {
+    "task_id": "e2e-test-3",
+    "nodes": 3,
+    "edges": 2,
+    "dead_nodes": 0,
+    "by_type": {
+      "url": 1,
+      "host": 1,
+      "tech": 1
+    },
+    "graph_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\graph\\graph.json"
+  },
+  "findings": [
+    {
+      "title": "insight_auth_surface:http://127.0.0.1:8080/login",
+      "target": "http://127.0.0.1:8080/login",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/login\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1078"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; check login entry as candidate auth surface",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "4430a2ea5d7f",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_api_health:http://127.0.0.1:8080/api/health",
+      "target": "http://127.0.0.1:8080/api/health",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk \"http://127.0.0.1:8080/api/health\"",
+      "expected_signal": "ok",
+      "source": "insight",
+      "technique_ids": [
+        "T1595"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe common health API path",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "2c7127d21cbb",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_admin_path:http://127.0.0.1:8080/admin",
+      "target": "http://127.0.0.1:8080/admin",
+      "severity": "low",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/admin\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1190"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe admin path exposure",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "241e9f89b0f8",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    }
+  ],
+  "verified": [],
+  "candidates": [
+    {
+      "title": "insight_auth_surface:http://127.0.0.1:8080/login",
+      "target": "http://127.0.0.1:8080/login",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/login\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1078"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; check login entry as candidate auth surface",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "4430a2ea5d7f",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_api_health:http://127.0.0.1:8080/api/health",
+      "target": "http://127.0.0.1:8080/api/health",
+      "severity": "info",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk \"http://127.0.0.1:8080/api/health\"",
+      "expected_signal": "ok",
+      "source": "insight",
+      "technique_ids": [
+        "T1595"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe common health API path",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "2c7127d21cbb",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    },
+    {
+      "title": "insight_admin_path:http://127.0.0.1:8080/admin",
+      "target": "http://127.0.0.1:8080/admin",
+      "severity": "low",
+      "status": "candidate",
+      "reproduce_cmd": "curl -sk -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8080/admin\"",
+      "expected_signal": "200",
+      "source": "insight",
+      "technique_ids": [
+        "T1190"
+      ],
+      "meta": {
+        "bound_node_id": "6771718c74db",
+        "bound_node_type": "url",
+        "bound_node_value": "http://127.0.0.1:8080",
+        "reasoning": "URL node present; probe admin path exposure",
+        "phase": "EVIDENCE",
+        "drive_executor": false,
+        "created_via": "propose_insights"
+      },
+      "finding_id": "241e9f89b0f8",
+      "created_at": "2026-08-10T01:36:15+00:00",
+      "updated_at": "2026-08-10T01:36:15+00:00"
+    }
+  ],
+  "other_findings": [],
+  "recent_actions": [
+    {
+      "ts": "2026-08-10T01:34:44+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "RECON",
+      "target": "http://127.0.0.1:8080",
+      "tool": "run_surface_chain",
+      "args_digest": "3ee86007bdcab251",
+      "exit": null,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_start"
+      }
+    },
+    {
+      "ts": "2026-08-10T01:34:44+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "RECON",
+      "target": "http://127.0.0.1:8080",
+      "tool": "curl",
+      "args_digest": "7141eafa59cc8987",
+      "exit": 0,
+      "duration_ms": 0.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\evidence\\2026-08-10T013444+0000_web_surface_curl.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-10T01:34:44+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "FINGERPRINT",
+      "target": "http://127.0.0.1:8080",
+      "tool": "whatweb",
+      "args_digest": "a84833e4a10eef3a",
+      "exit": 0,
+      "duration_ms": 0.53,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\evidence\\2026-08-10T013444+0000_web_surface_whatweb.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "VERIFY",
+      "target": "http://127.0.0.1:8080",
+      "tool": "nuclei",
+      "args_digest": "269460b619cf8fd7",
+      "exit": 1,
+      "duration_ms": 91250.0,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\evidence\\2026-08-10T013615+0000_exec_nuclei.txt",
+      "finding_ids": [],
+      "source": "executor",
+      "extra": {
+        "nodes_touched": 2,
+        "cache_hit": false
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "VERIFY",
+      "target": "http://127.0.0.1:8080",
+      "tool": "nuclei",
+      "args_digest": "9ec4257cbcea12c8",
+      "exit": 1,
+      "duration_ms": 91271.45,
+      "evidence_path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\evidence\\2026-08-10T013615+0000_exec_nuclei.txt",
+      "finding_ids": [],
+      "source": "playbook",
+      "extra": {
+        "playbook": "web_surface"
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "14a391ba2a017cc7",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "RECON",
+      "target": "http://127.0.0.1:8080",
+      "tool": "run_surface_chain_step",
+      "args_digest": "7015bc2ac8ac69bd",
+      "exit": 0,
+      "duration_ms": 91308.517,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "harness",
+      "extra": {
+        "event": "chain_step",
+        "playbook": "web_surface",
+        "depth": "quick",
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "OBSERVE",
+      "target": "",
+      "tool": "observer_analyze",
+      "args_digest": "14a391ba2a017cc7",
+      "exit": 0,
+      "duration_ms": null,
+      "evidence_path": "",
+      "finding_ids": [],
+      "source": "observer",
+      "extra": {
+        "suggestions": [],
+        "marked_dead": []
+      }
+    },
+    {
+      "ts": "2026-08-10T01:36:15+00:00",
+      "task_id": "e2e-test-3",
+      "phase": "EVIDENCE",
+      "target": "",
+      "tool": "propose_insights",
+      "args_digest": "c07e4956783cf7bd",
+      "exit": 0,
+      "duration_ms": 20.46,
+      "evidence_path": "",
+      "finding_ids": [
+        "4430a2ea5d7f",
+        "2c7127d21cbb",
+        "241e9f89b0f8"
+      ],
+      "source": "insight",
+      "extra": {
+        "rejected_sample": [],
+        "event": "propose_insights",
+        "created_count": 3,
+        "engine_map_loaded": true
+      }
+    }
+  ],
+  "attack_coverage": {
+    "ok": true,
+    "task_id": "e2e-test-3",
+    "all": {
+      "findings_total": 3,
+      "labeled_count": 3,
+      "unlabeled_count": 0,
+      "labeled_ratio": 1.0,
+      "techniques": [
+        "T1078",
+        "T1190",
+        "T1595"
+      ],
+      "technique_counts": {
+        "T1078": 1,
+        "T1595": 1,
+        "T1190": 1
+      },
+      "tactics_present": [
+        "Initial Access",
+        "Reconnaissance"
+      ],
+      "by_status": {
+        "candidate": {
+          "T1078": 1,
+          "T1595": 1,
+          "T1190": 1
+        }
+      },
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    },
+    "verified_only": {
+      "findings_total": 0,
+      "labeled_count": 0,
+      "unlabeled_count": 0,
+      "labeled_ratio": 0.0,
+      "techniques": [],
+      "technique_counts": {},
+      "tactics_present": [],
+      "by_status": {},
+      "note": "ATT&CK is label-only; empty technique_ids preferred over wrong tags"
+    }
+  },
+  "observer": {
+    "duplicate_count": 0,
+    "suggestions": [],
+    "should_slow_down": false
+  },
+  "handoff": {
+    "handoff_json": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\handoff\\handoff.json",
+    "progress_md": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-test-3\\handoff\\progress.md"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "e2e-final",
+  "name": "web_surface_curl",
+  "path": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace\\tasks\\e2e-final\\evidence\\2026-08-10T014606+0000_web_surface_curl.txt",
+  "created_at": "2026-08-10T01:46:06+00:00",
+  "bytes": 5629,
+  "meta": {
+    "tool": "curl",
+    "data": {
+      "url": "http://127.0.0.1:8080",
+      "target": "http://127.0.0.1:8080",
+      "headers": {
+        "User-Agent": "kali-mcp-probe"
+      },
+      "timeout": 8
+    },
+    "return_code": 0
+  }
+}

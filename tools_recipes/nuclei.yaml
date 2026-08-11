@@ -6,6 +6,8 @@ min_version_note: "expects nuclei v3.x CLI (-u/-s/-silent/-rl/-timeout)"
 notes: >
   Template kept lean for harness surfaces. Prefer -s over long -severity form.
   Registry builder may still win when no_recipe=true; recipe is default path.
+  templates: optional comma/space list or dir(s); empty => full-template scan (slow).
+  Caller may pass templates_suffix (e.g. " -t /path/to/templates") for subset scans.
 params:
   target_keys: [target, url]
   required: [target]
@@ -14,7 +16,8 @@ params:
     rate_limit: 150
     timeout: 10
     silent: true
+    templates_suffix: ""
 command:
-  template: "nuclei -u {target} -s {severity} -silent -rl {rate_limit} -timeout {timeout}"
+  template: "nuclei -u {target} -s {severity} -silent -rl {rate_limit} -timeout {timeout}{templates_suffix}"
   extra_args_key: additional_args
 cache_ttl: 1800

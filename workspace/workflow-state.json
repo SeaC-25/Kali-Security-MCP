@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "stage": "context",
+  "contract": {
+    "goal": "autonomous pentest workflow",
+    "success_criteria": [],
+    "deliverables": [],
+    "constraints": []
+  },
+  "complexity": "medium",
+  "issues": [],
+  "results": []
+}
