@@ -68,6 +68,7 @@ func main() {
 	fingerprintTarget := flag.String("fingerprint", "", "service fingerprint target host")
 	fingerprintPorts := flag.String("fp-ports", "80,443,22,3306,6379,8080,8443,9200,27017,1433,5432,7001,8090,4180,4174", "fingerprint ports")
 	crackHash := flag.String("crack", "", "crack hash (e.g. md5:5f4dcc3b5aa765d61d8327deb882cf99)")
+	crackWordlist := flag.String("crack-wordlist", "", "external wordlist file for crack")
 	kerberosKDC := flag.String("kerberos", "", "Kerberos KDC IP (AS-REP/Kerberoast)")
 	kerberosDomain := flag.String("domain", "", "Kerberos domain")
 	cmsURL := flag.String("cms", "", "CMS detection target URL")
@@ -356,19 +357,26 @@ func main() {
 		} else {
 			ht = crack.DetectType(hash)
 		}
-		res := crack.Crack(hash, ht, true, *concurrency)
+		var extraWords []string
+		if *crackWordlist != "" {
+			if f, err := os.ReadFile(*crackWordlist); err == nil {
+				for _, l := range strings.Split(string(f), "\n") {
+					if l = strings.TrimSpace(l); l != "" {
+						extraWords = append(extraWords, l)
+					}
+				}
+			}
+		}
+		res := crack.CrackWithWords(hash, ht, extraWords, true, *concurrency)
 		fmt.Print(crack.Format([]crack.CrackResult{res}))
 		return
 	}
 
-	// Kerberos 模式（替代 impacket GetNPUsers/GetUserSPNs）
+	// Kerberos 模式（诚实声明：未实现，不假装能用）
 	if *kerberosKDC != "" {
-		cfg := kerberos.DefaultConfig(*kerberosKDC, *kerberosDomain, []string{
-			"administrator", "guest", "krbtgt", "sqlsvc", "svc_backup",
-			"backup", "test", "admin", "user1", "user2",
-		})
-		res := kerberos.Scan(cfg)
-		fmt.Print(kerberos.Format(res))
+		_ = *kerberosDomain // 保留 flag 但诚实声明未实现
+		fmt.Println(kerberos.StatusLine())
+		fmt.Println("  需要完整 RFC 4120 ASN.1 实现；当前版本无假实现。")
 		return
 	}
 

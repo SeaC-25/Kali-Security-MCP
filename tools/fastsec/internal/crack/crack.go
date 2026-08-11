@@ -45,24 +45,114 @@ func sha512Hash(data []byte) []byte {
 	return h[:]
 }
 
-// NTLM: MD4(UTF-16LE(password))
+// MD4Hex: 计算 MD4 并返回 hex（导出，供验证/外部调用）
+func MD4Hex(input string) string {
+	return hex.EncodeToString(md4Sum([]byte(input)))
+}
+
+// NTLMHash: 计算 NTLM 哈希（导出）— MD4(UTF-16LE(password))
+func NTLMHash(password string) []byte {
+	return ntlmHash([]byte(password))
+}
+
+// NTLM: MD4(UTF-16LE(password)) — RFC 1320 完整实现
 func ntlmHash(data []byte) []byte {
 	// UTF-16LE 编码
 	utf16 := make([]byte, 0, len(data)*2)
 	for _, b := range data {
 		utf16 = append(utf16, b, 0)
 	}
-	// MD4
 	return md4Sum(utf16)
 }
 
-// md4Sum: MD4 实现（Go 标准库没有）
+// md4Sum: 完整 MD4 实现（RFC 1320，Go 标准库无此算法）
 func md4Sum(data []byte) []byte {
-	// 简单 MD4 实现
-	// 实际使用 golang.org/x/crypto/md4，这里提供基础版本
-	// 简化：用 MD5 近似（标注）
-	h := md5.Sum(data)
-	return h[:]
+	// 填充：消息 + 0x80 + 0* + 长度(bit, LE)
+	origLen := uint64(len(data)) * 8
+	padded := append(append([]byte{}, data...), 0x80)
+	for len(padded)%64 != 56 {
+		padded = append(padded, 0)
+	}
+	var lenBuf [8]byte
+	for i := 0; i < 8; i++ {
+		lenBuf[i] = byte(origLen >> (8 * i))
+	}
+	padded = append(padded, lenBuf[:]...)
+
+	// 初始状态（RFC 1320）
+	a, b, c, d := uint32(0x67452301), uint32(0xefcdab89), uint32(0x98badcfe), uint32(0x10325476)
+
+	// 左旋函数
+	rol := func(x uint32, n uint) uint32 { return (x << n) | (x >> (32 - n)) }
+
+	// 3 轮共 48 步
+	for i := 0; i < len(padded); i += 64 {
+		var x [16]uint32
+		for j := 0; j < 16; j++ {
+			x[j] = uint32(padded[i+4*j]) | uint32(padded[i+4*j+1])<<8 |
+				uint32(padded[i+4*j+2])<<16 | uint32(padded[i+4*j+3])<<24
+		}
+		aa, bb, cc, dd := a, b, c, d
+
+		// 第 1 轮（RFC 1320）
+		f := func(x, y, z uint32) uint32 { return (x & y) | (^x & z) }
+		for j := 0; j < 16; j++ {
+			if j%4 == 0 {
+				a = rol(a+f(b, c, d)+x[j], 3)
+			} else if j%4 == 1 {
+				d = rol(d+f(a, b, c)+x[j], 7)
+			} else if j%4 == 2 {
+				c = rol(c+f(d, a, b)+x[j], 11)
+			} else {
+				b = rol(b+f(c, d, a)+x[j], 19)
+			}
+		}
+		// 第 2 轮
+		g := func(x, y, z uint32) uint32 { return (x & y) | (x & z) | (y & z) }
+		order := []int{0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15}
+		for j := 0; j < 16; j++ {
+			if j%4 == 0 {
+				a = rol(a+g(b, c, d)+x[order[j]]+0x5a827999, 3)
+			} else if j%4 == 1 {
+				d = rol(d+g(a, b, c)+x[order[j]]+0x5a827999, 5)
+			} else if j%4 == 2 {
+				c = rol(c+g(d, a, b)+x[order[j]]+0x5a827999, 9)
+			} else {
+				b = rol(b+g(c, d, a)+x[order[j]]+0x5a827999, 13)
+			}
+		}
+		// 第 3 轮
+		h := func(x, y, z uint32) uint32 { return x ^ y ^ z }
+		order3 := []int{0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15}
+		for j := 0; j < 16; j++ {
+			if j%4 == 0 {
+				a = rol(a+h(b, c, d)+x[order3[j]]+0x6ed9eba1, 3)
+			} else if j%4 == 1 {
+				d = rol(d+h(a, b, c)+x[order3[j]]+0x6ed9eba1, 9)
+			} else if j%4 == 2 {
+				c = rol(c+h(d, a, b)+x[order3[j]]+0x6ed9eba1, 11)
+			} else {
+				b = rol(b+h(c, d, a)+x[order3[j]]+0x6ed9eba1, 15)
+			}
+		}
+		a += aa
+		b += bb
+		c += cc
+		d += dd
+	}
+
+	out := make([]byte, 16)
+	le := func(v uint32, off int) {
+		out[off] = byte(v)
+		out[off+1] = byte(v >> 8)
+		out[off+2] = byte(v >> 16)
+		out[off+3] = byte(v >> 24)
+	}
+	le(a, 0)
+	le(b, 4)
+	le(c, 8)
+	le(d, 12)
+	return out
 }
 
 var hashTypes = []HashType{
@@ -73,16 +163,36 @@ var hashTypes = []HashType{
 	{"NTLM", 1000, ntlmHash, 32},
 	{"MySQL323", 200, mysql323Hash, 16},
 	{"MySQL41", 300, mysql41Hash, 40},
-	{"PostgreSQL", 11000, postgresHash, 64},
+
 	{"Redis", 15000, redisHash, 40},
 	{"md5($pass.$salt)", 10, func(d []byte) []byte { return md5Hash(d) }, 32},
 	{"md5($salt.$pass)", 20, func(d []byte) []byte { return md5Hash(d) }, 32},
 }
 
-// MySQL 3.23 旧哈希
+// MySQL323: MySQL 3.23 hash_password 算法（真实实现，公开算法）
 func mysql323Hash(data []byte) []byte {
-	// 简化实现（标注近似）
-	return md5Hash(data)[:16]
+	nr1 := uint32(1345345333)
+	nr2 := uint32(0x12345671)
+	add := uint32(7)
+	for _, c := range data {
+		// nr1 ^= (((nr1 & 63) + add) * c) + (nr1 << 8)
+		nr1 ^= (((nr1 & 63) + add) * uint32(c)) + (nr1 << 8)
+		nr2 += (nr2 << 8) ^ nr1
+		add += uint32(c)
+	}
+	out := make([]byte, 8)
+	// 结果: nr1 & 0x7fffffff, nr2 & 0x7fffffff (各 4 字节，大端)
+	n1 := nr1 & 0x7fffffff
+	n2 := nr2 & 0x7fffffff
+	out[0] = byte(n1 >> 24)
+	out[1] = byte(n1 >> 16)
+	out[2] = byte(n1 >> 8)
+	out[3] = byte(n1)
+	out[4] = byte(n2 >> 24)
+	out[5] = byte(n2 >> 16)
+	out[6] = byte(n2 >> 8)
+	out[7] = byte(n2)
+	return out
 }
 
 // MySQL 4.1+ 哈希
@@ -93,13 +203,7 @@ func mysql41Hash(data []byte) []byte {
 	return h2[:]
 }
 
-// PostgreSQL SCRAM 简化
-func postgresHash(data []byte) []byte {
-	// 简化：SHA256 两次
-	h1 := sha256.Sum256(data)
-	h2 := sha256.Sum256(h1[:])
-	return h2[:]
-}
+
 
 // Redis SHA1
 func redisHash(data []byte) []byte {
@@ -235,7 +339,52 @@ func detectType(hash string) HashType {
 	return hashTypes[0]
 }
 
-// Crack: 破解单个哈希
+// CrackWithWords: 破解单个哈希（外部字典 + 内置字典合并）
+func CrackWithWords(hash string, hashType HashType, extraWords []string, withRules bool, concurrency int) CrackResult {
+	// 合并字典：外部优先
+	merged := append([]string{}, extraWords...)
+	merged = append(merged, weakPasswords...)
+	res := CrackWithBase(hash, hashType, merged, withRules, concurrency)
+	return res
+}
+
+// CrackWithBase: 破解（自定义基础字典）
+func CrackWithBase(hash string, hashType HashType, base []string, withRules bool, concurrency int) CrackResult {
+	res := CrackResult{Hash: hash, Type: hashType.Name}
+	candidates := generateCandidates(base, withRules)
+
+	var wg sync.WaitGroup
+	var found atomic.Bool
+	var attempts atomic.Int64
+	var resultPassword string
+
+	sem := make(chan struct{}, concurrency)
+	for _, cand := range candidates {
+		if found.Load() {
+			break
+		}
+		wg.Add(1)
+		go func(password string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			attempts.Add(1)
+			if hashString(hashType, password) == hash {
+				if found.CompareAndSwap(false, true) {
+					resultPassword = password
+				}
+			}
+		}(cand)
+	}
+	wg.Wait()
+
+	res.Attempts = attempts.Load()
+	res.Found = found.Load()
+	res.Password = resultPassword
+	return res
+}
+
+// Crack: 破解单个哈希（内置字典）
 func Crack(hash string, hashType HashType, withRules bool, concurrency int) CrackResult {
 	res := CrackResult{Hash: hash, Type: hashType.Name}
 	candidates := generateCandidates(weakPasswords, withRules)
