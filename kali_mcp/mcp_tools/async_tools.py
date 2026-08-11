@@ -42,7 +42,9 @@ def register_async_tools(mcp, executor) -> None:
                 "tool_name": name,
             }
         data = dict(params or {})
-        return bridge.start(name, data, timeout)
+        if timeout:
+            data["timeout"] = timeout  # 传给执行器工具级超时
+        return bridge.start(name, data)
 
     @mcp.tool()
     def scan_collect(job_id: str) -> Dict[str, Any]:

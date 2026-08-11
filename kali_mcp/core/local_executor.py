@@ -419,9 +419,11 @@ class LocalCommandExecutor:
 
             if resolve_backend().get("mode") == "ssh":
                 remote = ssh_execute(command, timeout=cmd_timeout)
-                if remote.get("success") or remote.get("output"):
+                # 已成功路由到 ssh 的条件：ssh 层真的执行了（return_code 非 -1）。
+                # rc 非 0 是工具正常结果（如 gobuster 未发现路径 rc=1），不算 ssh 失败。
+                if remote.get("return_code", -1) != -1:
                     return remote
-                # 远程失败（连接/认证/未配置密码）：记录并回退本地
+                # ssh 层失败（连接/认证/超时 return_code=-1）：记录并回退本地
                 logger.warning(f"ssh backend execute failed, fallback to local: {remote.get('error', '')[:200]}")
         except Exception as e:  # noqa: BLE001
             logger.debug(f"backend routing failed (non-fatal), local fallback: {e}")

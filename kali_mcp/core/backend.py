@@ -8,6 +8,7 @@ Kali 后端解析器：动态检测工具执行后端 (local / ssh / docker)。
 
 import os
 import shutil
+import socket
 from pathlib import Path
 
 # 常用安全工具检查清单（本地 PATH 检测用）
@@ -221,8 +222,18 @@ def ssh_execute(command, timeout: int = 60):
         out = stdout.read().decode("utf-8", "replace")
         err = stderr.read().decode("utf-8", "replace")
         rc = stdout.channel.recv_exit_status()
-        return {"success": rc == 0, "output": out, "error": err if rc != 0 else "", "return_code": rc}
+        # stderr 无论 rc 都保留（whatweb 等工具 RC=0 时 ERROR 走 stderr，丢弃会丢结果）
+        return {
+            "success": rc == 0,
+            "output": out,
+            "error": err,
+            "return_code": rc,
+        }
     except Exception as e:  # noqa: BLE001
         _ssh_client = None
         _ssh_host_target = None
-        return {"success": False, "output": "", "error": f"ssh execute failed: {e}", "return_code": -1}
+        err_msg = str(e) or type(e).__name__
+        # paramiko exec_command 超时: socket.timeout 的 str() 为空，明确标 timeout
+        if isinstance(e, (socket.timeout, TimeoutError)) or "timed out" in err_msg.lower():
+            err_msg = f"ssh command timed out after {timeout}s"
+        return {"success": False, "output": "", "error": f"ssh execute failed: {err_msg}", "return_code": -1}
