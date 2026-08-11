@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -52,6 +50,8 @@ func main() {
 	bruteTarget := flag.String("brute", "", "brute-force target (host or http://url)")
 	bruteService := flag.String("service", "http-form", "brute service: http-form|tcp-banner")
 	brutePort := flag.Int("port", 0, "brute port (tcp-banner)")
+	userFile := flag.String("U", "", "brute user list file")
+	passFile := flag.String("P", "", "brute password list file")
 	dirURL := flag.String("dir", "", "directory enumerate target URL")
 	socengName := flag.String("soceng", "", "social-eng name for password dict")
 	orchestrateTarget := flag.String("orchestrate", "", "scan orchestration target")
@@ -197,36 +197,60 @@ func main() {
 
 	// 爆破模式
 	if *bruteTarget != "" {
-		// 默认用户/密码（内置小字典；可扩展）
-		users := []string{
-			"admin", "root", "test", "Administrator", "guest", "user", "sa",
-			"backup", "service", "operator", "audit", "support", "manager",
-			"sysadmin", "webadmin", "postgres", "mysql", "oracle", "tomcat",
-			"jenkins", "gitlab", "grafana", "elastic", "redis", "mongodb",
-			"system", "super", "dba", "dba1", "cisco", "huawei", "h3c",
-			"ruijie", "sangfor", "weaver", "tongda", "seeyon", "ruoyi",
-			"admin1", "admin2", "administrator1", "wangwei", "zhangsan",
-			"lisi", "wangwu", "zhaoliu", "sunqi", "zhoushi", "wuheng",
-			"zhongguo", "yonghu", "guanli", "kaifazhe",
+		// 用户/密码：优先 -U/-P 文件，否则内置完整字典
+		var users []string
+		var passwords []string
+		if *userFile != "" {
+			if f, err := os.ReadFile(*userFile); err == nil {
+				for _, l := range strings.Split(string(f), "\n") {
+					if l = strings.TrimSpace(l); l != "" {
+						users = append(users, l)
+					}
+				}
+			}
 		}
-		passwords := []string{
-			"123456", "12345678", "123456789", "1234567890", "123123", "111111",
-			"888888", "666666", "000000", "5201314", "qwe123", "qweasd",
-			"asd123", "abc123", "a123456", "Aa123456", "Admin123", "Password1",
-			"P@ssw0rd", "Passw0rd", "admin123", "admin@123", "Admin@123",
-			"admin888", "admin666", "admin2024", "admin2025", "Admin2024",
-			"Admin2025", "qwer1234", "1qaz2wsx", "zaq12wsx", "zxcvbn",
-			"asdfgh", "woaini", "woshinibaba", "nihao123", "wang123",
-			"li123456", "root", "toor", "sangfor", "weaver", "td123456",
-			"123qwe", "qazwsx", "admin#123", "Admin#123", "admin@2024",
-			"admin@2025", "password123", "Password123", "qwerty", "qwerty123",
-			"administrator", "Administrator1", "admin!@#", "Test@123",
-			"test123", "Test123", "guest123", "p@ssword", "changeme",
-			"letmein", "welcome", "monkey", "dragon", "master", "shadow",
-			"superman", "michael", "secret", "12345", "1234", "54321",
-			"1q2w3e4r", "q1w2e3r4", "asdf1234", "zxcv1234", "abcd1234",
-			"112233", "123321", "100200", "1314520", "7758521", "woaini1314",
-			"admin000", "Admin000", "p@ssw0rd", "Passw0rd!", "Admin@1234",
+		if *passFile != "" {
+			if f, err := os.ReadFile(*passFile); err == nil {
+				for _, l := range strings.Split(string(f), "\n") {
+					if l = strings.TrimSpace(l); l != "" {
+						passwords = append(passwords, l)
+					}
+				}
+			}
+		}
+		if len(users) == 0 {
+			users = []string{
+				"admin", "root", "test", "Administrator", "guest", "user", "sa",
+				"backup", "service", "operator", "audit", "support", "manager",
+				"sysadmin", "webadmin", "postgres", "mysql", "oracle", "tomcat",
+				"jenkins", "gitlab", "grafana", "elastic", "redis", "mongodb",
+				"system", "super", "dba", "dba1", "cisco", "huawei", "h3c",
+				"ruijie", "sangfor", "weaver", "tongda", "seeyon", "ruoyi",
+				"admin1", "admin2", "administrator1", "wangwei", "zhangsan",
+				"lisi", "wangwu", "zhaoliu", "sunqi", "zhoushi", "wuheng",
+				"zhongguo", "yonghu", "guanli", "kaifazhe",
+			}
+		}
+		if len(passwords) == 0 {
+			passwords = []string{
+				"123456", "12345678", "123456789", "1234567890", "123123", "111111",
+				"888888", "666666", "000000", "5201314", "qwe123", "qweasd",
+				"asd123", "abc123", "a123456", "Aa123456", "Admin123", "Password1",
+				"P@ssw0rd", "Passw0rd", "admin123", "admin@123", "Admin@123",
+				"admin888", "admin666", "admin2024", "admin2025", "Admin2024",
+				"Admin2025", "qwer1234", "1qaz2wsx", "zaq12wsx", "zxcvbn",
+				"asdfgh", "woaini", "woshinibaba", "nihao123", "wang123",
+				"li123456", "root", "toor", "sangfor", "weaver", "td123456",
+				"123qwe", "qazwsx", "admin#123", "Admin#123", "admin@2024",
+				"admin@2025", "password123", "Password123", "qwerty", "qwerty123",
+				"administrator", "Administrator1", "admin!@#", "Test@123",
+				"test123", "Test123", "guest123", "p@ssword", "changeme",
+				"letmein", "welcome", "monkey", "dragon", "master", "shadow",
+				"superman", "michael", "secret", "12345", "1234", "54321",
+				"1q2w3e4r", "q1w2e3r4", "asdf1234", "zxcv1234", "abcd1234",
+				"112233", "123321", "100200", "1314520", "7758521", "woaini1314",
+				"admin000", "Admin000", "p@ssw0rd", "Passw0rd!", "Admin@1234",
+			}
 		}
 		cfg := brute.DefaultConfig(*bruteTarget, *bruteService, users, passwords)
 		if *bruteService == "tcp-banner" && *brutePort > 0 {
@@ -377,7 +401,7 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
-	cfg.VerifyGate = __omp_shell("*noVerify")
+	cfg.VerifyGate = !*noVerify
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {
 		for _, pair := range strings.Split(*headerFlag, ";") {

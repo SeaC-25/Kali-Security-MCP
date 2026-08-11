@@ -3,6 +3,7 @@
 package stealth
 
 import (
+	"crypto/tls"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -68,6 +69,11 @@ func NewClient(proxy string, throttle *Throttle, maxConns int) *Client {
 		MaxIdleConnsPerHost: maxConns,
 		IdleConnTimeout:     30 * time.Second,
 		DisableKeepAlives:   false,
+		// TLS: 允许自签证书（内网靶机常见），同时限制为 TLS1.2+
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // 自签内网目标可连；配合 stealth 场景
+			MinVersion:         tls.VersionTLS12,
+		},
 	}
 	if proxy != "" {
 		if pu, err := url.Parse(proxy); err == nil {
@@ -75,7 +81,17 @@ func NewClient(proxy string, throttle *Throttle, maxConns int) *Client {
 		}
 	}
 	return &Client{
-		http:     &http.Client{Transport: tr, Timeout: 10 * time.Second},
+		http: &http.Client{
+			Transport: tr,
+			Timeout:   10 * time.Second,
+			// CheckRedirect: 记录重定向但限制最大 5 跳（防重定向循环）
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 5 {
+					return http.ErrUseLastResponse
+				}
+				return nil
+			},
+		},
 		throttle: throttle,
 	}
 }

@@ -237,8 +237,16 @@ func parseRaw(raw string) (method, path string, headers map[string]string, body 
 // LoadDir loads all .yaml templates from a directory (recursive).
 func LoadDir(dir string) ([]*Template, error) {
 	var out []*Template
-	_ = filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+	var walkErr error
+	err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			// 记录首个错误（权限/不存在），但继续遍历其他
+			if walkErr == nil {
+				walkErr = err
+			}
+			return nil
+		}
+		if info.IsDir() {
 			return nil
 		}
 		if !strings.HasSuffix(p, ".yaml") && !strings.HasSuffix(p, ".yml") {
@@ -253,5 +261,10 @@ func LoadDir(dir string) ([]*Template, error) {
 		}
 		return nil
 	})
+	if walkErr != nil {
+		// 目录不存在等错误上报，但已加载的模板仍返回
+		return out, walkErr
+	}
+	_ = err
 	return out, nil
 }

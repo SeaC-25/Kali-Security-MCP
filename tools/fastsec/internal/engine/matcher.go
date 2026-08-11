@@ -11,7 +11,8 @@ import (
 // Matches evaluates all matchers of a request against a response.
 func Matches(req *template.Request, statusCode int, body []byte, header string) bool {
 	if len(req.Matchers) == 0 {
-		return statusCode >= 200 && statusCode < 500
+		// 无 matcher: 仅 2xx 算匹配（避免把 404/5xx 当信息泄露上报）
+		return statusCode >= 200 && statusCode < 300
 	}
 	all := req.Matchers
 	if len(all) > 0 && all[0].Condition == "or" {

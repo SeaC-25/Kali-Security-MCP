@@ -119,7 +119,7 @@ func (r *Runner) execStep(client *http.Client, step Step) Result {
 	if bodyStr != "" {
 		bodyReader = strings.NewReader(bodyStr)
 	}
-	req, err := http.NewRequest(method, r.cfg.BaseURL+path, bodyReader)
+	req, err := http.NewRequest(method, joinURL(r.cfg.BaseURL, path), bodyReader)
 	if err != nil {
 		return Result{StepName: step.Name, URL: path}
 	}
@@ -180,7 +180,7 @@ func (r *Runner) diffStep(client *http.Client, step Step, base Result) []string 
 	mutations := []string{"2", "0", "-1", "999999", "1'", "admin"}
 	for _, param := range step.DiffParams {
 		for _, m := range mutations {
-			u := mutateParam(r.cfg.BaseURL+step.Path, param, m)
+			u := mutateParam(joinURL(r.cfg.BaseURL, step.Path), param, m)
 			req, err := http.NewRequest("GET", u, nil)
 			if err != nil {
 				continue
@@ -228,6 +228,17 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// joinURL joins baseURL and path, normalizing duplicate slashes after scheme://host.
+func joinURL(baseURL, path string) string {
+	u := baseURL + path
+	if i := strings.Index(u, "://"); i >= 0 {
+		rest := u[i+3:]
+		rest = strings.ReplaceAll(rest, "//", "/")
+		u = u[:i+3] + rest
+	}
+	return u
 }
 
 // Format renders sequence results.

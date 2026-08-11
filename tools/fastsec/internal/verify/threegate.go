@@ -12,12 +12,8 @@ import (
 // ThreeGate confirms a match by comparing the attack response against a
 // baseline (the same request to a reference path).
 func ThreeGate(client *http.Client, attackReq *http.Request, attackResp *http.Response, attackBody []byte, timeout time.Duration) bool {
-	if attackReq.Method != http.MethodGet && attackReq.Method != http.MethodHead {
-		if attackResp.StatusCode >= 200 && attackResp.StatusCode < 400 && len(attackBody) > 0 {
-			return true
-		}
-		return attackResp.StatusCode >= 200 && attackResp.StatusCode < 500
-	}
+	// 非 GET 请求也做确认：重放同请求到随机路径对比响应差异
+	// （POST 到不存在路径 vs 攻击路径，状态/长度不同 = 真漏洞）
 
 	baselineURL := attackReq.URL.String()
 	if baselineURL == "" {
@@ -29,9 +25,14 @@ func ThreeGate(client *http.Client, attackReq *http.Request, attackResp *http.Re
 	}
 	refURL := baselineURL + sep + "__fastsec_baseline_probe__"
 
-	breq, err := http.NewRequest(http.MethodGet, refURL, nil)
+	// 用攻击请求的方法重放（POST 也一样确认）
+	breq, err := http.NewRequest(attackReq.Method, refURL, attackReq.Body)
 	if err != nil {
 		return false
+	}
+	// 复制攻击请求头（含 Content-Type 等）
+	for k, v := range attackReq.Header {
+		breq.Header[k] = v
 	}
 	breq.Header.Set("User-Agent", attackReq.Header.Get("User-Agent"))
 	bresp, err := client.Do(breq)
