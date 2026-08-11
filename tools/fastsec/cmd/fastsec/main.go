@@ -17,9 +17,14 @@ import (
 
 	"fastsec/internal/stealth"
 
+	"fastsec/internal/brute"
 	"fastsec/internal/diff"
+	"fastsec/internal/dir"
 	"fastsec/internal/engine"
 	"fastsec/internal/injector"
+	"fastsec/internal/orchestrate"
+	"fastsec/internal/osint"
+	"fastsec/internal/soceng"
 	"fastsec/internal/priority"
 	"fastsec/internal/session"
 	"fastsec/internal/template"
@@ -69,6 +74,13 @@ func main() {
 	tplDir := flag.String("d", "", "template directory")
 	diffParams := flag.String("diff", "", "behavioral diff params (comma list)")
 	injectParams := flag.String("inject", "", "SQL injection scan params (comma list, e.g. id,user)")
+	bruteTarget := flag.String("brute", "", "brute-force target (host or http://url)")
+	bruteService := flag.String("service", "http-form", "brute service: http-form|tcp-banner")
+	brutePort := flag.Int("port", 0, "brute port (tcp-banner)")
+	dirURL := flag.String("dir", "", "directory enumerate target URL")
+	socengName := flag.String("soceng", "", "social-eng name for password dict")
+	orchestrateTarget := flag.String("orchestrate", "", "scan orchestration target")
+	osintDomain := flag.String("osint", "", "OSINT aggregation domain")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -94,6 +106,10 @@ func main() {
 		jsonWriter = f
 	}
 
+	// 模式 flag 优先（brute/dir/soceng/orchestrate/osint 不需要 -u）
+	hasMode := *bruteTarget != "" || *dirURL != "" || *socengName != "" ||
+		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != ""
+
 	var targets []string
 	if *url != "" {
 		targets = []string{*url}
@@ -112,8 +128,8 @@ func main() {
 		}
 		f.Close()
 	}
-	if len(targets) == 0 {
-		fmt.Fprintln(os.Stderr, "错误: 需要 -u 目标 URL 或 -l 目标列表文件")
+	if len(targets) == 0 && !hasMode {
+		fmt.Fprintln(os.Stderr, "错误: 需要 -u 目标 URL 或 -l 目标列表文件 或模式 flag")
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -201,6 +217,53 @@ func main() {
 			res := injector.Scan(*url, params, "", true, cli)
 			fmt.Print(injector.Format(res))
 		}
+		return
+	}
+
+	// 爆破模式
+	if *bruteTarget != "" {
+		// 默认用户/密码（内置小字典；可扩展）
+		users := []string{"admin", "root", "test", "Administrator"}
+		passwords := []string{"123456", "admin", "password", "admin123", "Admin@123", "P@ssw0rd"}
+		cfg := brute.DefaultConfig(*bruteTarget, *bruteService, users, passwords)
+		if *bruteService == "tcp-banner" && *brutePort > 0 {
+			cfg.Target = fmt.Sprintf("%s:%d", *bruteTarget, *brutePort)
+		}
+		res := brute.Run(cfg)
+		fmt.Print(brute.Format(res))
+		return
+	}
+
+	// 目录枚举模式
+	if *dirURL != "" {
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+		// 无字典时用常见路径
+		var wordlist []string
+		res := dir.Scan(*dirURL, wordlist, cli, 300)
+		fmt.Print(dir.Format(res))
+		return
+	}
+
+	// 社工字典模式
+	if *socengName != "" {
+		pwds := soceng.Generate(*socengName, "", "", "", "")
+		fmt.Print(soceng.Format(pwds))
+		return
+	}
+
+	// 扫描编排模式
+	if *orchestrateTarget != "" {
+		var ports []int
+		res := orchestrate.Orchestrate(*orchestrateTarget, ports)
+		fmt.Print(orchestrate.Format(res))
+		return
+	}
+
+	// OSINT 聚合模式
+	if *osintDomain != "" {
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+		res := osint.Aggregate(*osintDomain, cli)
+		fmt.Print(osint.Format(res))
 		return
 	}
 
