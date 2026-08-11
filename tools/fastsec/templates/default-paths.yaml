@@ -1,0 +1,20 @@
+id: default-paths
+info:
+  name: 常见默认路径探测
+  severity: info
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/robots.txt"
+      - "{{BaseURL}}/sitemap.xml"
+      - "{{BaseURL}}/crossdomain.xml"
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "Disallow"
+          - "urlset"
+        part: body
+        condition: or

@@ -62,6 +62,7 @@ K1_KEEP_TOOLS = frozenset({
     "rustscan_scan", "naabu_scan", "kerbrute_attack", "nxc_attack",
     "evil_winrm_attack", "GetUserSPNs_scan", "secretsdump_scan",
     "psexec_attack", "smbexec_attack", "GetNPUsers_scan",
+    "fastsec_scan",
     # K3 orchestrate workflow
     "wf_init", "wf_transition", "wf_record_result", "wf_record_issue",
     "wf_status", "wf_pack_turn",

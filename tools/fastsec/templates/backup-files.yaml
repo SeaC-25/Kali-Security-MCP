@@ -1,0 +1,31 @@
+id: backup-files
+info:
+  name: 备份文件泄露
+  severity: high
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/backup.tar.gz"
+      - "{{BaseURL}}/www.zip"
+      - "{{BaseURL}}/site.zip"
+      - "{{BaseURL}}/web.zip"
+      - "{{BaseURL}}/bak.zip"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/database.sql"
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/data.sql"
+      - "{{BaseURL}}/backup.sql"
+      - "{{BaseURL}}/1.zip"
+      - "{{BaseURL}}/test.zip"
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "PK"
+          - "BZh"
+          - "SQL format"
+        part: body
+        condition: or

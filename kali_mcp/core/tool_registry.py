@@ -245,6 +245,23 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         timeout=120,
         additional_args_sanitize="arg",
     ),
+
+    "fastsec": ToolSpec(
+        binary="fastsec",
+        params=[
+            ToolParam(name="url", flag="-u", sanitize="arg"),
+            ToolParam(name="templates", flag="-d", sanitize="arg", default=""),
+            ToolParam(name="template", flag="-t", sanitize="arg", default=""),
+            ToolParam(name="concurrency", flag="-c", sanitize="arg", default="20"),
+            ToolParam(name="delay_min", flag="-delay-min", sanitize="arg", default="100"),
+            ToolParam(name="delay_max", flag="-delay-max", sanitize="arg", default="300"),
+            ToolParam(name="proxy", flag="-proxy", sanitize="arg", default=""),
+            ToolParam(name="no_verify", flag="-no-verify", sanitize="arg", default="", join=""),
+        ],
+        timeout=180,
+        output_parser="",
+        additional_args_sanitize="arg",
+    ),
     "GetNPUsers": ToolSpec(
         binary="GetNPUsers.py",
         params=[

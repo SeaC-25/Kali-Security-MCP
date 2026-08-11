@@ -1,0 +1,32 @@
+id: sensitive-files
+info:
+  name: 敏感文件泄露
+  severity: high
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/phpinfo.php"
+      - "{{BaseURL}}/info.php"
+      - "{{BaseURL}}/test.php"
+      - "{{BaseURL}}/phpmyadmin/"
+      - "{{BaseURL}}/actuator"
+      - "{{BaseURL}}/actuator/env"
+      - "{{BaseURL}}/actuator/health"
+      - "{{BaseURL}}/swagger-ui.html"
+      - "{{BaseURL}}/api-docs"
+      - "{{BaseURL}}/v2/api-docs"
+      - "{{BaseURL}}/server-status"
+      - "{{BaseURL}}/.DS_Store"
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "PHP Version"
+          - "H2 database available"
+          - "swagger"
+          - "env"
+          - "activeProfiles"
+        part: body
+        condition: or

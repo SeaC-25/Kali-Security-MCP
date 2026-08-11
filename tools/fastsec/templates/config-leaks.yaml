@@ -1,0 +1,31 @@
+id: config-leaks
+info:
+  name: 配置文件泄露
+  severity: high
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.git/config"
+      - "{{BaseURL}}/.git/HEAD"
+      - "{{BaseURL}}/config.php.bak"
+      - "{{BaseURL}}/web.config"
+      - "{{BaseURL}}/.svn/entries"
+      - "{{BaseURL}}/config.yml"
+      - "{{BaseURL}}/application.yml"
+      - "{{BaseURL}}/settings.py"
+      - "{{BaseURL}}/wp-config.php.bak"
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "DB_PASSWORD"
+          - "SECRET_KEY"
+          - "ref: refs/heads"
+          - "password"
+          - "username"
+          - "app_secret"
+        part: body
+        condition: or

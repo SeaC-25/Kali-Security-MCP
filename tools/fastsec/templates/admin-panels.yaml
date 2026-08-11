@@ -1,0 +1,32 @@
+id: admin-panels
+info:
+  name: 管理入口探测
+  severity: medium
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/admin/"
+      - "{{BaseURL}}/administrator"
+      - "{{BaseURL}}/manage"
+      - "{{BaseURL}}/manager"
+      - "{{BaseURL}}/console"
+      - "{{BaseURL}}/wp-admin"
+      - "{{BaseURL}}/login"
+      - "{{BaseURL}}/admin/login"
+      - "{{BaseURL}}/user/login"
+      - "{{BaseURL}}/backend"
+      - "{{BaseURL}}/admin.php"
+      - "{{BaseURL}}/login.php"
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "login"
+          - "password"
+          - "admin"
+          - "sign in"
+        part: body
+        condition: or
