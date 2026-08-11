@@ -157,22 +157,64 @@ def confirm_injection(target: str, payloads: List[str], headers: str = "") -> bo
 
 # ---- S5: 结果入库 ----
 def store_finding(task_id: str, url: str, dbms: str, payload: str, severity: str = "critical") -> None:
+    """入库。Kali 侧无法 import Kali MCP → 写结果文件（/tmp/sqlmappp_findings.json），
+    由 MCP 侧 ingest_sqlmappp_findings 读入 findings_store。"""
+    import json as _json
+    out = {
+        "task_id": task_id,
+        "findings": [{
+            "title": f"SQL 注入确认 {url}",
+            "target": url,
+            "severity": severity,
+            "reproduce_cmd": f"sqlmap -u '{url}' --batch --dbms={dbms}",
+            "expected_signal": "UNION 返回多行数据",
+            "source": "sqlmappp",
+            "technique_ids": ["T1190"],
+            "meta": {"dbms": dbms, "payload": payload},
+        }]
+    }
     try:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        from kali_mcp.core.verifier import register_candidate
-        register_candidate(
-            task_id,
-            title=f"SQL 注入确认 {url}",
-            target=url,
-            severity=severity,
-            reproduce_cmd=f"sqlmap -u '{url}' --batch --dbms={dbms}",
-            expected_signal="UNION 返回多行数据",
-            source="sqlmappp",
-            technique_ids=["T1190"],
-            meta={"dbms": dbms, "payload": payload},
-        )
+        f = Path("/tmp/sqlmappp_findings.json")
+        existing = []
+        if f.exists():
+            try:
+                existing = _json.loads(f.read_text()).get("findings", [])
+            except Exception:
+                pass
+        existing.append(out["findings"][0])
+        f.write_text(_json.dumps({"findings": existing}, ensure_ascii=False, indent=2))
     except Exception:
         pass
+
+
+def ingest_sqlmappp_findings() -> int:
+    """MCP 侧调用：读 /tmp/sqlmappp_findings.json → findings_store。"""
+    import json as _json
+    f = Path("/tmp/sqlmappp_findings.json")
+    if not f.exists():
+        return 0
+    try:
+        data = _json.loads(f.read_text())
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+        from kali_mcp.core.verifier import register_candidate
+        n = 0
+        for item in data.get("findings", []):
+            register_candidate(
+                item.get("task_id", "sqlmappp"),
+                title=item.get("title", "SQL 注入"),
+                target=item.get("target", ""),
+                severity=item.get("severity", "critical"),
+                reproduce_cmd=item.get("reproduce_cmd", ""),
+                expected_signal=item.get("expected_signal", ""),
+                source=item.get("source", "sqlmappp"),
+                technique_ids=item.get("technique_ids", ["T1190"]),
+                meta=item.get("meta", {}),
+            )
+            n += 1
+        f.unlink(missing_ok=True)
+        return n
+    except Exception:
+        return 0
 
 
 # ---- S2: diff 预筛注入点 ----
