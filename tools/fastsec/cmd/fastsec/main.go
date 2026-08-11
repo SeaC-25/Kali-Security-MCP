@@ -16,10 +16,15 @@ import (
 	"fastsec/internal/stealth"
 
 	"fastsec/internal/brute"
+	"fastsec/internal/audit"
+	"fastsec/internal/cms"
+	"fastsec/internal/crack"
 	"fastsec/internal/diff"
 	"fastsec/internal/dir"
 	"fastsec/internal/engine"
+	"fastsec/internal/fingerprint"
 	"fastsec/internal/injector"
+	"fastsec/internal/kerberos"
 	"fastsec/internal/orchestrate"
 	"fastsec/internal/osint"
 	"fastsec/internal/soceng"
@@ -57,6 +62,13 @@ func main() {
 	socengName := flag.String("soceng", "", "social-eng name for password dict")
 	orchestrateTarget := flag.String("orchestrate", "", "scan orchestration target")
 	osintDomain := flag.String("osint", "", "OSINT aggregation domain")
+	fingerprintTarget := flag.String("fingerprint", "", "service fingerprint target host")
+	fingerprintPorts := flag.String("fp-ports", "80,443,22,3306,6379,8080,8443,9200,27017,1433,5432,7001,8090,4180,4174", "fingerprint ports")
+	crackHash := flag.String("crack", "", "crack hash (e.g. md5:5f4dcc3b5aa765d61d8327deb882cf99)")
+	kerberosKDC := flag.String("kerberos", "", "Kerberos KDC IP (AS-REP/Kerberoast)")
+	kerberosDomain := flag.String("domain", "", "Kerberos domain")
+	cmsURL := flag.String("cms", "", "CMS detection target URL")
+	auditPath := flag.String("audit", "", "static audit path (file or dir)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -84,7 +96,8 @@ func main() {
 
 	// 模式 flag 优先（brute/dir/soceng/orchestrate/osint 不需要 -u）
 	hasMode := *bruteTarget != "" || *dirURL != "" || *socengName != "" ||
-		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != ""
+		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != "" ||
+		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != ""
 
 	var targets []string
 	if *url != "" {
@@ -303,6 +316,69 @@ func main() {
 		return
 	}
 
+	// 服务指纹模式（替代 nmap -sV）
+	if *fingerprintTarget != "" {
+		var ports []int
+		for _, p := range strings.Split(*fingerprintPorts, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				var n int
+				fmt.Sscanf(p, "%d", &n)
+				if n > 0 {
+					ports = append(ports, n)
+				}
+			}
+		}
+		res := fingerprint.Fingerprint(*fingerprintTarget, ports, 3*time.Second, *concurrency)
+		fmt.Print(fingerprint.Format(res))
+		return
+	}
+
+	// 哈希破解模式（替代 hashcat CPU）
+	if *crackHash != "" {
+		// 格式: type:hash 或 hash（自动检测）
+		hash := *crackHash
+		hashType := crack.ListTypes() // 默认
+		_ = hashType
+		parts := strings.SplitN(hash, ":", 2)
+		var ht crack.HashType
+		if len(parts) == 2 {
+			// 按名字找类型
+			ht = crack.FindType(parts[0])
+			hash = parts[1]
+		} else {
+			ht = crack.DetectType(hash)
+		}
+		res := crack.Crack(hash, ht, true, *concurrency)
+		fmt.Print(crack.Format([]crack.CrackResult{res}))
+		return
+	}
+
+	// Kerberos 模式（替代 impacket GetNPUsers/GetUserSPNs）
+	if *kerberosKDC != "" {
+		cfg := kerberos.DefaultConfig(*kerberosKDC, *kerberosDomain, []string{
+			"administrator", "guest", "krbtgt", "sqlsvc", "svc_backup",
+			"backup", "test", "admin", "user1", "user2",
+		})
+		res := kerberos.Scan(cfg)
+		fmt.Print(kerberos.Format(res))
+		return
+	}
+
+	// CMS 检测模式（替代 wpscan/joomscan 指纹）
+	if *cmsURL != "" {
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+		results := cms.Detect(*cmsURL, cli)
+		fmt.Print(cms.Format(results))
+		return
+	}
+
+	// 静态审计模式（替代 semgrep/bandit）
+	if *auditPath != "" {
+		findings := audit.Audit(*auditPath, 0)
+		fmt.Print(audit.Format(findings, 20))
+		return
+	}
+
 	// 行为差异 + 参数分级
 	if *diffParams != "" {
 		cfg := diff.DefaultConfig()
@@ -410,7 +486,7 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
-	cfg.VerifyGate = __omp_shell("*noVerify")
+	cfg.VerifyGate = !*noVerify
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {
 		for _, pair := range strings.Split(*headerFlag, ";") {
