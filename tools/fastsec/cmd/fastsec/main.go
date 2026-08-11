@@ -1,13 +1,4 @@
-// fastsec — AI 原生扫描引擎：nuclei 模板兼容 + 3-gate 确认 + 反检测内建。
-//
-// 用法:
-//   fastsec -u http://target -t /path/to/template.yaml
-//   fastsec -u http://target -d /path/to/templates/
-//   fastsec -l targets.txt -d templates/          # 多目标
-//   fastsec -u http://target -t tpl.yaml -c 50 -delay-min 200 -delay-max 600
-//   fastsec -u http://target -t tpl.yaml -proxy http://127.0.0.1:8080
-//   fastsec -u http://target -t tpl.yaml -no-verify
-//   fastsec -u http://target -d templates/ -json out.json
+// fastsec — AI 原生扫描引擎：nuclei 模板兼容 + 3-gate 确认 + 行为差异检测 + 反检测。
 package main
 
 import (
@@ -19,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"fastsec/internal/diff"
 	"fastsec/internal/engine"
 	"fastsec/internal/template"
 )
@@ -28,6 +20,7 @@ func main() {
 	listFile := flag.String("l", "", "target list file (one URL per line)")
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
+	diffParams := flag.String("diff", "", "behavioral diff params (comma list, e.g. id,user,uid,page)")
 	concurrency := flag.Int("c", 20, "concurrency")
 	minDelay := flag.Int("delay-min", 300, "min delay ms between requests")
 	maxDelay := flag.Int("delay-max", 800, "max delay ms between requests")
@@ -37,7 +30,6 @@ func main() {
 	cookies := flag.String("cookie", "", "cookie header value")
 	timeout := flag.Int("timeout", 10, "per-request timeout seconds")
 	verbose := flag.Bool("v", false, "verbose")
-	_ = verbose
 	jsonOut := flag.String("json", "", "write results as JSON to file")
 	flag.Parse()
 
@@ -65,6 +57,23 @@ func main() {
 		os.Exit(2)
 	}
 
+	// 行为差异模式（不需要模板，nuclei 没有的能力）
+	if *diffParams != "" {
+		cfg := diff.DefaultConfig()
+		cfg.Concurrency = *concurrency
+		cfg.DelayMinMs = *minDelay
+		cfg.DelayMaxMs = *maxDelay
+		cfg.Proxy = *proxy
+		params := strings.Split(*diffParams, ",")
+		for _, t := range targets {
+			fmt.Printf("=== 差异检测 %s ===\n", t)
+			fs := diff.Scan(t, params, cfg)
+			fmt.Print(diff.Format(fs))
+		}
+		return
+	}
+
+	// 模板扫描模式
 	var templates []*template.Template
 	switch {
 	case *tplFile != "":
@@ -82,7 +91,7 @@ func main() {
 			os.Exit(1)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "错误: 需要 -t 模板文件或 -d 模板目录")
+		fmt.Fprintln(os.Stderr, "错误: 需要 -t 模板文件、-d 模板目录、或 -diff 参数列表")
 		os.Exit(2)
 	}
 	if len(templates) == 0 {
@@ -117,18 +126,17 @@ func main() {
 	var all []map[string]any
 	for _, tgt := range targets {
 		results := eng.Run(tgt, templates)
-		if *verbose || *jsonOut == "" {
-			fmt.Printf("\n=== %s ===\n", tgt)
-			fmt.Print(engine.FormatResults(results))
-		}
+		fmt.Printf("\n=== %s ===\n", tgt)
+		fmt.Print(engine.FormatResults(results))
 		for _, r := range results {
 			all = append(all, map[string]any{
-				"template":   r.TemplateID,
-				"severity":   r.Severity,
-				"url":        r.Matched,
-				"verified":   r.Verified,
-				"extracted":  r.Extracted,
-				"status":     r.StatusCode,
+				"template":  r.TemplateID,
+				"severity":  r.Severity,
+				"url":       r.Matched,
+				"verified":  r.Verified,
+				"extracted": r.Extracted,
+				"status":    r.StatusCode,
+				"payload":   r.Payload,
 			})
 		}
 	}
