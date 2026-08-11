@@ -18,7 +18,8 @@ type yamlTemplate struct {
 		Tags     yamlStrList `yaml:"tags"`
 		Author   string      `yaml:"author"`
 	} `yaml:"info"`
-	HTTP []yamlHTTP `yaml:"http"`
+	HTTP    []yamlHTTP `yaml:"http"`
+	Reqests []yamlHTTP `yaml:"requests"` // 兼容自研模板的 requests 顶层
 }
 
 // yamlStrList accepts both "a,b,c" and ["a","b"].
@@ -112,7 +113,9 @@ func Parse(text, path string) (*Template, error) {
 		t.ID = strings.TrimSuffix(filepath.Base(path), ".yaml")
 	}
 
-	for _, h := range yt.HTTP {
+	// 兼容 requests 顶层（自研模板）：合并 http + requests
+	allHTTP := append(yt.HTTP, yt.Reqests...)
+	for _, h := range allHTTP {
 		req := Request{
 			Method:           h.Method,
 			Headers:          h.Headers,

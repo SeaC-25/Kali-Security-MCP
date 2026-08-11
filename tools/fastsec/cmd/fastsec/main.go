@@ -53,6 +53,7 @@ func main() {
 	userFile := flag.String("U", "", "brute user list file")
 	passFile := flag.String("P", "", "brute password list file")
 	dirURL := flag.String("dir", "", "directory enumerate target URL")
+	dirWordlist := flag.String("w", "", "directory wordlist file")
 	socengName := flag.String("soceng", "", "social-eng name for password dict")
 	orchestrateTarget := flag.String("orchestrate", "", "scan orchestration target")
 	osintDomain := flag.String("osint", "", "OSINT aggregation domain")
@@ -264,8 +265,16 @@ func main() {
 	// 目录枚举模式
 	if *dirURL != "" {
 		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
-		// 无字典时用常见路径
 		var wordlist []string
+		if *dirWordlist != "" {
+			if f, err := os.ReadFile(*dirWordlist); err == nil {
+				for _, l := range strings.Split(string(f), "\n") {
+					if l = strings.TrimSpace(l); l != "" {
+						wordlist = append(wordlist, l)
+					}
+				}
+			}
+		}
 		res := dir.Scan(*dirURL, wordlist, cli, 300)
 		fmt.Print(dir.Format(res))
 		return
@@ -401,7 +410,7 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
-	cfg.VerifyGate = !*noVerify
+	cfg.VerifyGate = __omp_shell("*noVerify")
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {
 		for _, pair := range strings.Split(*headerFlag, ";") {
