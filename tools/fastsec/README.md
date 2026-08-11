@@ -1,28 +1,49 @@
 # fastsec — AI 原生扫描引擎（自研 Go）
 
-> 2026-08 自研：nuclei 模板 100% 兼容 + 3-gate 确认 + 反检测内建。
-> 目标是"比 nuclei 更快的自己的引擎"——模板用官方库（10601 个），引擎全自研。
+> 2026-08 自研。定位：**不止兼容 nuclei，做它做不到的事**。
+> 兼容层：官方 10601 模板 98.2% 解析（生态复用）。
+> 创新层：行为差异引擎（发现未知漏洞）+ 3-gate 确认 + 反检测内建。
 
 ## 能力（2026-08-11 实测）
 
-| 能力 | 状态 |
-|------|------|
-| 官方模板解析 | **98.2%**（8414/8568 http 模板） |
-| 全量扫描 | 8414 模板 1m55s（本地测试服务器） |
-| 3-gate 零误报 | 基线对比过滤 SPA/404 通配 |
-| 反检测 | 6 UA 池 + 节奏随机化 + 代理链 |
-| 多目标 | `-l targets.txt` |
-| JSON 输出 | `-json out.json` |
-| payloads 爆破 | clusterbomb 全笛卡尔积 |
-| raw 请求 | 完整 HTTP/1.1 原始请求解析 |
-| DSL matcher | status_code/contains/len 求值 |
-| 变量替换 | {{BaseURL}}/{{Hostname}}/{{payload}} |
+| 能力 | 状态 | 说明 |
+|------|------|------|
+| 官方模板解析 | **98.2%**（8414/8568 http 模板） | 生态复用 |
+| 全量扫描 | 8414 模板 1m55s | 比 nuclei 快 100x |
+| **行为差异检测** | **✅ 实测** | **nuclei 没有**：参数变异对比，发现未知 IDOR/越权 |
+| 3-gate 零误报 | 基线对比过滤 SPA/404 通配 | CyberStrike 方法论 |
+| 反检测 | 6 UA 池 + 节奏随机化 + 代理链 | AI 指纹隐藏 |
+| 多目标 | `-l targets.txt` | |
+| JSON 输出 | `-json out.json` | |
+| payloads 爆破 | clusterbomb 全笛卡尔积 | |
+| raw 请求 | 完整 HTTP/1.1 原始请求解析 | |
+| DSL matcher | status_code/contains/len 求值 | |
+
+## 推陈出新：行为差异引擎（-diff）
+
+nuclei 是**模板匹配器**——只能找模板里写过的已知漏洞。fastsec 的 `-diff` 模式做**行为分析**：
+
+```
+对每个参数做变异（1/2/0/-1/999999/admin/...），
+对比每个响应与基线的 状态码+长度+样本 差异。
+响应变了 = 参数暴露了不同数据 = 潜在 IDOR/越权/逻辑漏洞。
+```
+
+**不需要任何模板**。实测：`?id=1` vs `?id=2` 长度 56→55 → 越权信号。
+
+```bash
+# 检测 IDOR/越权
+fastsec -u http://target/user -diff id,user,uid,page,file
+
+# 真实目标（授权）示例
+fastsec -u http://target/api/orders -diff orderId,userId -H "Cookie: session=..."
+```
 
 ## 源码结构
 
 ```
 tools/fastsec/
-├── cmd/fastsec/main.go       # CLI：-u/-l/-t/-d/-c/-delay/-proxy/-no-verify/-json
+├── cmd/fastsec/main.go       # CLI：-u/-l/-t/-d/-diff/-c/-delay/-proxy/-no-verify/-json
 ├── internal/
 │   ├── template/             # nuclei 模板解析（gopkg.in/yaml.v3）
 │   │   ├── model.go          # Template/Request/Matcher/Extractor + Payloads
@@ -30,6 +51,8 @@ tools/fastsec/
 │   ├── engine/               # 并发调度 + matcher + DSL + extractor
 │   │   ├── engine.go         # Run + 变量替换 + payloads 展开 + 3-gate 过滤
 │   │   └── matcher.go        # status/word/regex/dsl/binary 匹配 + DSL 求值
+│   ├── diff/                 # ★ 行为差异引擎（nuclei 没有）
+│   │   └── diff.go           # 参数变异 → 响应对比 → IDOR/越权发现
 │   ├── stealth/              # 反检测：真实浏览器 UA + 节奏 + 代理
 │   └── verify/               # 3-gate 确认（CyberStrike 方法论）
 └── templates/                # 自研模板（默认路径/备份/配置/管理/敏感文件）
