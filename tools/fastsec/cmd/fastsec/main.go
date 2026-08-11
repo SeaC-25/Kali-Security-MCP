@@ -1,4 +1,5 @@
 // fastsec — AI 原生扫描引擎：模板兼容 + 3-gate + 行为差异 + 状态化序列 + 参数分级。
+// -json 模式输出纯 JSON（stdout 无人类文本），供 AI 决策层消费。
 package main
 
 import (
@@ -24,20 +25,31 @@ func main() {
 	listFile := flag.String("l", "", "target list file (one URL per line)")
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
-	diffParams := flag.String("diff", "", "behavioral diff params (comma list, e.g. id,user,uid,page)")
+	diffParams := flag.String("diff", "", "behavioral diff params (comma list)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
 	minDelay := flag.Int("delay-min", 300, "min delay ms between requests")
 	maxDelay := flag.Int("delay-max", 800, "max delay ms between requests")
-	proxy := flag.String("proxy", "", "proxy URL (e.g. http://127.0.0.1:8080)")
+	proxy := flag.String("proxy", "", "proxy URL")
 	noVerify := flag.Bool("no-verify", false, "disable 3-gate confirmation")
 	headerFlag := flag.String("H", "", "extra headers (k:v;k:v)")
 	cookies := flag.String("cookie", "", "cookie header value")
 	timeout := flag.Int("timeout", 10, "per-request timeout seconds")
 	verbose := flag.Bool("v", false, "verbose")
-	jsonOut := flag.String("json", "", "write results as JSON to file")
+	jsonOut := flag.String("json", "", "JSON output (file path or /dev/stdout for pure JSON)")
 	flag.Parse()
+
+	jsonMode := *jsonOut != ""
+	var jsonWriter *os.File
+	if jsonMode && *jsonOut != "/dev/stdout" {
+		f, err := os.Create(*jsonOut)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "创建 JSON 输出失败: %v\n", err)
+			os.Exit(1)
+		}
+		jsonWriter = f
+	}
 
 	var targets []string
 	if *url != "" {
@@ -63,7 +75,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	// 状态化攻击序列模式（登录→操作→对比，nuclei 无状态做不到）
+	// 状态化序列模式
 	if *seqFile != "" {
 		data, err := os.ReadFile(*seqFile)
 		if err != nil {
@@ -87,17 +99,42 @@ func main() {
 			DelayMaxMs:  *maxDelay,
 			Proxy:       *proxy,
 		}
+		var allResults []map[string]any
 		for _, t := range targets {
 			cfg.BaseURL = t
-			fmt.Printf("=== 状态化序列 %s ===\n", t)
+			if !jsonMode {
+				fmt.Printf("=== 状态化序列 %s ===\n", t)
+			}
 			runner := session.New(cfg)
 			results := runner.Run()
-			fmt.Print(session.Format(results))
+			if !jsonMode {
+				fmt.Print(session.Format(results))
+			}
+			for _, r := range results {
+				allResults = append(allResults, map[string]any{
+					"step":     r.StepName,
+					"url":      r.URL,
+					"status":   r.StatusCode,
+					"body_len": r.BodyLen,
+					"matched":  r.Matched,
+					"extracted": r.Extracted,
+					"diff":     r.Diff,
+				})
+			}
+		}
+		if jsonMode {
+			out, _ := json.MarshalIndent(allResults, "", "  ")
+			if jsonWriter != nil {
+				jsonWriter.Write(out)
+				jsonWriter.Close()
+			} else {
+				fmt.Println(string(out))
+			}
 		}
 		return
 	}
 
-	// 行为差异模式 + 参数分级
+	// 行为差异 + 参数分级
 	if *diffParams != "" {
 		cfg := diff.DefaultConfig()
 		cfg.Concurrency = *concurrency
@@ -114,26 +151,60 @@ func main() {
 		}
 		params := strings.Split(*diffParams, ",")
 		var allFindings map[string][]string
+		var jsonFindings []map[string]any
 		for _, t := range targets {
-			fmt.Printf("=== 差异检测 %s ===\n", t)
+			if !jsonMode {
+				fmt.Printf("=== 差异检测 %s ===\n", t)
+			}
 			fs := diff.Scan(t, params, cfg)
-			fmt.Print(diff.Format(fs))
-			// collect per-param deviations
+			if !jsonMode {
+				fmt.Print(diff.Format(fs))
+			}
 			if allFindings == nil {
 				allFindings = map[string][]string{}
 			}
 			for _, f := range fs {
+				var muts []map[string]any
 				for _, d := range f.Mutations {
 					desc := fmt.Sprintf("status %d->%d len %d->%d",
 						d.StatusBase, d.StatusNew, d.BodyLenBase, d.BodyLenNew)
 					allFindings[f.Param] = append(allFindings[f.Param], desc)
+					muts = append(muts, map[string]any{
+						"value": d.Value, "status_diff": d.StatusDiff,
+						"status_base": d.StatusBase, "status_new": d.StatusNew,
+						"body_diff": d.BodyDiff, "body_len_base": d.BodyLenBase,
+						"body_len_new": d.BodyLenNew,
+					})
 				}
+				jsonFindings = append(jsonFindings, map[string]any{
+					"url": f.URL, "param": f.Param, "baseline": f.BaseResp,
+					"severity": f.Severity, "mutations": muts,
+				})
 			}
 		}
-		// 参数优先排序
+		var jsonPriority []map[string]any
 		if len(allFindings) > 0 {
 			scores := priority.ScoreDiffs(allFindings)
-			fmt.Print(priority.Format(scores, *topN))
+			if !jsonMode {
+				fmt.Print(priority.Format(scores, *topN))
+			}
+			for _, s := range scores {
+				jsonPriority = append(jsonPriority, map[string]any{
+					"param": s.Param, "score": s.Score,
+					"severity": s.Severity, "reasons": s.Reason,
+				})
+			}
+		}
+		if jsonMode {
+			out, _ := json.MarshalIndent(map[string]any{
+				"findings": jsonFindings, "priority": jsonPriority,
+			}, "", "  ")
+			if jsonWriter != nil {
+				jsonWriter.Write(out)
+				jsonWriter.Close()
+			} else {
+				fmt.Println(string(out))
+			}
 		}
 		return
 	}
@@ -170,14 +241,6 @@ func main() {
 	cfg.DelayMinMs = *minDelay
 	cfg.DelayMaxMs = *maxDelay
 	cfg.Proxy = *proxy
-		if *headerFlag != "" {
-			for _, pair := range strings.Split(*headerFlag, ";") {
-				kv := strings.SplitN(pair, ":", 2)
-				if len(kv) == 2 {
-					cfg.Headers[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
-				}
-			}
-		}
 	cfg.VerifyGate = !*noVerify
 	cfg.Cookies = *cookies
 	if *headerFlag != "" {
@@ -189,7 +252,7 @@ func main() {
 		}
 	}
 
-	if *verbose {
+	if *verbose && !jsonMode {
 		fmt.Printf("[fastsec] 目标=%d 模板=%d 并发=%d 延迟=%d-%dms 3-gate=%v\n",
 			len(targets), len(templates), cfg.Concurrency, cfg.DelayMinMs, cfg.DelayMaxMs, cfg.VerifyGate)
 	}
@@ -199,26 +262,28 @@ func main() {
 	var all []map[string]any
 	for _, tgt := range targets {
 		results := eng.Run(tgt, templates)
-		fmt.Printf("\n=== %s ===\n", tgt)
-		fmt.Print(engine.FormatResults(results))
+		if !jsonMode {
+			fmt.Printf("\n=== %s ===\n", tgt)
+			fmt.Print(engine.FormatResults(results))
+		}
 		for _, r := range results {
 			all = append(all, map[string]any{
-				"template":  r.TemplateID,
-				"severity":  r.Severity,
-				"url":       r.Matched,
-				"verified":  r.Verified,
-				"extracted": r.Extracted,
-				"status":    r.StatusCode,
-				"payload":   r.Payload,
+				"template": r.TemplateID, "severity": r.Severity, "url": r.Matched,
+				"verified": r.Verified, "extracted": r.Extracted,
+				"status": r.StatusCode, "payload": r.Payload,
 			})
 		}
 	}
 	dur := time.Since(t0)
 
-	if *jsonOut != "" {
+	if jsonMode {
 		out, _ := json.MarshalIndent(all, "", "  ")
-		os.WriteFile(*jsonOut, out, 0644)
-		fmt.Printf("\n[fastsec] JSON 结果写入 %s (%d 条)\n", *jsonOut, len(all))
+		if jsonWriter != nil {
+			jsonWriter.Write(out)
+			jsonWriter.Close()
+		} else {
+			fmt.Println(string(out))
+		}
 	} else {
 		fmt.Printf("\n[fastsec] 完成: %d 匹配 / %d 目标 / %d 模板, 耗时 %s\n",
 			len(all), len(targets), len(templates), dur.Round(time.Millisecond))

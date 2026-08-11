@@ -708,7 +708,7 @@ class TestP0Harness(unittest.TestCase):
         names = list_playbooks()
         self.assertEqual(
             names,
-            ["api_surface", "auth_surface", "internal_lateral",
+            ["ai_guided", "api_surface", "auth_surface", "internal_lateral",
              "stealth", "svc_surface", "web_surface"],
         )
 

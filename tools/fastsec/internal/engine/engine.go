@@ -131,6 +131,13 @@ func expandVars(s, baseURL string, payload map[string]string) string {
 	for k, v := range payload {
 		s = strings.ReplaceAll(s, "{{"+k+"}}", v)
 	}
+	// 归一化 scheme:// 之后的双斜杠（BaseURL 以 / 结尾 + 模板 path 以 / 开头）
+	if i := strings.Index(s, "://"); i >= 0 {
+		rest := s[i+3:]
+		// 清理 host 之后的双斜杠（BaseURL 尾 / + 模板 path 首 /）
+		rest = strings.ReplaceAll(rest, "//", "/")
+		s = s[:i+3] + rest
+	}
 	return s
 }
 
