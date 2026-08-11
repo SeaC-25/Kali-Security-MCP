@@ -30,41 +30,16 @@ import (
 	"fastsec/internal/template"
 )
 
-// wafDetect: WAF 检测（简化内嵌）
+// wafDetect: WAF 检测（调用 injector 完整指纹库）
 func wafDetect(url, param string, cli *stealth.Client) struct {
 	WAFDetected bool
 	WAFName     string
 } {
-	// 用 injector 的 probes 探测
-	probes := []string{"' OR '1'='1", "1 AND 1=1", "union select 1,2,3", "1;SELECT SLEEP(5)", "1/**/AND/**/1=1"}
-	blocked := 0
-	for _, p := range probes {
-		u := url
-		sep := "?"
-		if strings.Contains(u, "?") {
-			sep = "&"
-		}
-		u = u + sep + param + "=" + strings.ReplaceAll(strings.ReplaceAll(p, " ", "%20"), "'", "%27")
-		req, _ := http.NewRequest("GET", u, nil)
-		resp, err := cli.Do(req)
-		if err != nil {
-			continue
-		}
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		resp.Body.Close()
-		if resp.StatusCode == 403 || resp.StatusCode == 406 || resp.StatusCode == 493 {
-			blocked++
-		} else if strings.Contains(strings.ToLower(string(body)), "blocked") ||
-			strings.Contains(strings.ToLower(string(body)), "拦截") ||
-			strings.Contains(strings.ToLower(string(body)), "intercepted") ||
-			strings.Contains(strings.ToLower(string(body)), "denied") {
-			blocked++
-		}
-	}
+	d := injector.DetectWAF(url, param, cli)
 	return struct {
 		WAFDetected bool
 		WAFName     string
-	}{WAFDetected: blocked >= 2, WAFName: "detected-waf"}
+	}{WAFDetected: d.WAFDetected, WAFName: d.WAFName}
 }
 
 func main() {
@@ -223,8 +198,36 @@ func main() {
 	// 爆破模式
 	if *bruteTarget != "" {
 		// 默认用户/密码（内置小字典；可扩展）
-		users := []string{"admin", "root", "test", "Administrator"}
-		passwords := []string{"123456", "admin", "password", "admin123", "Admin@123", "P@ssw0rd"}
+		users := []string{
+			"admin", "root", "test", "Administrator", "guest", "user", "sa",
+			"backup", "service", "operator", "audit", "support", "manager",
+			"sysadmin", "webadmin", "postgres", "mysql", "oracle", "tomcat",
+			"jenkins", "gitlab", "grafana", "elastic", "redis", "mongodb",
+			"system", "super", "dba", "dba1", "cisco", "huawei", "h3c",
+			"ruijie", "sangfor", "weaver", "tongda", "seeyon", "ruoyi",
+			"admin1", "admin2", "administrator1", "wangwei", "zhangsan",
+			"lisi", "wangwu", "zhaoliu", "sunqi", "zhoushi", "wuheng",
+			"zhongguo", "yonghu", "guanli", "kaifazhe",
+		}
+		passwords := []string{
+			"123456", "12345678", "123456789", "1234567890", "123123", "111111",
+			"888888", "666666", "000000", "5201314", "qwe123", "qweasd",
+			"asd123", "abc123", "a123456", "Aa123456", "Admin123", "Password1",
+			"P@ssw0rd", "Passw0rd", "admin123", "admin@123", "Admin@123",
+			"admin888", "admin666", "admin2024", "admin2025", "Admin2024",
+			"Admin2025", "qwer1234", "1qaz2wsx", "zaq12wsx", "zxcvbn",
+			"asdfgh", "woaini", "woshinibaba", "nihao123", "wang123",
+			"li123456", "root", "toor", "sangfor", "weaver", "td123456",
+			"123qwe", "qazwsx", "admin#123", "Admin#123", "admin@2024",
+			"admin@2025", "password123", "Password123", "qwerty", "qwerty123",
+			"administrator", "Administrator1", "admin!@#", "Test@123",
+			"test123", "Test123", "guest123", "p@ssword", "changeme",
+			"letmein", "welcome", "monkey", "dragon", "master", "shadow",
+			"superman", "michael", "secret", "12345", "1234", "54321",
+			"1q2w3e4r", "q1w2e3r4", "asdf1234", "zxcv1234", "abcd1234",
+			"112233", "123321", "100200", "1314520", "7758521", "woaini1314",
+			"admin000", "Admin000", "p@ssw0rd", "Passw0rd!", "Admin@1234",
+		}
 		cfg := brute.DefaultConfig(*bruteTarget, *bruteService, users, passwords)
 		if *bruteService == "tcp-banner" && *brutePort > 0 {
 			cfg.Target = fmt.Sprintf("%s:%d", *bruteTarget, *brutePort)

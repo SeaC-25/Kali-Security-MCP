@@ -13,10 +13,17 @@ import (
 	"fastsec/internal/stealth"
 )
 
-// Sources: OSINT 数据源（公开 API，无需 key）
+// Sources: OSINT 数据源（公开 API，无需 key）——多源聚合
 var Sources = []string{
-	"https://crt.sh/?q=%s&output=json",        // 证书透明度
-	"https://api.hackertarget.com/hostsearch/?q=%s", // 子域
+	"https://crt.sh/?q=%s&output=json",                  // 证书透明度（子域/邮箱）
+	"https://api.hackertarget.com/hostsearch/?q=%s",     // 子域
+	"https://api.hackertarget.com/dnslookup/?q=%s",      // DNS
+	"https://api.hackertarget.com/reverseiplookup/?q=%s", // 反查 IP
+	"https://crt.sh/?q=%%25.%s&output=json",              // 泛域名证书
+	"https://api.hackertarget.com/subnetcalc/?q=%s",     // 子网
+	"https://api.hackertarget.com/zonetransfer/?q=%s",   // DNS 域传送
+	"https://api.hackertarget.com/mtr/?q=%s",            // 路由
+	"https://api.hackertarget.com/ping/?q=%s",           // 存活
 }
 
 // Result: 聚合结果
@@ -62,14 +69,22 @@ func Aggregate(domain string, cli *stealth.Client) Result {
 	for _, m := range emailRe.FindAllString(body, -1) {
 		emails[strings.ToLower(m)] = true
 	}
-	// hackertarget hostsearch（CSV: host,ip）
-	body2 := fetch(fmt.Sprintf(Sources[1], domain), cli)
-	for _, line := range strings.Split(body2, "\n") {
-		host := strings.Split(line, ",")[0]
-		host = strings.TrimSpace(host)
-		if strings.HasSuffix(host, "."+domain) {
-			subdomains[host] = true
+	// 多源子域提取（hackertarget + 反查 + 泛域名）
+	for _, srcIdx := range []int{1, 4} {
+		bodyN := fetch(fmt.Sprintf(Sources[srcIdx], domain), cli)
+		for _, line := range strings.Split(bodyN, "\n") {
+			host := strings.Split(line, ",")[0]
+			host = strings.TrimSpace(host)
+			host = strings.TrimPrefix(host, "*.")
+			if strings.HasSuffix(host, "."+domain) || strings.Contains(host, domain) {
+				subdomains[host] = true
+			}
 		}
+	}
+	// DNS 查询结果
+	body3 := fetch(fmt.Sprintf(Sources[2], domain), cli)
+	for _, m := range regexp.MustCompile(`([\w-]+\.)+`+regexp.QuoteMeta(domain)).FindAllString(body3, -1) {
+		subdomains[strings.TrimSpace(m)] = true
 	}
 	// 从 crt.sh JSON 提取子域
 	for _, m := range regexp.MustCompile(`"name_value":"([^"]+)"`).FindAllStringSubmatch(body, -1) {

