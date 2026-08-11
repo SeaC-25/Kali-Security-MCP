@@ -1,0 +1,26 @@
+{
+  "updated_at": "2026-08-11T07:40:08+00:00",
+  "findings": [
+    {
+      "title": "行为差异确认 http://127.0.0.1:8090/profile?userid=2",
+      "target": "template=diff-userid verified=true",
+      "severity": "high",
+      "status": "candidate",
+      "reproduce_cmd": "",
+      "expected_signal": "",
+      "source": "ai_guided",
+      "technique_ids": [
+        "T1190",
+        "T1210"
+      ],
+      "evidence_paths": [],
+      "meta": {
+        "phase": "ai_guided",
+        "detail": "template=diff-userId verified=True"
+      },
+      "finding_id": "eef9ebf61587",
+      "created_at": "2026-08-11T07:40:08+00:00",
+      "updated_at": "2026-08-11T07:40:08+00:00"
+    }
+  ]
+}

@@ -9,7 +9,15 @@ Kali 后端解析器：动态检测工具执行后端 (local / ssh / docker)。
 import os
 import shutil
 import socket
+import threading
 from pathlib import Path
+
+try:
+    import paramiko
+    _HAS_PARAMIKO = True
+except ImportError:
+    paramiko = None
+    _HAS_PARAMIKO = False
 
 # 常用安全工具检查清单（本地 PATH 检测用）
 DEFAULT_TOOL_CHECKLIST = [
@@ -156,6 +164,7 @@ def tool_missing_message(tool_name):
 
 _ssh_client = None
 _ssh_host_target = None
+_ssh_lock = threading.Lock()
 
 
 def _ssh_parse_target():
@@ -203,15 +212,28 @@ def ssh_execute(command, timeout: int = 60):
     - paramiko 缺失 / 无目标 / 连接失败 → 返回 error dict（不抛异常，调用方可降级本地）。
     """
     global _ssh_client, _ssh_host_target
-    try:
-        import paramiko
-    except ImportError:
+    if not _HAS_PARAMIKO:
         return {"success": False, "output": "", "error": "paramiko not installed; cannot execute via ssh backend", "return_code": -1}
     target = _ssh_parse_target()
     if not target:
         return {"success": False, "output": "", "error": "no ssh host configured (~/.ssh/config)", "return_code": -1}
     host, user, port = target
     password = os.environ.get("KALI_SSH_PASSWORD", "")
+    try:
+        with _ssh_lock:
+            return _ssh_execute_locked(host, user, port, password, command, timeout)
+    except Exception as e:  # noqa: BLE001
+        _ssh_client = None
+        _ssh_host_target = None
+        err_msg = str(e) or type(e).__name__
+        if isinstance(e, (socket.timeout, TimeoutError)) or "timed out" in err_msg.lower():
+            err_msg = f"ssh command timed out after {timeout}s"
+        return {"success": False, "output": "", "error": f"ssh execute failed: {err_msg}", "return_code": -1}
+
+
+def _ssh_execute_locked(host, user, port, password, command, timeout):
+    """实际 ssh 执行（调用方已持 _ssh_lock）。"""
+    global _ssh_client, _ssh_host_target
     try:
         if _ssh_client is None or _ssh_host_target != (host, user, port):
             _ssh_client = paramiko.SSHClient()
@@ -233,7 +255,6 @@ def ssh_execute(command, timeout: int = 60):
         _ssh_client = None
         _ssh_host_target = None
         err_msg = str(e) or type(e).__name__
-        # paramiko exec_command 超时: socket.timeout 的 str() 为空，明确标 timeout
         if isinstance(e, (socket.timeout, TimeoutError)) or "timed out" in err_msg.lower():
             err_msg = f"ssh command timed out after {timeout}s"
         return {"success": False, "output": "", "error": f"ssh execute failed: {err_msg}", "return_code": -1}

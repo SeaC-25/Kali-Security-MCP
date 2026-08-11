@@ -60,14 +60,28 @@ def _run_stealth_playbook(task_id, target, executor, depth="standard", **kwargs)
 
 
 def _run_ai_guided_playbook(task_id, target, executor, depth="standard", **kwargs):
-    """ai_guided 适配器：符合 run_playbook 标准签名 (task_id, target, executor, depth)。"""
-    t = _resolve_target(target)
-    out = run_ai_guided(
-        executor=executor, target=t, depth=depth,
-        params=kwargs.get("params", ""),
-        headers=kwargs.get("headers", ""),
-        seq_file=kwargs.get("seq_file", ""),
-    )
+    """ai_guided 适配器：符合 run_playbook 标准签名 (task_id, target, executor, depth)。
+
+    支持多目标：target 为 list 时透传给 run_ai_guided 的 targets 参数。
+    """
+    if isinstance(target, list):
+        out = run_ai_guided(
+            executor=executor, target=str(target[0]) if target else "", depth=depth,
+            params=kwargs.get("params", ""),
+            headers=kwargs.get("headers", ""),
+            seq_file=kwargs.get("seq_file", ""),
+            targets=target,
+            task_id=task_id,
+        )
+    else:
+        t = _resolve_target(target)
+        out = run_ai_guided(
+            executor=executor, target=t, depth=depth,
+            params=kwargs.get("params", ""),
+            headers=kwargs.get("headers", ""),
+            seq_file=kwargs.get("seq_file", ""),
+            task_id=task_id,
+        )
     return {
         "ok": out.get("stages_ok", 0) > 0,
         "playbook": "ai_guided",
