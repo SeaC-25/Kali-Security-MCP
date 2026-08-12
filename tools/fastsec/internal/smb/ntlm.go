@@ -153,26 +153,23 @@ func md4(data []byte) []byte {
 
 // ---------- NTLMSSP 报文构造 ----------
 
-// ntlmsspNegotiate: NTLMSSP NEGOTIATE_MESSAGE
-//  flags: NEGOTIATE_NTLM(0x20000000) | NEGOTIATE_OEM(0x2) | NEGOTIATE_UNICODE(0x1) | NEGOTIATE_ALWAYS_SIGN(0x8000) | NEGOTIATE_EXTENDED_SESSIONSECURITY(0x80000)
+// ntlmsspNegotiate: NTLMSSP NEGOTIATE_MESSAGE（smbclient 权威：空域/工作站，40 字节）
+//  flags 对齐 smbclient: 0x62088215（NTLM+EXTENDED_SESSIONSECURITY+ALWAYS_SIGN+128+OEM+UNICODE）
 func ntlmsspNegotiate(domain, workstation string) []byte {
-	// 类型 1 报文
+	// 类型 1 报文（40 字节固定，域/工作站为空）
 	msg := make([]byte, 40)
 	copy(msg[0:8], "NTLMSSP\x00")
 	binary.LittleEndian.PutUint32(msg[8:12], 1) // Type 1
-	flags := uint32(0x00000001 | 0x00000002 | 0x00008000 | 0x00080000 | 0x20000000)
+	// smbclient 的 flags: 15 82 08 62 LE = 0x62088215
+	flags := uint32(0x62088215)
 	binary.LittleEndian.PutUint32(msg[12:16], flags)
-	// 域/工作站名偏移（ASCII）
-	domainB := []byte(domain)
-	workB := []byte(workstation)
-	binary.LittleEndian.PutUint16(msg[16:18], uint16(len(domainB))) // domain len
-	binary.LittleEndian.PutUint16(msg[18:20], uint16(len(domainB))) // domain max len
-	binary.LittleEndian.PutUint32(msg[20:24], 40)                   // domain offset
-	binary.LittleEndian.PutUint16(msg[24:26], uint16(len(workB)))
-	binary.LittleEndian.PutUint16(msg[26:28], uint16(len(workB)))
-	binary.LittleEndian.PutUint32(msg[28:32], 40+uint32(len(domainB)))
-	msg = append(msg, domainB...)
-	msg = append(msg, workB...)
+	// 域/工作站长度 0，偏移 40（空——与 smbclient 一致）
+	binary.LittleEndian.PutUint32(msg[20:24], 40)
+	binary.LittleEndian.PutUint32(msg[28:32], 40)
+	// Version 字段（smbclient: 06010000 0000000f）
+	msg[32] = 6
+	msg[33] = 1
+	msg[39] = 0x0f
 	return msg
 }
 
@@ -193,8 +190,6 @@ func ntlmsspAuthenticate(challenge []byte, user, domain, password, hash string) 
 	if targetInfoLen > 0 && 40+8+targetInfoLen <= len(challenge) {
 		targetInfo = append([]byte{}, challenge[48:48+targetInfoLen]...)
 	}
-	flags := binary.LittleEndian.Uint32(challenge[60:64])
-
 	// 计算 NTLMv2 响应
 	var ntHash []byte
 	if hash != "" {
@@ -213,10 +208,10 @@ func ntlmsspAuthenticate(challenge []byte, user, domain, password, hash string) 
 	ntResp := ntlmv2Response(v2Hash, serverChallenge, clientChallenge, targetInfo, timestamp)
 	lmResp := lmv2Response(v2Hash, serverChallenge, clientChallenge)
 
-	// Type 3 报文
+		// Type 3 报文（对齐 smbclient: flags=0x62088215, 域=WORKGROUP, 工作站=FASTSEC）
 	userB := utf16le(user)
 	domainB := utf16le(domain)
-	var workB []byte
+	workB := utf16le("FASTSEC")
 
 	msg := make([]byte, 64)
 	copy(msg[0:8], "NTLMSSP\x00")
@@ -245,9 +240,10 @@ func ntlmsspAuthenticate(challenge []byte, user, domain, password, hash string) 
 	binary.LittleEndian.PutUint16(msg[44:46], uint16(len(workB)))
 	binary.LittleEndian.PutUint16(msg[46:48], uint16(len(workB)))
 	binary.LittleEndian.PutUint32(msg[48:52], workOff)
-	// 会话密钥（空）+ flags
-	binary.LittleEndian.PutUint32(msg[56:60], 0) // session key len
-	binary.LittleEndian.PutUint32(msg[60:64], flags)
+	// 会话密钥（空）
+	binary.LittleEndian.PutUint32(msg[56:60], 0)
+	// flags（smbclient 权威 0x62088215）
+	binary.LittleEndian.PutUint32(msg[60:64], 0x62088215)
 
 	// 拼接
 	out := msg
@@ -299,4 +295,46 @@ var _ = strings.Contains
 // nowUnixNano: 当前时间纳秒
 func nowUnixNano() int64 {
 	return time.Now().UnixNano()
+}
+
+// stripSpnego: 去掉 SPNEGO 包装找 NTLMSSP
+func stripSpnego(data []byte) []byte {
+	idx := indexBytes(data, []byte("NTLMSSP"))
+	if idx >= 0 {
+		return data[idx:]
+	}
+	return data
+}
+
+// indexBytes: 查找字节子序列
+func indexBytes(haystack, needle []byte) int {
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		match := true
+		for j := range needle {
+			if haystack[i+j] != needle[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return i
+		}
+	}
+	return -1
+}
+
+// mustHex: hex 解码（内部用）
+func mustHex(s string) []byte {
+	out := make([]byte, len(s)/2)
+	for i := 0; i < len(out); i++ {
+		hi := hexVal(s[i*2])
+		lo := hexVal(s[i*2+1])
+		out[i] = hi<<4 | lo
+	}
+	return out
+}
+
+// AuthenticateExport: 导出 NTLMv2 认证（测试）
+func AuthenticateExport(challenge []byte, user, domain, password, hash string) ([]byte, error) {
+	return ntlmsspAuthenticate(challenge, user, domain, password, hash)
 }
