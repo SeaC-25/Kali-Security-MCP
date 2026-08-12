@@ -188,12 +188,15 @@ func main() {
 
 	// 知识库查询模式（HackReport 经验包）
 	if *kbQuery != "" {
-		files, err := filepath.Glob("data/knowledge/**/*.md")
-		if err == nil {
-			// 再加 txt
-			txts, _ := filepath.Glob("data/knowledge/**/*.txt")
-			files = append(files, txts...)
-		}
+		var files []string
+		filepath.Walk("data/knowledge", func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() {
+				if strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".txt") {
+					files = append(files, path)
+				}
+			}
+			return nil
+		})
 		q := strings.ToLower(*kbQuery)
 		fmt.Printf("[kb] 查询 %q，匹配 %d 文档:\n", *kbQuery, len(files))
 		for _, f := range files {
