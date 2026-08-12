@@ -71,6 +71,8 @@ func main() {
 	crackWordlist := flag.String("crack-wordlist", "", "external wordlist file for crack")
 	kerberosKDC := flag.String("kerberos", "", "Kerberos KDC IP (AS-REP/Kerberoast)")
 	kerberosDomain := flag.String("domain", "", "Kerberos domain")
+	kerberosUsers := flag.String("kusers", "", "Kerberos user list (comma-separated)")
+	kerberosPass := flag.String("kpass", "", "Kerberos password (enables Kerberoast)")
 	cmsURL := flag.String("cms", "", "CMS detection target URL")
 	auditPath := flag.String("audit", "", "static audit path (file or dir)")
 	filePath := flag.String("file", "", "forensic file analysis")
@@ -379,7 +381,12 @@ func main() {
 			fmt.Println("[kerberos] 需要 -domain 指定域 (如 corp.local)")
 			return
 		}
-		cfg := kerberos.DefaultConfig(*kerberosKDC, domain, kerberos.DefaultUserList)
+		users := kerberos.DefaultUserList
+		if *kerberosUsers != "" {
+			users = strings.Split(*kerberosUsers, ",")
+		}
+		cfg := kerberos.DefaultConfig(*kerberosKDC, domain, users)
+		cfg.Password = *kerberosPass
 		res := kerberos.Scan(cfg)
 		fmt.Print(kerberos.Format(res))
 		return
