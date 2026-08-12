@@ -1,0 +1,125 @@
+!root
+(blank)
+(none)
+**ADMIN (**23646)
+**CONFIG (266344)
+18364
+ADMIN
+AWARD_SW
+Admin
+Administrator
+Any
+Any Local User
+BACKUP
+Bhosda
+CHEY_ARCHSVR
+DOCSIS_APP
+Demo
+EZsetup
+GATE
+GATEWAY
+Guest
+HELLO
+HPLASER
+Jetform
+LASER
+LASERWRITER
+LR-ISDN
+MAIL
+MANAGER
+MGR
+Mail
+Manager
+Manager (caps count !)
+Menu - 8 - 0 (see notes)
+N/A
+None
+OPERATOR
+OutOfBox, demos, guest, 4DGifts
+POST
+PRINT
+PRINTER
+QSECOFR
+QSRV
+QSRVBAS
+QUSER
+ROUTER
+SYSDBA
+Scott
+See notes
+Telecom
+User
+Username
+WINDOWS_PASSTHRU
+adm
+admin
+administrator
+ami
+answer
+any
+apc
+apcuser
+bill
+blank
+cablecom
+cn=orcladmin
+db2admin
+debug
+def
+default.password
+eagle
+eqadmin - Serial port only
+estheralastruey
+fast
+free user
+guest
+haasadm
+hello
+hostname/ip address
+ich
+internal
+janta sales
+manager
+monitor
+n/a
+ncadmin
+netman
+netscreen
+no default login
+none
+ods
+operator
+password
+pixadmin
+pkoolt
+politcally
+public
+qpgmr
+qsecofr
+qsysopr
+read
+readwrite
+rodopi
+root
+root (cannot be changed)
+rsadmin
+rwa
+sa
+security
+setpriv
+setup/snmp
+siteadmin
+super
+superuser
+sys
+sysadm
+system
+t3admin
+tech
+test
+touch - Web Browser only (Write
+user
+username
+webadmin
+wradmin
+write
