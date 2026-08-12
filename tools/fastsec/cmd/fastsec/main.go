@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"sort"
 	"path/filepath"
 	"encoding/json"
 	"flag"
@@ -186,8 +187,83 @@ func main() {
 		os.Exit(2)
 	}
 
-	// 知识库查询模式（HackReport 经验包）
+	// 知识库查询模式（HackReport 经验包，走索引加速）
 	if *kbQuery != "" {
+		// 加载索引
+		idxData, err := os.ReadFile("data/index/knowledge.json")
+		if err == nil {
+			var idx []struct {
+				Title  string   `json:"title"`
+				Path   string   `json:"path"`
+				Topics []string `json:"topics"`
+				Head   string   `json:"head"`
+			}
+			if json.Unmarshal(idxData, &idx) == nil {
+				q := strings.ToLower(*kbQuery)
+				type hitDoc struct {
+					Title string
+					Head  string
+					Score int
+				}
+				var hits []hitDoc
+				for _, d := range idx {
+					score := 0
+					tl := strings.ToLower(d.Title)
+					if tl == q {
+						score += 100
+					} else if strings.Contains(tl, q) {
+						score += 50
+					}
+					for _, t := range d.Topics {
+						tt := strings.ToLower(t)
+						if tt == q {
+							score += 40
+						} else if strings.Contains(tt, q) || strings.Contains(q, tt) {
+							score += 20
+						}
+					}
+					if strings.Contains(strings.ToLower(d.Head), q) {
+						score += 5
+					}
+					if score > 0 {
+						hits = append(hits, hitDoc{d.Title, d.Head, score})
+					}
+				}
+				// 按分数排序（标题/主题强匹配优先）
+				sort.Slice(hits, func(i, j int) bool { return hits[i].Score > hits[j].Score })
+				matched := 0
+				for _, h := range hits {
+					fmt.Printf("\n=== %s ===\n", h.Title)
+					head := h.Head
+					if len(head) > 200 {
+						head = head[:200]
+					}
+					fmt.Printf("  %s\n", strings.ReplaceAll(head, "\n", " "))
+					matched++
+					if matched >= 10 {
+						break
+					}
+				}
+				if matched == 0 {
+					fmt.Printf("[kb] 索引无匹配，全文件扫描兜底...\n")
+					// fallback 全文件
+					filepath.Walk("data/knowledge", func(path string, info os.FileInfo, err error) error {
+						if err == nil && !info.IsDir() {
+							if strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".txt") {
+								if c, err := os.ReadFile(path); err == nil {
+									if strings.Contains(strings.ToLower(string(c)), q) {
+										fmt.Printf("  %s\n", path)
+									}
+								}
+							}
+						}
+						return nil
+					})
+				}
+				return
+			}
+		}
+		// 无索引：全文件扫描（旧逻辑）
 		var files []string
 		filepath.Walk("data/knowledge", func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() {

