@@ -88,8 +88,8 @@ class ToolSpec:
     Attributes:
         binary:                  Executable name (e.g. ``"nmap"``).
         params:                  Ordered list of :class:`ToolParam`.
-        base_args:               Always-included arguments (e.g. ``"--batch"``
-                                 for sqlmap).  Position is controlled by
+        base_args:               Always-included arguments (e.g. ``"-m 20"``
+                                 for traceroute).  Position is controlled by
                                  ``base_args_position``.
         base_args_position:      ``"after"`` (default) — base_args go after
                                  normal params.  ``"before"`` — base_args go
@@ -662,25 +662,6 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
 
 
 
-def _build_ncrack(data: Dict[str, Any]) -> str:
-    """ncrack: combines ``service://target``."""
-    target = sanitize_shell_arg(data.get("target", ""))
-    service = sanitize_shell_arg(data.get("service", "ssh"))
-    username_file = sanitize_shell_arg(data.get("username_file", ""))
-    password_file = sanitize_shell_arg(data.get("password_file", ""))
-    additional_args = data.get("additional_args", "")
-    cmd = f"ncrack {target}"
-    if data.get("service", ""):
-        cmd = f"ncrack {service}://{target}"
-    if data.get("username_file", ""):
-        cmd += f" -U {username_file}"
-    if data.get("password_file", ""):
-        cmd += f" -P {password_file}"
-    if additional_args:
-        cmd += f" {sanitize_shell_arg(additional_args)}"
-    return cmd
-
-
 def _build_netdiscover(data: Dict[str, Any]) -> str:
     """netdiscover: boolean ``-p`` passive flag."""
     interface = sanitize_shell_arg(data.get("interface", ""))
@@ -785,23 +766,6 @@ def _build_radare2(data: Dict[str, Any]) -> str:
 def _build_r2(data: Dict[str, Any]) -> str:
     """r2: same as radare2 (original elif catches both at line 910)."""
     return _build_radare2(data)
-
-
-def _build_sherlock(data: Dict[str, Any]) -> str:
-    """sherlock: boolean ``--json`` and optional ``--site``."""
-    username = sanitize_shell_arg(data.get("username", ""))
-    sites = sanitize_shell_arg(data.get("sites", ""))
-    output_format = data.get("output_format", "json")
-    additional_args = data.get("additional_args", "")
-    cmd = f"sherlock {username}"
-    if data.get("sites", ""):
-        cmd += f" --site {sites}"
-    if output_format == "json":
-        cmd += " --json"
-    if additional_args:
-        cmd += f" {sanitize_shell_arg(additional_args)}"
-    return cmd
-
 
 
 def _build_recon_ng(data: Dict[str, Any]) -> str:
@@ -1197,34 +1161,6 @@ def _build_nc(data: Dict[str, Any]) -> str:
     return cmd
 
 
-def _build_theharvester_lower(data: Dict[str, Any]) -> str:
-    """theharvester (lowercase match — line 858)."""
-    domain = sanitize_shell_arg(data.get("domain", ""))
-    sources = sanitize_shell_arg(
-        data.get("sources", "anubis,crtsh,dnsdumpster,hackertarget,rapiddns"))
-    limit = sanitize_shell_arg(data.get("limit", "500"))
-    additional_args = data.get("additional_args", "")
-    cmd = f"theHarvester -d {domain} -b {sources} -l {limit}"
-    if additional_args:
-        cmd += f" {sanitize_shell_arg(additional_args)}"
-    return cmd
-
-
-def _build_theHarvester_upper(data: Dict[str, Any]) -> str:
-    """theHarvester (mixed-case match — line 1249)."""
-    domain = sanitize_shell_arg(data.get("domain", data.get("target", "")))
-    sources = data.get("sources",
-                       "anubis,crtsh,dnsdumpster,hackertarget,rapiddns,urlscan")
-    limit = data.get("limit", "100")
-    additional_args = data.get("additional_args", "")
-    cmd = (f"theHarvester -d {domain} "
-           f"-b {sanitize_shell_arg(sources)} "
-           f"-l {sanitize_shell_arg(str(limit))}")
-    if additional_args:
-        cmd += f" {sanitize_shell_fragment(additional_args)}"
-    return cmd
-
-
 # ---------------------------------------------------------------------------
 # Custom builders map
 # ---------------------------------------------------------------------------
@@ -1234,8 +1170,6 @@ CUSTOM_BUILDERS: Dict[str, Callable[[Dict[str, Any]], str]] = {
 
 
     # Authentication / brute-force
-
-    "ncrack":       _build_ncrack,
 
     # Network discovery
     "netdiscover":  _build_netdiscover,
@@ -1264,10 +1198,7 @@ CUSTOM_BUILDERS: Dict[str, Callable[[Dict[str, Any]], str]] = {
     "binwalk":      _build_binwalk,
 
     # OSINT / recon
-    "sherlock":     _build_sherlock,
     "recon-ng":     _build_recon_ng,
-    "theharvester": _build_theharvester_lower,
-    "theHarvester": _build_theHarvester_upper,
 
     # HTTP / network utilities
     "httpx":        _build_httpx,
@@ -1430,15 +1361,12 @@ def _build_from_spec(spec: ToolSpec, data: Dict[str, Any]) -> str:
 # Only populated for tools whose original elif block supplies a non-empty
 # default via ``data.get("additional_args", "<value>")``.
 _ADDITIONAL_ARGS_DEFAULTS: Dict[str, str] = {
-    "wfuzz":     "-c",
     "wafw00f":   "-a",
-    "sublist3r": "-v",
     "reaver":    "-vv",
     "bully":     "-v",
     "enum4linux": "-a",
     "zsteg":     "-a",
     "grep":      "-rn",
-    "wpscan":    "--enumerate p,t,u",
 }
 
 
@@ -1560,7 +1488,6 @@ _CUSTOM_TOOL_SPECS: Dict[str, ToolSpec] = {
     "r2":           ToolSpec(binary="r2"),
     "binwalk":      ToolSpec(binary="binwalk"),
     "recon-ng":     ToolSpec(binary="recon-ng"),
-    "theHarvester": ToolSpec(binary="theHarvester"),
     "httpx":        ToolSpec(binary="httpx"),
     "curl":         ToolSpec(binary="curl"),
     "dig":          ToolSpec(binary="dig"),
