@@ -677,20 +677,32 @@ class TestP0Harness(unittest.TestCase):
         self.assertFalse(any(a.get("source") == "default" for a in actions))
         self.assertFalse(any(a.get("action") == "fingerprint" for a in actions))
 
-    def test_gobuster_build_single_u(self):
-        from kali_mcp.core.tool_registry import build_command
+    def test_removed_tool_build_rejected(self):
+        """Removed tools (gobuster et al.) are absent from the registry: build_command yields empty."""
+        from kali_mcp.core.tool_registry import ALLOWED_TOOLS, build_command, get_tool_spec
 
-        cmd = build_command(
-            "gobuster",
-            {
-                "url": "http://127.0.0.1:18080/",
-                "target": "http://127.0.0.1:18080/",
-                "wordlist": "/usr/share/wordlists/dirb/common.txt",
-                "threads": 20,
-            },
-        )
-        self.assertEqual(cmd.count("-u"), 1)
-        self.assertIn("http://127.0.0.1:18080/", cmd)
+        # theharvester / sherlock / ncrack remain in CUSTOM_BUILDERS (registry
+        # residue outside the tools_recipes cleanup scope) and are excluded here.
+        for gone in ("gobuster", "nikto", "sqlmap", "whatweb", "feroxbuster",
+                     "ffuf", "nuclei", "subfinder", "hydra", "dirb", "wfuzz",
+                     "dnsrecon", "fierce", "dnsenum",
+                     "joomscan", "wpscan", "medusa", "patator",
+                     "crowbar", "brutespray", "searchsploit", "masscan"):
+            self.assertIsNone(get_tool_spec(gone), gone)
+            self.assertNotIn(gone, ALLOWED_TOOLS, gone)
+            self.assertEqual(
+                build_command(
+                    gone,
+                    {
+                        "url": "http://127.0.0.1:18080/",
+                        "target": "http://127.0.0.1:18080/",
+                        "wordlist": "/usr/share/wordlists/dirb/common.txt",
+                        "threads": 20,
+                    },
+                ),
+                "",
+                gone,
+            )
 
     def test_harness_profile_only_allows_harness_module(self):
         from kali_mcp.security.tool_profile import load_tool_profile
@@ -1253,9 +1265,13 @@ class TestP0Harness(unittest.TestCase):
 
         reset_recipes()
         names = list_recipes()
-        for need in ("httpx", "nmap", "gobuster", "whatweb", "nuclei"):
+        for need in ("httpx", "nmap", "curl_probe"):
             self.assertIn(need, names)
             self.assertIsNotNone(get_recipe(need))
+        # removed tools no longer have recipes
+        for gone in ("gobuster", "whatweb", "nuclei", "sqlmap", "ffuf", "nikto", "feroxbuster"):
+            self.assertNotIn(gone, names)
+            self.assertIsNone(get_recipe(gone))
 
         hx = render_recipe_command("httpx", {"target": "http://127.0.0.1:18081/"})
         self.assertIn("-u", hx)
@@ -1271,17 +1287,14 @@ class TestP0Harness(unittest.TestCase):
         self.assertIn("10.0.0.5", nm)
         self.assertIn("-p", nm)
 
-        gb = render_recipe_command(
-            "gobuster",
-            {"url": "http://lab.local/", "target": "http://lab.local/"},
-        )
-        self.assertIn("gobuster", gb)
-        self.assertEqual(gb.count("-u"), 1)
+        cp = render_recipe_command("curl_probe", {"target": "http://lab.local/admin"})
+        self.assertIn("curl", cp)
+        self.assertIn("http://lab.local/admin", cp)
 
         # build_command prefers recipe when present
-        via_build = build_command("whatweb", {"target": "http://lab.local/"})
-        self.assertIn("whatweb", via_build)
-        self.assertIn("http://lab.local/", via_build)
+        via_build = build_command("nmap", {"target": "10.0.0.5"})
+        self.assertIn("nmap", via_build)
+        self.assertIn("10.0.0.5", via_build)
 
         # skip recipe falls back (still builds via registry/custom)
         via_skip = build_command(
@@ -1292,8 +1305,8 @@ class TestP0Harness(unittest.TestCase):
         self.assertIn("-u", via_skip)
         reset_recipes()
 
-    def test_new_recipes_render(self):
-        """sqlmap / ffuf / nikto / curl_probe / feroxbuster recipes load and render."""
+    def test_kept_recipes_render(self):
+        """Surviving recipes (curl_probe / httpx / nmap) load and render; removed ones are gone."""
         from kali_mcp.core.recipe_loader import (
             get_recipe,
             list_recipes,
@@ -1303,43 +1316,28 @@ class TestP0Harness(unittest.TestCase):
 
         reset_recipes()
         names = list_recipes()
-        for need in ("sqlmap", "ffuf", "nikto", "curl_probe", "feroxbuster", "nuclei", "httpx"):
+        for need in ("curl_probe", "httpx", "nmap"):
             self.assertIn(need, names)
-        sq = render_recipe_command("sqlmap", {"url": "http://lab.local/?id=1"})
-        self.assertIn("sqlmap", sq)
-        self.assertIn("http://lab.local/?id=1", sq)
-        self.assertIn("--batch", sq)
-
-        ff = render_recipe_command("ffuf", {"url": "http://lab.local/"})
-        self.assertIn("ffuf", ff)
-        self.assertIn("FUZZ", ff)
-
-        nk = render_recipe_command("nikto", {"target": "http://lab.local/"})
-        self.assertIn("nikto", nk)
-        self.assertIn("http://lab.local/", nk)
+        for gone in ("sqlmap", "ffuf", "nikto", "feroxbuster", "nuclei", "gobuster", "whatweb"):
+            self.assertNotIn(gone, names)
+            self.assertIsNone(get_recipe(gone))
 
         cp = render_recipe_command("curl_probe", {"target": "http://lab.local/admin"})
         self.assertIn("curl", cp)
         self.assertIn("http://lab.local/admin", cp)
         self.assertIn("__HTTP_CODE__", cp)
 
-        fb = render_recipe_command("feroxbuster", {"url": "http://lab.local/"})
-        self.assertIn("feroxbuster", fb)
-        self.assertIn("FUZZ" if "FUZZ" in fb else "http://lab.local/", fb)
+        hx = render_recipe_command("httpx", {"target": "http://lab.local/"})
+        self.assertIn("httpx", hx)
+        self.assertIn("http://lab.local/", hx)
+        self.assertIn("-u", hx)
 
-        # nuclei recipe aligns with registry-style flags (severity + silent + rate/timeout)
-        nu = render_recipe_command("nuclei", {"target": "http://lab.local/"})
-        self.assertIn("nuclei", nu)
-        self.assertIn("http://lab.local/", nu)
-        self.assertTrue("-s " in nu or "-severity" in nu)
-        self.assertIn("-silent", nu)
-        self.assertIn("-rl", nu)
-        self.assertIn("-timeout", nu)
-        nu_meta = get_recipe("nuclei") or {}
-        self.assertTrue(nu_meta.get("notes") or nu_meta.get("min_version_note"))
+        nm = render_recipe_command("nmap", {"target": "10.0.0.5", "ports": "22,80"})
+        self.assertIn("nmap", nm)
+        self.assertIn("10.0.0.5", nm)
 
-        hx = get_recipe("httpx") or {}
-        self.assertTrue(hx.get("notes") or hx.get("min_version_note"))
+        hx_meta = get_recipe("httpx") or {}
+        self.assertTrue(hx_meta.get("notes") or hx_meta.get("min_version_note"))
         reset_recipes()
 
     def test_status_check_tool_versions_shape(self):
