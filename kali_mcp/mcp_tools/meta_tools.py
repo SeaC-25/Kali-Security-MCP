@@ -90,6 +90,8 @@ _MCP_TO_REGISTRY: Dict[str, str] = {
     "metasploit_run": "metasploit",
     "searchsploit_search": "searchsploit",
     "enum4linux_scan": "enum4linux",
+    # fastsec 自研引擎（单二进制，AI 原生扫描）
+    "fastsec_scan": "fastsec",
     # archived aliases (ai_tools / misc / pentagi / apt surface)
     "aircrack_attack": "aircrack-ng",
     "reaver_attack": "reaver",
