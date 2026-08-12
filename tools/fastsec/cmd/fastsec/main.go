@@ -97,6 +97,7 @@ func main() {
 	smbHost := flag.String("smb", "", "SMB lateral movement target host")
 	smbCmd := flag.String("smb-cmd", "whoami", "command to execute via SMB")
 	smbUser := flag.String("smb-user", "administrator", "SMB username")
+	smbPort := flag.Int("smb-port", 445, "SMB port")
 	smbPass := flag.String("smb-pass", "", "SMB password or NTLM hash")
 	dumpURL := flag.String("dump", "", "SQL injection data extraction URL")
 	dumpParam := flag.String("dump-param", "id", "SQL injection param for extraction")
@@ -527,7 +528,7 @@ func main() {
 
 	// SMB 横向移动模式
 	if *smbHost != "" {
-		cfg := &smb.Config{Host: *smbHost, User: *smbUser}
+		cfg := &smb.Config{Host: *smbHost, Port: *smbPort, User: *smbUser}
 		if *smbPass != "" {
 			cfg.Password = *smbPass
 		}
