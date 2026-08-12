@@ -114,16 +114,20 @@ def _run_tool(executor, tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         # fallback only when execute_tool_with_data unavailable
         from kali_mcp.core.tool_registry import build_command
 
-        built = build_command("httpx", {"target": target, "url": target})
-        cmd = built or f"httpx -u {target} -silent -status-code -title -server"
+        built = build_command("fastsec", {"fingerprint": target.split("//")[-1].split("/")[0]})
+        cmd = built or f"fastsec -fingerprint {target.split('//')[-1].split('/')[0]}"
     elif tool_name == "whatweb":
-        cmd = f"whatweb -a 1 {target}"
+        # fastsec fingerprint/cms 替代 whatweb -a 1
+        host = target.split("//")[-1].split("/")[0]
+        cmd = f"fastsec -cms {target} -delay-min 10 -delay-max 30"
     elif tool_name == "gobuster":
-        wordlist = data.get("wordlist", "/usr/share/wordlists/dirb/common.txt")
-        cmd = f"gobuster dir -u {target} -w {wordlist} -q -t {data.get('threads', 20)}"
+        # fastsec -dir 替代 gobuster dir（自动加载 data/dir 4707 字典）
+        cmd = f"fastsec -dir {target} -delay-min 10 -delay-max 30"
     elif tool_name == "nuclei":
+        # fastsec -d 模板目录 替代 nuclei（3-gate 零误报确认）
         sev = data.get("severity", "critical,high")
-        cmd = f"nuclei -u {target} -severity {sev} -silent"
+        tpl_dir = data.get("templates_dir", "~/nuclei-templates")
+        cmd = f"fastsec -u {target} -d {tpl_dir} -delay-min 10 -delay-max 30"
     else:
         return {"success": False, "error": f"unsupported tool {tool_name}", "output": "", "return_code": -1}
     return executor.execute_command(cmd)

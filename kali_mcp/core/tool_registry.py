@@ -136,17 +136,6 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         additional_args_sanitize="fragment",
     ),
 
-    "masscan": ToolSpec(
-        binary="masscan",
-        params=[
-            ToolParam(name="target", flag="", sanitize="arg", position="first"),
-            ToolParam(name="ports", flag="-p", sanitize="arg", default="80,443", join=""),
-            ToolParam(name="rate", flag="--rate", sanitize="arg", default="1000", join="="),
-        ],
-        timeout=300,
-        output_parser="masscan",
-        additional_args_sanitize="arg",
-    ),
 
     "zmap": ToolSpec(
         binary="zmap",
@@ -316,30 +305,8 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
 
     # ==================== DNS Tools ====================
 
-    "dnsrecon": ToolSpec(
-        binary="dnsrecon",
-        params=[
-            ToolParam(name="domain", flag="-d", sanitize="arg"),
-            ToolParam(name="scan_type", flag="", sanitize="fragment", default="-t std"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
-    "dnsenum": ToolSpec(
-        binary="dnsenum",
-        params=[
-            ToolParam(name="domain", flag="", sanitize="arg"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
-    "fierce": ToolSpec(
-        binary="fierce",
-        params=[
-            ToolParam(name="domain", flag="--domain", sanitize="arg"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
     "dnsmap": ToolSpec(
         binary="dnsmap",
@@ -361,15 +328,6 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         additional_args_sanitize="fragment",
     ),
 
-    "subfinder": ToolSpec(
-        binary="subfinder",
-        params=[
-            ToolParam(name="domain", flag="-d", sanitize="arg"),
-            ToolParam(name="sources", flag="-sources", sanitize="arg", condition_key="sources"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
-
     "amass": ToolSpec(
         binary="amass",
         params=[
@@ -381,75 +339,9 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
 
     # ==================== Web Scanning ====================
 
-    "gobuster": ToolSpec(
-        binary="gobuster",
-        params=[
-            ToolParam(name="mode", flag="", sanitize="arg", default="dir", position="first"),
-            ToolParam(name="url", flag="-u", sanitize="arg"),
-            ToolParam(name="wordlist", flag="-w", sanitize="arg",
-                      default="/usr/share/wordlists/dirb/common.txt"),
-        ],
-        base_args="--no-error -q",
-        timeout=180,
-        output_parser="gobuster",
-        additional_args_sanitize="fragment",
-    ),
 
-    # sqlmap is in CUSTOM_BUILDERS due to --batch placement between -u and --data=
 
-    "nikto": ToolSpec(
-        binary="nikto",
-        params=[
-            ToolParam(name="target", flag="-h", sanitize="arg"),
-        ],
-        base_args="-maxtime 240s",
-        timeout=300,
-        output_parser="nikto",
-        additional_args_sanitize="fragment",
-    ),
 
-    "dirb": ToolSpec(
-        binary="dirb",
-        params=[
-            ToolParam(name="url", flag="", sanitize="arg"),
-            ToolParam(name="wordlist", flag="", sanitize="arg",
-                      default="/usr/share/wordlists/dirb/common.txt"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
-
-    "wfuzz": ToolSpec(
-        binary="wfuzz",
-        params=[
-            ToolParam(name="wordlist", flag="-w", sanitize="arg",
-                      default="/usr/share/wordlists/dirb/common.txt"),
-            # additional_args goes here (default "-c"), then target last
-            ToolParam(name="target", flag="", sanitize="arg", position="last"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
-
-    "ffuf": ToolSpec(
-        binary="ffuf",
-        params=[
-            ToolParam(name="url", flag="-u", sanitize="arg"),
-            ToolParam(name="wordlist", flag="-w", sanitize="arg",
-                      default="/usr/share/wordlists/dirb/common.txt"),
-        ],
-        timeout=180,
-        additional_args_sanitize="fragment",
-    ),
-
-    "feroxbuster": ToolSpec(
-        binary="feroxbuster",
-        params=[
-            ToolParam(name="url", flag="-u", sanitize="arg"),
-            ToolParam(name="wordlist", flag="-w", sanitize="arg",
-                      default="/usr/share/wordlists/dirb/common.txt"),
-            ToolParam(name="threads", flag="-t", sanitize="arg", default="50"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
     "wafw00f": ToolSpec(
         binary="wafw00f",
@@ -460,36 +352,8 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         additional_args_sanitize="fragment",
     ),
 
-    "whatweb": ToolSpec(
-        binary="whatweb",
-        params=[
-            ToolParam(name="aggression", flag="-a", sanitize="arg", default="1"),
-            ToolParam(name="target", flag="", sanitize="arg"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
-    "wpscan": ToolSpec(
-        binary="wpscan",
-        params=[
-            ToolParam(name="target", flag="--url", sanitize="arg"),
-            # api_token goes after additional_args (at end of command)
-            ToolParam(name="api_token", flag="--api-token", sanitize="arg",
-                      condition_key="api_token", position="last"),
-        ],
-        base_args="--no-update",
-        timeout=300,
-        output_parser="wpscan",
-        additional_args_sanitize="fragment",
-    ),
 
-    "joomscan": ToolSpec(
-        binary="joomscan",
-        params=[
-            ToolParam(name="target", flag="-u", sanitize="arg"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
     # ==================== Password Cracking ====================
 
@@ -517,51 +381,9 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         additional_args_sanitize="arg",
     ),
 
-    "medusa": ToolSpec(
-        binary="medusa",
-        params=[
-            ToolParam(name="target", flag="-h", sanitize="arg"),
-            ToolParam(name="service", flag="-M", sanitize="arg", default="ssh"),
-            ToolParam(name="password_list", flag="-P", sanitize="arg",
-                      default="/usr/share/wordlists/rockyou.txt"),
-            ToolParam(name="username", flag="-u", sanitize="arg", condition_key="username"),
-        ],
-        additional_args_sanitize="arg",
-    ),
 
-    "patator": ToolSpec(
-        binary="patator",
-        params=[
-            ToolParam(name="module", flag="", sanitize="arg", default="ssh_login"),
-            # host= is a bare key=value pattern used by patator
-            ToolParam(name="target", flag="host", sanitize="arg", join="="),
-        ],
-        additional_args_sanitize="arg",
-    ),
 
-    "crowbar": ToolSpec(
-        binary="crowbar",
-        params=[
-            ToolParam(name="service", flag="-b", sanitize="arg", default="ssh"),
-            ToolParam(name="target", flag="-s", sanitize="arg"),
-            ToolParam(name="username", flag="-u", sanitize="arg", condition_key="username"),
-            ToolParam(name="wordlist", flag="-C", sanitize="arg", condition_key="wordlist"),
-        ],
-        additional_args_sanitize="arg",
-    ),
 
-    "brutespray": ToolSpec(
-        binary="brutespray",
-        params=[
-            ToolParam(name="nmap_file", flag="-f", sanitize="arg"),
-            ToolParam(name="threads", flag="-t", sanitize="arg", default="5"),
-            ToolParam(name="username_file", flag="-U", sanitize="arg",
-                      condition_key="username_file"),
-            ToolParam(name="password_file", flag="-P", sanitize="arg",
-                      condition_key="password_file"),
-        ],
-        additional_args_sanitize="arg",
-    ),
 
     # ==================== Wireless ====================
 
@@ -674,13 +496,6 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
 
     # ==================== Vulnerability Scanning ====================
 
-    "searchsploit": ToolSpec(
-        binary="searchsploit",
-        params=[
-            ToolParam(name="term", flag="", sanitize="arg"),
-        ],
-        additional_args_sanitize="fragment",
-    ),
 
     "enum4linux": ToolSpec(
         binary="enum4linux",
@@ -845,41 +660,6 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
 # Custom builder functions — tools that do not fit the declarative model
 # ---------------------------------------------------------------------------
 
-def _build_sqlmap(data: Dict[str, Any]) -> str:
-    """sqlmap: ``--batch`` positioned between ``-u`` and ``--data=``."""
-    url = sanitize_shell_arg(data.get("url", ""))
-    data_param = sanitize_shell_arg(data.get("data", ""))
-    additional_args = data.get("additional_args", "")
-    cmd = f"sqlmap -u {url} --batch"
-    if data.get("data", ""):
-        cmd += f" --data={data_param}"
-    if additional_args:
-        cmd += f" {sanitize_shell_fragment(additional_args)}"
-    return cmd
-
-
-def _build_hydra(data: Dict[str, Any]) -> str:
-    """hydra: mutually-exclusive ``-L``/``-l`` and ``-P``/``-p`` pairs."""
-    target = sanitize_shell_arg(data.get("target", ""))
-    service = sanitize_shell_arg(data.get("service", ""))
-    username = data.get("username", "")
-    username_file = data.get("username_file", "")
-    password = data.get("password", "")
-    password_file = data.get("password_file", "")
-    additional_args = data.get("additional_args", "")
-    cmd = "hydra"
-    if username_file:
-        cmd += f" -L {sanitize_shell_arg(username_file)}"
-    elif username:
-        cmd += f" -l {sanitize_shell_arg(username)}"
-    if password_file:
-        cmd += f" -P {sanitize_shell_arg(password_file)}"
-    elif password:
-        cmd += f" -p {sanitize_shell_arg(password)}"
-    cmd += f" {target} {service}"
-    if additional_args:
-        cmd += f" {sanitize_shell_fragment(additional_args)}"
-    return cmd
 
 
 def _build_ncrack(data: Dict[str, Any]) -> str:
@@ -1022,27 +802,6 @@ def _build_sherlock(data: Dict[str, Any]) -> str:
         cmd += f" {sanitize_shell_arg(additional_args)}"
     return cmd
 
-
-def _build_nuclei(data: Dict[str, Any]) -> str:
-    """nuclei: dynamic rate-limit / timeout from ``EXEC_CONFIG``."""
-    target = sanitize_shell_arg(data.get("target", ""))
-    templates = sanitize_shell_arg(data.get("templates", ""))
-    severity = sanitize_shell_arg(data.get("severity", "critical,high,medium"))
-    tags = sanitize_shell_arg(data.get("tags", ""))
-    output_format = data.get("output_format", "json")
-    additional_args = data.get("additional_args", "")
-    rl = EXEC_CONFIG["nuclei_rate_limit"]
-    nt = EXEC_CONFIG["nuclei_timeout"]
-    cmd = f"nuclei -u {target} -s {severity} -silent -rl {rl} -timeout {nt}"
-    if data.get("templates", ""):
-        cmd += f" -t {templates}"
-    if data.get("tags", ""):
-        cmd += f" -tags {tags}"
-    if output_format == "json":
-        cmd += " -jsonl"
-    if additional_args:
-        cmd += f" {sanitize_shell_fragment(additional_args)}"
-    return cmd
 
 
 def _build_recon_ng(data: Dict[str, Any]) -> str:
@@ -1472,10 +1231,10 @@ def _build_theHarvester_upper(data: Dict[str, Any]) -> str:
 
 CUSTOM_BUILDERS: Dict[str, Callable[[Dict[str, Any]], str]] = {
     # Web scanning
-    "sqlmap":       _build_sqlmap,
+
 
     # Authentication / brute-force
-    "hydra":        _build_hydra,
+
     "ncrack":       _build_ncrack,
 
     # Network discovery
@@ -1492,7 +1251,7 @@ CUSTOM_BUILDERS: Dict[str, Callable[[Dict[str, Any]], str]] = {
     "aircrack":     _build_aircrack,
 
     # Vulnerability scanning
-    "nuclei":       _build_nuclei,
+
 
     # Exploitation frameworks
     "metasploit":   _build_metasploit,
@@ -1787,9 +1546,6 @@ def build_command(tool_name: str, data: Dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 _CUSTOM_TOOL_SPECS: Dict[str, ToolSpec] = {
-    "sqlmap":       ToolSpec(binary="sqlmap", timeout=600, output_parser="sqlmap"),
-    "hydra":        ToolSpec(binary="hydra", timeout=600, output_parser="hydra"),
-    "ncrack":       ToolSpec(binary="ncrack"),
     "netdiscover":  ToolSpec(binary="netdiscover"),
     "arp-scan":     ToolSpec(binary="arp-scan"),
     "arpscan":      ToolSpec(binary="arp-scan"),
@@ -1797,16 +1553,13 @@ _CUSTOM_TOOL_SPECS: Dict[str, ToolSpec] = {
     "ettercap":     ToolSpec(binary="ettercap"),
     "aircrack-ng":  ToolSpec(binary="aircrack-ng"),
     "aircrack":     ToolSpec(binary="aircrack-ng"),
-    "nuclei":       ToolSpec(binary="nuclei", timeout=300, output_parser="nuclei"),
     "metasploit":   ToolSpec(binary="msfconsole", timeout=600),
     "msfconsole":   ToolSpec(binary="msfconsole", timeout=600),
     "msfvenom":     ToolSpec(binary="msfvenom"),
     "radare2":      ToolSpec(binary="r2"),
     "r2":           ToolSpec(binary="r2"),
     "binwalk":      ToolSpec(binary="binwalk"),
-    "sherlock":     ToolSpec(binary="sherlock"),
     "recon-ng":     ToolSpec(binary="recon-ng"),
-    "theharvester": ToolSpec(binary="theHarvester"),
     "theHarvester": ToolSpec(binary="theHarvester"),
     "httpx":        ToolSpec(binary="httpx"),
     "curl":         ToolSpec(binary="curl"),

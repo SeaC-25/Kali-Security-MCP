@@ -29,16 +29,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 K1_KEEP_TOOLS = frozenset({
     # recon (recon_tools.py — whole module kept)
-    "nmap_scan", "gobuster_scan", "nikto_scan", "sqlmap_scan",
-    "metasploit_run", "hydra_attack", "john_crack", "enum4linux_scan",
+    # fastsec 已替代: gobuster/nikto/sqlmap/hydra/whatweb/subfinder/ffuf/nuclei
+    "nmap_scan", "metasploit_run", "john_crack", "enum4linux_scan",
     "server_health",
     # recon / web (ai_tools.py — pruned to these)
-    "whatweb_scan", "subfinder_scan", "masscan_fast_scan", "ffuf_scan",
-    "nuclei_scan",
     # password (ai_tools.py)
     "hashcat_crack",
     # exploit (ai_tools.py)
-    "searchsploit_search",
     # pwn (pwn_tools.py — pruned)
     "quick_pwn_check", "pwnpasi_auto_pwn",
     # intel (code_audit_tools.py — pruned)
@@ -76,53 +73,28 @@ K1_KEEP_TOOLS = frozenset({
 _MCP_TO_REGISTRY: Dict[str, str] = {
     # keep-set (recon / web / password / exploit)
     "nmap_scan": "nmap",
-    "gobuster_scan": "gobuster",
-    "nikto_scan": "nikto",
-    "sqlmap_scan": "sqlmap",
-    "whatweb_scan": "whatweb",
-    "subfinder_scan": "subfinder",
-    "masscan_fast_scan": "masscan",
-    "ffuf_scan": "ffuf",
-    "nuclei_scan": "nuclei",
-    "hydra_attack": "hydra",
-    "john_crack": "john",
+                                        "john_crack": "john",
     "hashcat_crack": "hashcat",
     "metasploit_run": "metasploit",
-    "searchsploit_search": "searchsploit",
-    "enum4linux_scan": "enum4linux",
+        "enum4linux_scan": "enum4linux",
     # fastsec 自研引擎（单二进制，AI 原生扫描）
     "fastsec_scan": "fastsec",
     # archived aliases (ai_tools / misc / pentagi / apt surface)
     "aircrack_attack": "aircrack-ng",
     "reaver_attack": "reaver",
     "bettercap_attack": "bettercap",
-    "wpscan_scan": "wpscan",
-    "theharvester_osint": "theharvester",
-    "sherlock_search": "sherlock",
-    "httpx_probe": "httpx",
+                "httpx_probe": "httpx",
     "recon_ng_run": "recon-ng",
     "netdiscover_scan": "netdiscover",
-    "dnsrecon_scan": "dnsrecon",
-    "arp_scan": "arp-scan",
+        "arp_scan": "arp-scan",
     "fping_scan": "fping",
     "binwalk_analysis": "binwalk",
     "bandit_scan": "bandit",
     "semgrep_scan": "semgrep",
     "shellcheck_scan": "shellcheck",
-    "joomscan_scan": "joomscan",
-    "amass_scan": "amass",
-    "dirb_scan": "dirb",
-    "feroxbuster_scan": "feroxbuster",
-    "wfuzz_scan": "wfuzz",
-    "dnsenum_scan": "dnsenum",
-    "sublist3r_scan": "sublist3r",
-    "fierce_scan": "fierce",
-    "medusa_attack": "medusa",
-    "ncrack_attack": "ncrack",
-    "brutespray_attack": "brutespray",
-    "crowbar_attack": "crowbar",
-    "patator_attack": "patator",
-    "bully_attack": "bully",
+        "amass_scan": "amass",
+                    "sublist3r_scan": "sublist3r",
+                            "bully_attack": "bully",
     "pixiewps_attack": "pixiewps",
     "yersinia_attack": "yersinia",
 }
