@@ -62,11 +62,11 @@ class ReconAgent(BaseAgentV2):
             category="information_gathering",
             supported_tools={
                 # 端口扫描工具
-                "nmap_scan", "masscan_fast_scan", "masscan_scan",
+                "nmap_scan", "masscan_scan",
                 "arp_scan", "fping_scan", "netdiscover_scan",
 
-                # 服务识别工具
-                "whatweb_scan", "whatweb_identify", "httpx_probe",
+                # 服务识别/技术检测（fastsec -cms / -fingerprint，替代 whatweb/httpx）
+                "fastsec_scan",
 
                 # 网络发现工具
                 "onesixtyone_scan",
@@ -156,9 +156,11 @@ class ReconAgent(BaseAgentV2):
             # 目前返回模拟结果
             port_scan_result = await self._call_tool("nmap_scan", {"target": target})
 
-            # 2. 服务识别
+            # 2. 服务识别（fastsec -cms 技术栈识别）
             logger.info(f"开始服务识别: {target}")
-            service_scan_result = await self._call_tool("whatweb_scan", {"target": target})
+            service_scan_result = await self._call_tool("fastsec_scan", {
+                "cms": target
+            })
 
             return {
                 "success": True,
@@ -245,16 +247,16 @@ class ReconAgent(BaseAgentV2):
         """解析侦察输出"""
         findings = []
 
-        # 解析nmap输出
-        if tool_name == "nmap_scan" or tool_name == "masscan_fast_scan":
+        # 解析nmap输出（fastsec -scan 端口扫描同格式兜底）
+        if tool_name in ("nmap_scan", "masscan_fast_scan", "masscan_scan", "fastsec_scan"):
             findings.extend(self._parse_port_scan_output(output, target))
 
-        # 解析whatweb输出
-        elif tool_name == "whatweb_scan":
+        # 解析whatweb输出（fastsec -cms / -fingerprint 技术识别兜底）
+        if tool_name in ("whatweb_scan", "whatweb_identify", "httpx_probe", "fastsec_scan"):
             findings.extend(self._parse_tech_detect_output(output, target))
 
         # 解析arp扫描输出
-        elif tool_name == "arp_scan":
+        if tool_name == "arp_scan":
             findings.extend(self._parse_arp_scan_output(output, target))
 
         return findings
@@ -315,11 +317,17 @@ class ReconAgent(BaseAgentV2):
         findings = []
 
         # whatweb输出格式: "Technology, Version, ... "
+        # fastsec -cms/-fingerprint 输出头（[cms] / [fingerprint] / 其他模式头）跳过
+        skip_prefixes = ("[cms]", "[fingerprint]", "[portscan]", "[osint]",
+                         "[brute]", "[injector]", "[username]", "[+]", "[-]",
+                         "===", "提取:")
         lines = output.split('\n')
         for line in lines:
-            if line.strip() and not line.startswith('|') and not line.startswith('+'):
+            stripped = line.strip()
+            if stripped and not stripped.startswith('|') and not stripped.startswith('+') \
+                    and not stripped.startswith(skip_prefixes):
                 # 提取技术栈信息
-                parts = line.split(',')
+                parts = stripped.split(',')
                 if len(parts) >= 1:
                     tech = parts[0].strip()
                     findings.append(Finding(
@@ -327,7 +335,7 @@ class ReconAgent(BaseAgentV2):
                         severity=ResultSeverity.INFO,
                         title=f"检测到技术: {tech}",
                         description=f"目标 {target} 使用 {tech}",
-                        evidence=[line.strip()],
+                        evidence=[stripped],
                         source=self.agent_id,
                         confidence=0.85
                     ))
@@ -408,10 +416,12 @@ class ReconAgent(BaseAgentV2):
         # 根据工具类型调用相应的执行方法
         if task_type == "nmap_scan":
             return await self._execute_nmap_scan_impl(task_data)
-        elif task_type == "masscan_fast_scan":
+        elif task_type in ("masscan_fast_scan", "masscan_scan"):
             return await self._execute_masscan_scan_impl(task_data)
-        elif task_type == "whatweb_scan":
-            return await self._execute_whatweb_scan_impl(task_data)
+        elif task_type in ("whatweb_scan", "whatweb_identify", "httpx_probe"):
+            return await self._execute_fastsec_cms_impl(task_data)
+        elif task_type == "fastsec_scan":
+            return await self._execute_fastsec_scan_impl(task_data)
         elif task_type == "arp_scan":
             return await self._execute_arp_scan_impl(task_data)
         elif task_type == "comprehensive_network_scan":
@@ -434,26 +444,42 @@ class ReconAgent(BaseAgentV2):
         })
 
     async def _execute_masscan_scan_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行masscan快速扫描（内部实现）"""
-        target = parameters.get("target", "")
+        """执行快速端口扫描（fastsec -scan，替代 masscan）"""
+        target = parameters.get("target", parameters.get("scan", ""))
         ports = parameters.get("ports", "80,443,22,21,25,53,110,143,443,8080,3389")
         rate = parameters.get("rate", "10000")
 
-        return await self._call_tool("masscan_fast_scan", {
-            "target": target,
+        return await self._call_tool("fastsec_scan", {
+            "scan": target,
             "ports": ports,
             "rate": rate
         })
 
-    async def _execute_whatweb_scan_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行whatweb技术识别（内部实现）"""
-        target = parameters.get("target", "")
+    async def _execute_fastsec_cms_impl(self, parameters: Dict[str, Any]) -> str:
+        """执行技术/CMS识别（fastsec -cms，替代 whatweb/httpx）"""
+        target = parameters.get("target", parameters.get("cms", parameters.get("fingerprint", "")))
         aggression = parameters.get("aggression", "1")
 
-        return await self._call_tool("whatweb_scan", {
-            "target": target,
-            "aggression": aggression
+        return await self._call_tool("fastsec_scan", {
+            "cms": target,
+            "delay_min": 10,
+            "delay_max": 30
         })
+
+    async def _execute_fastsec_scan_impl(self, parameters: Dict[str, Any]) -> str:
+        """执行 fastsec 统一扫描（按模式参数路由）"""
+        if parameters.get("scan"):
+            return await self._execute_masscan_scan_impl(parameters)
+        elif parameters.get("cms") or parameters.get("fingerprint"):
+            return await self._execute_fastsec_cms_impl(parameters)
+        elif parameters.get("dir"):
+            return await self._call_tool("fastsec_scan", {
+                "dir": parameters.get("dir", parameters.get("url", "")),
+                "delay_min": 10,
+                "delay_max": 30
+            })
+        else:
+            return await self._call_tool("fastsec_scan", parameters)
 
     async def _execute_arp_scan_impl(self, parameters: Dict[str, Any]) -> str:
         """执行ARP扫描（内部实现）"""
@@ -528,10 +554,9 @@ class ReconAgent(BaseAgentV2):
                     task_id=f"recon_{task_id}",
                     name=f"服务枚举: {target}",
                     category=TaskCategory.SCANNING,
-                    tool_name="whatweb_scan",
+                    tool_name="fastsec_scan",
                     parameters={
-                        "target": target,
-                        "aggression": "1"
+                        "cms": target
                     },
                     priority=7,
                     estimated_duration=60,
@@ -543,9 +568,9 @@ class ReconAgent(BaseAgentV2):
                     task_id=f"recon_{task_id}",
                     name=f"技术检测: {target}",
                     category=TaskCategory.SCANNING,
-                    tool_name="httpx_probe",
+                    tool_name="fastsec_scan",
                     parameters={
-                        "targets": target
+                        "fingerprint": target
                     },
                     priority=6,
                     estimated_duration=30,

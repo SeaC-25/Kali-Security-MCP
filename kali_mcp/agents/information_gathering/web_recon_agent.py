@@ -54,18 +54,11 @@ class WebReconAgent(BaseAgentV2):
             name="web_reconnaissance",
             category="information_gathering",
             supported_tools={
-                # 目录枚举工具
-                "gobuster_scan", "dirb_scan", "ffuf_scan",
-                "feroxbuster_scan", "wfuzz_scan",
+                # fastsec 自研引擎（替代 gobuster/dirb/ffuf/feroxbuster/wfuzz/whatweb/wpscan/joomscan）
+                "fastsec_scan",
 
-                # 技术识别工具
-                "whatweb_scan", "whatweb_identify", "httpx_probe",
-
-                # WAF检测
+                # WAF检测（fastsec -inject 内置）
                 "wafw00f_scan",
-
-                # CMS扫描
-                "wpscan_scan", "joomscan_scan",
 
                 # 高级扫描
                 "comprehensive_web_security_scan"
@@ -113,16 +106,22 @@ class WebReconAgent(BaseAgentV2):
             return {"success": False, "error": "未指定目标"}
 
         try:
-            # 执行标准Web侦察流程
-            result = await self._call_tool("gobuster_scan", {
-                "url": target,
-                "mode": "dir"
+            # 执行标准Web侦察流程（fastsec -dir 目录枚举 + -cms 技术识别）
+            result = await self._call_tool("fastsec_scan", {
+                "dir": target,
+                "delay_min": 10,
+                "delay_max": 30
+            })
+            cms_result = await self._call_tool("fastsec_scan", {
+                "cms": target,
+                "delay_min": 10,
+                "delay_max": 30
             })
 
             return {
                 "success": True,
                 "target": target,
-                "scan_result": result[:200] + "..." if len(result) > 200 else result
+                "scan_result": (result[:100] + " | " + cms_result[:100] + "...") if len(result) > 100 else result
             }
 
         except Exception as e:
@@ -188,72 +187,47 @@ class WebReconAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现"""
-        if task_type == "gobuster_scan":
-            return await self._execute_gobuster_impl(task_data)
-        elif task_type == "dirb_scan":
-            return await self._execute_dirb_impl(task_data)
-        elif task_type == "ffuf_scan":
-            return await self._execute_ffuf_impl(task_data)
-        elif task_type == "whatweb_scan":
-            return await self._execute_whatweb_impl(task_data)
+        """执行任务实现（fastsec 统一处理 dir/cms）"""
+        if task_type in ("gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan", "wfuzz_scan"):
+            return await self._execute_fastsec_dir_impl(task_data)
+        elif task_type in ("whatweb_scan", "whatweb_identify"):
+            return await self._execute_fastsec_cms_impl(task_data)
         elif task_type == "wafw00f_scan":
             return await self._execute_wafw00f_impl(task_data)
         else:
             return await self._call_tool(task_type, task_data)
 
-    # ==================== 目录枚举相关 ====================
+    # ==================== 目录枚举相关（fastsec） ====================
 
-    async def _execute_gobuster_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行Gobuster扫描"""
-        url = parameters.get("url", "")
-        mode = parameters.get("mode", "dir")
-        wordlist = parameters.get("wordlist", self.wordlists["standard"])
+    async def _execute_fastsec_dir_impl(self, parameters: Dict[str, Any]) -> str:
+        """执行目录枚举（fastsec -dir，自动加载 4707 路径字典）"""
+        url = parameters.get("url", parameters.get("target", ""))
 
-        return await self._call_tool("gobuster_scan", {
-            "url": url,
-            "mode": mode,
-            "wordlist": wordlist
+        return await self._call_tool("fastsec_scan", {
+            "dir": url,
+            "delay_min": 10,
+            "delay_max": 30
         })
 
-    async def _execute_dirb_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行Dirb扫描"""
-        url = parameters.get("url", "")
-        wordlist = parameters.get("wordlist", self.wordlists["standard"])
+    async def _execute_fastsec_cms_impl(self, parameters: Dict[str, Any]) -> str:
+        """执行技术/CMS识别（fastsec -cms）"""
+        target = parameters.get("target", parameters.get("url", ""))
 
-        return await self._call_tool("dirb_scan", {
-            "url": url,
-            "wordlist": wordlist
-        })
-
-    async def _execute_ffuf_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行FFUF扫描"""
-        url = parameters.get("url", "")
-        wordlist = parameters.get("wordlist", self.wordlists["standard"])
-
-        return await self._call_tool("ffuf_scan", {
-            "url": url,
-            "wordlist": wordlist
-        })
-
-    # ==================== 技术识别相关 ====================
-
-    async def _execute_whatweb_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行WhatWeb识别"""
-        target = parameters.get("target", "")
-        aggression = parameters.get("aggression", "1")
-
-        return await self._call_tool("whatweb_scan", {
-            "target": target,
-            "aggression": aggression
+        return await self._call_tool("fastsec_scan", {
+            "cms": target,
+            "delay_min": 10,
+            "delay_max": 30
         })
 
     async def _execute_wafw00f_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行WAF检测"""
+        """执行WAF检测（fastsec -inject 内置 WAF 指纹）"""
         target = parameters.get("target", "")
+        from urllib.parse import urlparse
+        u = urlparse(target if target.startswith("http") else "http://" + target)
 
-        return await self._call_tool("wafw00f_scan", {
-            "target": target
+        return await self._call_tool("fastsec_scan", {
+            "url": target if target.startswith("http") else "http://" + target,
+            "inject": "id"
         })
 
     # ==================== 结果解析 ====================
@@ -267,12 +241,12 @@ class WebReconAgent(BaseAgentV2):
         """解析Web侦察输出"""
         findings = []
 
-        # 解析目录枚举输出
-        if tool_name in ["gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan"]:
+        # 解析目录枚举输出（fastsec -dir 格式 "[+] 200 /admin (11B)"）
+        if tool_name in ["gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan", "wfuzz_scan"]:
             findings.extend(self._parse_directory_enum_output(output, target))
 
-        # 解析技术识别输出
-        elif tool_name in ["whatweb_scan", "whatweb_identify"]:
+        # 解析技术识别输出（fastsec -cms）
+        elif tool_name in ["whatweb_scan", "whatweb_identify", "fastsec_scan"]:
             findings.extend(self._parse_tech_detect_output(output, target))
 
         # 解析WAF检测输出
@@ -427,7 +401,7 @@ class WebReconAgent(BaseAgentV2):
             task_id=f"web_recon_{task_id}",
             name=f"目录枚举: {target}",
             category=TaskCategory.RECONNAISSANCE,
-            tool_name="gobuster_scan",
+            tool_name="fastsec_scan",
             parameters={
                 "url": target,
                 "wordlist": self.get_wordlist(intensity)
@@ -444,7 +418,7 @@ class WebReconAgent(BaseAgentV2):
             task_id=f"web_recon_{task_id}",
             name=f"技术识别: {target}",
             category=TaskCategory.SCANNING,
-            tool_name="whatweb_scan",
+            tool_name="fastsec_scan",
             parameters={
                 "target": target,
                 "aggression": "1"

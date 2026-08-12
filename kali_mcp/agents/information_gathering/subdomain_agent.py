@@ -66,15 +66,8 @@ class SubdomainAgent(BaseAgentV2):
             name="subdomain_discovery",
             category="information_gathering",
             supported_tools={
-                # 子域名枚举工具
-                "subfinder_scan", "amass_enum", "sublist3r_scan",
-
-                # DNS枚举工具
-                "dnsrecon_scan", "dnsenum_scan", "dnsmap_scan",
-                "fierce_scan",
-
-                # OSINT工具
-                "theharvester_osint"
+                # fastsec -osint 统一处理（667万 DNS 字典 + crt.sh + hackertarget 聚合）
+                "fastsec_scan"
             },
             max_concurrent_tasks=5,
             specialties=["subdomain_enum", "dns_enum", "osint"]
@@ -126,22 +119,16 @@ class SubdomainAgent(BaseAgentV2):
             # 执行标准子域名枚举流程
             logger.info(f"开始子域名枚举: {target}")
 
-            # 1. 子域名枚举
-            subdomain_result = await self._call_tool("subfinder_scan", {
-                "domain": target
-            })
-
-            # 2. DNS记录枚举
-            dns_result = await self._call_tool("dnsrecon_scan", {
-                "domain": target,
-                "scan_type": "-t std"
+            # fastsec -osint 统一处理（crt.sh + hackertarget + 667万 DNS 字典爆破）
+            result = await self._call_tool("fastsec_scan", {
+                "osint": target
             })
 
             return {
                 "success": True,
                 "target": target,
-                "subdomain_scan": subdomain_result[:100] + "..." if len(subdomain_result) > 100 else subdomain_result,
-                "dns_scan": dns_result[:100] + "..." if len(dns_result) > 100 else dns_result
+                "subdomain_scan": result[:200] + "..." if len(result) > 200 else result,
+                "dns_scan": result[:200] + "..." if len(result) > 200 else result
             }
 
         except Exception as e:
@@ -210,74 +197,25 @@ class SubdomainAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现"""
-        if task_type == "subfinder_scan":
-            return await self._execute_subfinder_impl(task_data)
-        elif task_type == "amass_enum":
-            return await self._execute_amass_impl(task_data)
-        elif task_type == "sublist3r_scan":
-            return await self._execute_sublist3r_impl(task_data)
-        elif task_type == "dnsrecon_scan":
-            return await self._execute_dnsrecon_impl(task_data)
-        elif task_type == "theharvester_osint":
-            return await self._execute_theharvester_impl(task_data)
+        """执行任务实现（fastsec -osint 统一处理）"""
+        if task_type in ("subfinder_scan", "amass_enum", "sublist3r_scan",
+                          "dnsrecon_scan", "dnsenum_scan", "dnsmap_scan",
+                          "fierce_scan", "theharvester_osint", "fastsec_scan"):
+            return await self._execute_fastsec_osint_impl(task_data)
         else:
             return await self._call_tool(task_type, task_data)
 
     # ==================== 子域名枚举相关 ====================
 
-    async def _execute_subfinder_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行Subfinder扫描"""
-        domain = parameters.get("domain", "")
-        sources = parameters.get("sources", "")
+    async def _execute_fastsec_osint_impl(self, parameters: Dict[str, Any]) -> str:
+        """执行 OSINT 聚合（fastsec -osint：crt.sh + hackertarget + 667万 DNS 字典）"""
+        domain = parameters.get("domain", parameters.get("target", ""))
 
-        return await self._call_tool("subfinder_scan", {
-            "domain": domain,
-            "sources": sources
-        })
-
-    async def _execute_amass_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行Amass枚举"""
-        domain = parameters.get("domain", "")
-        mode = parameters.get("mode", "enum")
-
-        return await self._call_tool("amass_enum", {
-            "domain": domain,
-            "mode": mode
-        })
-
-    async def _execute_sublist3r_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行Sublist3r扫描"""
-        domain = parameters.get("domain", "")
-
-        return await self._call_tool("sublist3r_scan", {
-            "domain": domain,
-            "additional_args": "-v"
+        return await self._call_tool("fastsec_scan", {
+            "osint": domain
         })
 
     # ==================== DNS枚举相关 ====================
-
-    async def _execute_dnsrecon_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行DNSRecon枚举"""
-        domain = parameters.get("domain", "")
-        scan_type = parameters.get("scan_type", "-t std")
-
-        return await self._call_tool("dnsrecon_scan", {
-            "domain": domain,
-            "scan_type": scan_type
-        })
-
-    async def _execute_theharvester_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行theHarvester OSINT搜集"""
-        domain = parameters.get("domain", "")
-        sources = parameters.get("sources", "anubis,crtsh,dnsdumpster,hackertarget")
-        limit = parameters.get("limit", "500")
-
-        return await self._call_tool("theharvester_osint", {
-            "domain": domain,
-            "sources": sources,
-            "limit": limit
-        })
 
     # ==================== 结果解析 ====================
 
@@ -309,6 +247,48 @@ class SubdomainAgent(BaseAgentV2):
         # 解析theHarvester输出
         elif tool_name == "theharvester_osint":
             findings.extend(self._parse_theharvester_output(output, target))
+
+        # 解析fastsec -osint 聚合输出
+        elif tool_name == "fastsec_scan":
+            findings.extend(self._parse_fastsec_osint_output(output, target))
+
+        return findings
+
+    def _parse_fastsec_osint_output(self, output: str, target: str) -> List[Finding]:
+        """解析fastsec -osint 输出（[osint] 头 + [subdomain]/[email] 条目）"""
+        findings = []
+
+        # fastsec -osint 输出格式:
+        #   [osint] example.com: 5 emails, 12 subdomains
+        #     [subdomain] api.example.com
+        #     [email] user@example.com
+        line_pattern = re.compile(r'^\s*\[(subdomain|email)\]\s+(\S+)\s*$')
+
+        for line in output.split('\n'):
+            m = line_pattern.match(line)
+            if not m:
+                continue
+            kind, value = m.group(1), m.group(2)
+            if kind == "subdomain" and value.endswith("." + target):
+                findings.append(Finding(
+                    finding_type=ResultType.ASSET,
+                    severity=ResultSeverity.INFO,
+                    title=f"发现子域名: {value}",
+                    description=f"通过fastsec -osint发现子域名 {value}",
+                    evidence=[line.strip()],
+                    source=self.agent_id,
+                    confidence=0.90
+                ))
+            elif kind == "email":
+                findings.append(Finding(
+                    finding_type=ResultType.INFO,
+                    severity=ResultSeverity.INFO,
+                    title=f"发现邮箱: {value}",
+                    description=f"通过fastsec -osint发现邮箱 {value}",
+                    evidence=[line.strip()],
+                    source=self.agent_id,
+                    confidence=0.85
+                ))
 
         return findings
 
@@ -471,7 +451,7 @@ class SubdomainAgent(BaseAgentV2):
             task_id=f"subdomain_{task_id}",
             name=f"Subfinder子域名枚举: {target}",
             category=TaskCategory.RECONNAISSANCE,
-            tool_name="subfinder_scan",
+            tool_name="fastsec_scan",
             parameters={
                 "domain": target
             },
@@ -482,16 +462,15 @@ class SubdomainAgent(BaseAgentV2):
 
         task_id += 1
 
-        # 2. Amass深度枚举（仅standard和comprehensive）
+        # 2. 深度OSINT枚举（fastsec -osint 聚合，仅standard和comprehensive）
         if intensity in ["standard", "comprehensive"]:
             tasks.append(Task(
                 task_id=f"subdomain_{task_id}",
-                name=f"Amass深度枚举: {target}",
+                name=f"深度OSINT枚举: {target}",
                 category=TaskCategory.RECONNAISSANCE,
-                tool_name="amass_enum",
+                tool_name="fastsec_scan",
                 parameters={
-                    "domain": target,
-                    "mode": "enum"
+                    "domain": target
                 },
                 priority=7,
                 estimated_duration=180,
@@ -506,7 +485,7 @@ class SubdomainAgent(BaseAgentV2):
                 task_id=f"subdomain_{task_id}",
                 name=f"OSINT子域名搜集: {target}",
                 category=TaskCategory.RECONNAISSANCE,
-                tool_name="theharvester_osint",
+                tool_name="fastsec_scan",
                 parameters={
                     "domain": target,
                     "sources": "anubis,crtsh,dnsdumpster,hackertarget",

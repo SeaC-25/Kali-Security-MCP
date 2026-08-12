@@ -151,41 +151,27 @@ class BaseAgentV2(BaseAgent):
     # MCP工具名 → executor工具名 映射
     MCP_TO_TOOL_NAME_MAP: Dict[str, str] = {
         # 信息收集
-        "nmap_scan": "nmap", "masscan_fast_scan": "masscan",
+        "nmap_scan": "nmap",
         "arp_scan": "arp-scan", "fping_scan": "fping",
         "netdiscover_scan": "netdiscover",
         # DNS
-        "subfinder_scan": "subfinder", "amass_enum": "amass",
-        "sublist3r_scan": "sublist3r", "dnsrecon_scan": "dnsrecon",
-        "dnsenum_scan": "dnsenum", "fierce_scan": "fierce",
+        "amass_enum": "amass",
+        "sublist3r_scan": "sublist3r",
         "dnsmap_scan": "dnsmap",
-        # Web侦察
-        "whatweb_scan": "whatweb", "httpx_probe": "httpx",
+        # Web侦察/漏洞扫描/密码攻击（fastsec 自研引擎替代 gobuster/dirb/ffuf/feroxbuster/wfuzz/
+        # nikto/sqlmap/whatweb/subfinder/nuclei/hydra/wpscan/joomscan/sherlock/masscan 等已删工具）
+        "fastsec_scan": "fastsec", "httpx_probe": "httpx",
         "wafw00f_scan": "wafw00f",
-        # 目录扫描
-        "gobuster_scan": "gobuster", "dirb_scan": "dirb",
-        "ffuf_scan": "ffuf", "feroxbuster_scan": "feroxbuster",
-        "wfuzz_scan": "wfuzz",
-        # 漏洞扫描
-        "nikto_scan": "nikto", "nuclei_scan": "nuclei",
-        "nuclei_web_scan": "nuclei", "nuclei_cve_scan": "nuclei",
-        "nuclei_network_scan": "nuclei",
-        "wpscan_scan": "wpscan", "joomscan_scan": "joomscan",
-        # SQL注入
-        "sqlmap_scan": "sqlmap",
         # 密码攻击
-        "hydra_attack": "hydra", "john_crack": "john",
-        "hashcat_crack": "hashcat", "medusa_bruteforce": "medusa",
-        "ncrack_attack": "ncrack", "patator_attack": "patator",
-        "crowbar_attack": "crowbar", "brutespray_attack": "brutespray",
+        "john_crack": "john",
+        "hashcat_crack": "hashcat",
         # 漏洞利用
-        "metasploit_run": "metasploit", "searchsploit_search": "searchsploit",
+        "metasploit_run": "metasploit",
         "enum4linux_scan": "enum4linux",
         # 网络攻击
         "responder_attack": "responder", "ettercap_attack": "ettercap",
         "bettercap_attack": "bettercap",
         # OSINT
-        "theharvester_osint": "theHarvester", "sherlock_search": "sherlock",
         "recon_ng_run": "recon-ng",
         # 二进制/逆向
         "binwalk_analysis": "binwalk", "radare2_analyze_binary": "radare2",
