@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"path/filepath"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -52,6 +53,32 @@ func wafDetect(url, param string, cli *stealth.Client) struct {
 		WAFName     string
 	}{WAFDetected: d.WAFDetected, WAFName: d.WAFName}
 }
+
+// loadDataDicts: 加载 data/ 目录下的所有 .txt 字典（合并去重）
+func loadDataDicts(dir string) []string {
+var out []string
+entries, err := os.ReadDir(dir)
+if err != nil {
+	return nil
+}
+for _, e := range entries {
+	if e.IsDir() || !strings.HasSuffix(e.Name(), ".txt") {
+		continue
+	}
+	f, err := os.ReadFile(dir + "/" + e.Name())
+	if err != nil {
+		continue
+	}
+	for _, l := range strings.Split(string(f), "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			out = append(out, l)
+		}
+	}
+}
+return out
+}
+
+
 
 func main() {
 	url := flag.String("u", "", "target URL (required unless -l)")
@@ -102,6 +129,7 @@ func main() {
 	dumpURL := flag.String("dump", "", "SQL injection data extraction URL")
 	dumpParam := flag.String("dump-param", "id", "SQL injection param for extraction")
 	scanRange := flag.String("scan-range", "1-1000", "port scan range (start-end)")
+	kbQuery := flag.String("kb", "", "knowledge base query (e.g. 域渗透/提权/口令)")
 	seqFile := flag.String("seq", "", "stateful attack sequence YAML file")
 	topN := flag.Int("top", 5, "top-N prioritized params to show (with -diff)")
 	concurrency := flag.Int("c", 20, "concurrency")
@@ -132,7 +160,7 @@ func main() {
 		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != "" ||
 		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != "" ||
 		*filePath != "" || *userSearch != "" || *scanTarget != "" ||
-		*shellLang != "" || *listenPort > 0 || *samFile != "" || *smbHost != "" || *dumpURL != ""
+		*shellLang != "" || *listenPort > 0 || *samFile != "" || *smbHost != "" || *dumpURL != "" || *kbQuery != ""
 
 	var targets []string
 	if *url != "" {
@@ -156,6 +184,44 @@ func main() {
 		fmt.Fprintln(os.Stderr, "错误: 需要 -u 目标 URL 或 -l 目标列表文件 或模式 flag")
 		flag.Usage()
 		os.Exit(2)
+	}
+
+	// 知识库查询模式（HackReport 经验包）
+	if *kbQuery != "" {
+		files, err := filepath.Glob("data/knowledge/**/*.md")
+		if err == nil {
+			// 再加 txt
+			txts, _ := filepath.Glob("data/knowledge/**/*.txt")
+			files = append(files, txts...)
+		}
+		q := strings.ToLower(*kbQuery)
+		fmt.Printf("[kb] 查询 %q，匹配 %d 文档:\n", *kbQuery, len(files))
+		for _, f := range files {
+			content, err := os.ReadFile(f)
+			if err != nil {
+				continue
+			}
+			text := string(content)
+			if strings.Contains(strings.ToLower(text), q) {
+				fmt.Printf("\n=== %s ===\n", filepath.Base(f))
+				// 输出匹配行上下文
+				lines := strings.Split(text, "\n")
+				matched := 0
+				for _, l := range lines {
+					if strings.Contains(strings.ToLower(l), q) && matched < 20 {
+						fmt.Println("  " + strings.TrimSpace(l))
+						matched++
+					}
+				}
+				if matched == 0 {
+					// 无行匹配但文档含关键词：输出前 30 行
+					for _, l := range lines[:min(30, len(lines))] {
+						fmt.Println("  " + l)
+					}
+				}
+			}
+		}
+		return
 	}
 
 	// 状态化序列模式
@@ -268,6 +334,10 @@ func main() {
 			}
 		}
 		if len(users) == 0 {
+			// 默认：data/brute/users 用户字典
+			users = loadDataDicts("data/brute/users")
+		}
+		if len(users) == 0 {
 			users = []string{
 				"admin", "root", "test", "Administrator", "guest", "user", "sa",
 				"backup", "service", "operator", "audit", "support", "manager",
@@ -279,6 +349,10 @@ func main() {
 				"lisi", "wangwu", "zhaoliu", "sunqi", "zhoushi", "wuheng",
 				"zhongguo", "yonghu", "guanli", "kaifazhe",
 			}
+		}
+		if len(passwords) == 0 {
+			// 默认：data/brute/pass 密码字典（13万中文 + 10万 top + 9.6万 common）
+			passwords = loadDataDicts("data/brute/pass")
 		}
 		if len(passwords) == 0 {
 			passwords = []string{
@@ -318,7 +392,7 @@ func main() {
 		return
 	}
 
-	// 目录枚举模式
+// 目录枚举模式
 	if *dirURL != "" {
 		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
 		var wordlist []string
@@ -330,6 +404,12 @@ func main() {
 					}
 				}
 			}
+		} else {
+			// 默认加载 data/dir/ 下的合并字典（burp 2139 + filenames 2313 + fuzz 255）
+			wordlist = loadDataDicts("data/dir")
+		}
+		if len(wordlist) == 0 {
+			wordlist = []string{"admin", "login", "api", "backup", "config"}
 		}
 		res := dir.Scan(*dirURL, wordlist, cli, 300)
 		fmt.Print(dir.Format(res))
@@ -706,3 +786,5 @@ func main() {
 			len(all), len(targets), len(templates), dur.Round(time.Millisecond))
 	}
 }
+
+func min(a, b int) int { if a < b { return a }; return b }

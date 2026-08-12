@@ -5,10 +5,13 @@ package osint
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"fastsec/internal/stealth"
 )
@@ -100,6 +103,10 @@ func Aggregate(domain string, cli *stealth.Client) Result {
 		}
 	}
 
+	// DNS 字典爆破（data/dns/ 大字典：subname-so-big 579万 + oneforall 88万）
+	// 用系统 DNS 解析验证子域存在
+	subdomains = dnsBrute(subdomains, domain)
+
 	// 优先级: email > subdomain
 	var items []Item
 	for e := range emails {
@@ -145,4 +152,63 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// dnsBrute: 用 data/dns 字典做子域爆破（DNS 解析验证）
+//  字典可能巨大（579万行），限制每域最多测 20000 个 + 并发 200
+func dnsBrute(existing map[string]bool, domain string) map[string]bool {
+	out := existing
+	// 加载字典（从 data/dns/ 目录，取 top-3k 或前 N 行）
+	entries, err := os.ReadDir("data/dns")
+	if err != nil {
+		return out
+	}
+	var words []string
+	// 优先用小的 top-3k-domain，再补 subnames 前 10000
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".txt") {
+			continue
+		}
+		f, err := os.ReadFile("data/dns/" + e.Name())
+		if err != nil {
+			continue
+		}
+		lines := strings.Split(string(f), "\n")
+		if len(lines) > 10000 {
+			lines = lines[:10000] // 上限
+		}
+		words = append(words, lines...)
+	}
+	if len(words) > 20000 {
+		words = words[:20000]
+	}
+
+	// 并发 DNS 解析验证
+	var mu sync.Mutex
+	sem := make(chan struct{}, 200)
+	var wg sync.WaitGroup
+	for _, w := range words {
+		w = strings.TrimSpace(w)
+		if w == "" || w == domain {
+			continue
+		}
+		// 跳过已是子域的（避免重复验证）
+		if existing[w+"."+domain] {
+			continue
+		}
+		wg.Add(1)
+		go func(sub string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			host := sub + "." + domain
+			if _, err := net.LookupHost(host); err == nil {
+				mu.Lock()
+				out[host] = true
+				mu.Unlock()
+			}
+		}(w)
+	}
+	wg.Wait()
+	return out
 }
