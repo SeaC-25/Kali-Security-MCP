@@ -372,11 +372,16 @@ func main() {
 		return
 	}
 
-	// Kerberos 模式（诚实声明：未实现，不假装能用）
+	// Kerberos 模式（完整实现：AS-REP Roast + 用户枚举 + Kerberoast）
 	if *kerberosKDC != "" {
-		_ = *kerberosDomain // 保留 flag 但诚实声明未实现
-		fmt.Println(kerberos.StatusLine())
-		fmt.Println("  需要完整 RFC 4120 ASN.1 实现；当前版本无假实现。")
+		domain := *kerberosDomain
+		if domain == "" {
+			fmt.Println("[kerberos] 需要 -domain 指定域 (如 corp.local)")
+			return
+		}
+		cfg := kerberos.DefaultConfig(*kerberosKDC, domain, kerberos.DefaultUserList)
+		res := kerberos.Scan(cfg)
+		fmt.Print(kerberos.Format(res))
 		return
 	}
 
