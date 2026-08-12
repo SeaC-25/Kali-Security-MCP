@@ -37,7 +37,7 @@ type cmsFingerprint struct {
 
 var cmsFingerprints = []cmsFingerprint{
 	// ---- 国际 ----
-	{"WordPress", "/wp-login.php", regexp.MustCompile(`(?i)wordpress|wp-login|wp-admin`),
+	{"WordPress", "/wp-login.php", regexp.MustCompile(`(?i)wordpress|wp-login|wp-admin|wp-includes|setup-config`),
 		regexp.MustCompile(`(?i)ver=([\d.]+)|wp_version=([\d.]+)`), "wp-login.php"},
 	{"Joomla", "/administrator/index.php", regexp.MustCompile(`(?i)joomla|Joomla!`),
 		regexp.MustCompile(`(?i)Joomla!?\s*([\d.]+)`), "administrator"},
@@ -109,12 +109,9 @@ func Detect(baseURL string, cli *stealth.Client) []CMSResult {
 			if body == "" {
 				return
 			}
-			// 内容特征匹配
+			// 内容特征匹配：不匹配必须跳过（否则全误报）
 			if f.ContentRe != nil && !f.ContentRe.MatchString(body) {
-				// 无内容匹配但路径存在也可能（如 404 页面含特征）
-				if len(body) < 50 {
-					return
-				}
+				return
 			}
 			res := CMSResult{Name: f.Name, Evidence: f.Evidence, Confidence: 70}
 			// 版本提取
@@ -139,6 +136,7 @@ func getBody(url string, cli *stealth.Client) string {
 		return ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+	// 跟随重定向（默认 client 已配置）
 	resp, err := cli.Do(req)
 	if err != nil {
 		return ""

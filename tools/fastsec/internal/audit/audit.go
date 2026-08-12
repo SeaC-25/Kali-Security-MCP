@@ -43,9 +43,11 @@ var auditRules = []rule{
 	{"CMD-injection", "critical", regexp.MustCompile(`(?i)(os\.system|system\(|exec\(|shell_exec|subprocess\.(run|Popen|call)\(|Runtime\.getRuntime\(\)\.exec)`), 10, "命令注入"},
 	{"CMD-pipe", "high", regexp.MustCompile(`(?i)pipeline|cmd\.\s*\+\s*|["']\s*\|\s*["']`), 8, "命令拼接"},
 	{"LFI-path", "high", regexp.MustCompile(`(?i)(file_get_contents|open\(|include\(|require\().*?\$_(GET|POST|REQUEST)`), 8, "文件包含/读取"},
-	{"Path-traversal", "high", regexp.MustCompile(`(?i)(join\(|filepath\.Join|os\.Open).*?(Request|req|input|param)`), 7, "路径穿越"},
+	{"Path-traversal", "high", regexp.MustCompile(`(?i)(join\(|filepath\.Join|os\.Open|open\().*?(Request|req|input|param|args|filename|path)`), 7, "路径穿越"},
+	{"Path-traversal-format", "high", regexp.MustCompile(`(?i)("/|\\\\|/)".*?\+|open\(.*?\+.*?(args|request|req|input)`), 7, "路径穿越（拼接）"},
 	{"XXE", "high", regexp.MustCompile(`(?i)(DocumentBuilderFactory|SAXParserFactory|XMLReader).*?(dtd|DOCTYPE)`), 8, "XXE"},
 	{"XSS-echo", "high", regexp.MustCompile(`(?i)(echo|print|printf|innerHTML|innerText)\s*\(?\s*\$_(GET|POST|REQUEST)`), 7, "反射型 XSS"},
+	{"XSS-concat", "high", regexp.MustCompile(`(?i)(return|render|html|write|innerHTML)[^"\n]*"[^"\n]*"\s*\+\s*\w+|return[^"\n]*"[^"\n]*"\s*\+`), 7, "反射型 XSS（拼接回显）"},
 	{"XSS-innerHTML", "high", regexp.MustCompile(`(?i)\.innerHTML\s*=|document\.write\(`), 7, "DOM XSS"},
 	// ---- 反序列化 ----
 	{"Deserialize", "critical", regexp.MustCompile(`(?i)(unserialize\(|pickle\.loads|ObjectInputStream|readObject\(|yaml\.load\()`), 10, "不安全反序列化"},
@@ -64,7 +66,7 @@ var auditRules = []rule{
 	{"AWS-key", "critical", regexp.MustCompile(`AKIA[0-9A-Z]{16}`), 10, "AWS Access Key"},
 	{"Auth-header", "medium", regexp.MustCompile(`(?i)authorization\s*[:=]\s*["'][^"']+["']`), 4, "硬编码认证头"},
 	// ---- 错误处理 ----
-	{"Traceback", "medium", regexp.MustCompile(`(?i)(print_exc|traceback\.print|printStackTrace)`), 4, "堆栈泄露"},
+	{"Traceback", "medium", regexp.MustCompile(`(?i)(print_exc|traceback\.print|printStackTrace|format_exc)`), 4, "堆栈泄露"},
 	{"Verbose-error", "medium", regexp.MustCompile(`(?i)debug\s*=\s*True|DEBUG\s*=\s*True|verbose.*?=.*?True`), 5, "调试模式开启"},
 }
 
