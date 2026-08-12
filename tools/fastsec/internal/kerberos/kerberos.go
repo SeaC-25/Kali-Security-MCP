@@ -155,7 +155,7 @@ func Format(r Result) string {
 	if len(r.ASREP) > 0 {
 		sb.WriteString(fmt.Sprintf("  AS-REP Roastable accounts (%d):\n", len(r.ASREP)))
 		for _, a := range r.ASREP {
-			sb.WriteString(fmt.Sprintf("    %s: %s\n", a.User, truncate(a.Hash, 80)))
+			sb.WriteString(fmt.Sprintf("    %s: %s\n", a.User, a.Hash))
 		}
 	}
 	if len(r.SPNs) > 0 {

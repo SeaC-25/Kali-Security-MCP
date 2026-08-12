@@ -153,40 +153,41 @@ func usageBytes(usage int) []byte {
 //  输入: key (16字节 NTLM), usage, 明文
 //  输出: checksum(16) || rc4(confounder || 明文)
 func rc4HMACEncrypt(key []byte, usage int, plaintext []byte) ([]byte, error) {
-	// confounder: 8 字节随机（RFC 4757 必须）
+	// RFC 4757（MIT/Windows 兼容）：
+	//   K1 = HMAC-MD5(key, usage-LE)[:16]
+	//   checksum = HMAC-MD5(K1, confounder || plaintext)[:16]
+	//   ke = HMAC-MD5(K1, checksum)[:16]
+	//   输出 = checksum(16) || RC4(ke, confounder || plaintext)
 	confounder := make([]byte, 8)
 	if _, err := rand.Read(confounder); err != nil {
 		return nil, err
 	}
 	msg := append(confounder, plaintext...)
-	// K1 = HMAC-SHA1(key, usage)[:16]
-	K1 := hmacSHA1(key, usageBytes(usage))[:16]
-	// checksum = HMAC-SHA1(key, usage || confounder || 明文)[:16]
-	m := append(usageBytes(usage), msg...)
-	checksum := hmacSHA1(key, m)[:16]
-	// 密文 = RC4(K1, confounder || 明文)
-	cipher, err := rc4Crypt(K1, msg)
+	K1 := hmacMD5(key, usageBytes(usage))[:16]
+	checksum := hmacMD5(K1, msg)[:16]
+	ke := hmacMD5(K1, checksum)[:16]
+	cipher, err := rc4Crypt(ke, msg)
 	if err != nil {
 		return nil, err
 	}
 	return append(checksum, cipher...), nil
 }
 
-// rc4HMACDecrypt: RC4-HMAC 解密 + 校验（剥掉 confounder）
+// rc4HMACDecrypt: RFC 4757 解密 + 校验（剥掉 confounder）
 func rc4HMACDecrypt(key []byte, usage int, data []byte) ([]byte, error) {
-	if len(data) < 16 {
+	if len(data) < 24 {
 		return nil, fmt.Errorf("ciphertext too short: %d", len(data))
 	}
 	receivedChecksum := data[:16]
-	K1 := hmacSHA1(key, usageBytes(usage))[:16]
+	K1 := hmacMD5(key, usageBytes(usage))[:16]
+	ke := hmacMD5(K1, receivedChecksum)[:16]
 	cipher := data[16:]
-	decrypted, err := rc4Crypt(K1, cipher)
+	decrypted, err := rc4Crypt(ke, cipher)
 	if err != nil {
 		return nil, err
 	}
-	// 校验 checksum（含 confounder）
-	msg := append(usageBytes(usage), decrypted...)
-	calc := hmacSHA1(key, msg)[:16]
+	// 校验 checksum
+	calc := hmacMD5(K1, decrypted)[:16]
 	ok := hmac.Equal(calc, receivedChecksum)
 	if !ok {
 		return nil, fmt.Errorf("checksum mismatch (wrong key?)")

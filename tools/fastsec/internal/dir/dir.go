@@ -101,13 +101,17 @@ func Scan(baseURL string, wordlist []string, cli *stealth.Client, maxPaths int) 
 	jsEndpoints := ExtractJSEndpoints(baseURL, cli)
 	fmt.Printf("[dir] D1 JS 提取 %d 个端点\n", len(jsEndpoints))
 
-	// 合并候选
+	// 合并候选（词表条目无 / 前缀自动补，不静默丢弃）
 	var candidates []string
 	candidates = append(candidates, jsEndpoints...)
 	for _, p := range wordlist {
-		if strings.HasPrefix(p, "/") {
-			candidates = append(candidates, p)
+		if p == "" {
+			continue
 		}
+		if !strings.HasPrefix(p, "/") {
+			p = "/" + p
+		}
+		candidates = append(candidates, p)
 	}
 	if maxPaths > 0 && len(candidates) > maxPaths {
 		candidates = candidates[:maxPaths]

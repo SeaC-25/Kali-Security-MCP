@@ -58,6 +58,10 @@ func main() {
 	bruteTarget := flag.String("brute", "", "brute-force target (host or http://url)")
 	bruteService := flag.String("service", "http-form", "brute service: http-form|tcp-banner")
 	brutePort := flag.Int("port", 0, "brute port (tcp-banner)")
+	formURL := flag.String("form-url", "", "http-form: login form URL")
+	formUser := flag.String("form-user", "username", "http-form: username field name")
+	formPass := flag.String("form-pass", "password", "http-form: password field name")
+	formSuccess := flag.String("form-success", "", "http-form: success marker in response body")
 	userFile := flag.String("U", "", "brute user list file")
 	passFile := flag.String("P", "", "brute password list file")
 	dirURL := flag.String("dir", "", "directory enumerate target URL")
@@ -280,6 +284,14 @@ func main() {
 		cfg := brute.DefaultConfig(*bruteTarget, *bruteService, users, passwords)
 		if *bruteService == "tcp-banner" && *brutePort > 0 {
 			cfg.Target = fmt.Sprintf("%s:%d", *bruteTarget, *brutePort)
+		}
+		if *bruteService == "http-form" {
+			if *formURL != "" {
+				cfg.FormURL = *formURL
+			}
+			cfg.FormUserField = *formUser
+			cfg.FormPassField = *formPass
+			cfg.FormSuccess = *formSuccess
 		}
 		res := brute.Run(cfg)
 		fmt.Print(brute.Format(res))
