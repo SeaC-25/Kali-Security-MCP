@@ -63,6 +63,16 @@ data/
 reports/
 .augment/
 
+# LLM autonomous refactor — build artifacts / large files (rebuildable/downloadable)
+data/models/
+data/kb_vectors.db
+data/kb_vectors.json
+data/attack_dag.sqlite
+data/result_cache.sqlite
+data/usage.sqlite
+data/taskboard.json
+data/async_jobs.json
+
 # Coverage
 .coverage
 .coverage.*
