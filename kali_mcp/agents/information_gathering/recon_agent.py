@@ -62,11 +62,12 @@ class ReconAgent(BaseAgentV2):
             category="information_gathering",
             supported_tools={
                 # 端口扫描工具
-                "nmap_scan", "masscan_scan",
+                "nmap_scan", "masscan_scan", "masscan_fast_scan",
                 "arp_scan", "fping_scan", "netdiscover_scan",
 
                 # 服务识别/技术检测（fastsec -cms / -fingerprint，替代 whatweb/httpx）
                 "fastsec_scan",
+                "whatweb_scan", "whatweb_identify", "httpx_probe",
 
                 # 网络发现工具
                 "onesixtyone_scan",
@@ -207,14 +208,16 @@ class ReconAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            # 解析结果
-            parsed_findings = self._parse_recon_output(
-                task.tool_name,
-                output,
-                target
-            )
-
-            success = True
+            # 解析结果（工具失败/被拒绝的输出不得生成 finding）
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_recon_output(
+                    task.tool_name,
+                    output,
+                    target
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"侦察任务执行失败: {str(e)}"

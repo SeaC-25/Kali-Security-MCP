@@ -142,12 +142,14 @@ class LocalCommandExecutor:
             logger.debug(f"执行命令: {command}")
 
             # K2-2: 用 Popen 捕获部分输出——超时时返回已产出 stdout 而非空失败
+            # errors="replace": 远程/本地输出非 UTF-8（如 GBK 字节）时替换而非炸读线程
             proc = subprocess.Popen(
                 command,
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                errors="replace",
                 cwd=self.working_dir,
                 stdin=subprocess.DEVNULL,
             )

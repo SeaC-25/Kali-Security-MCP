@@ -189,11 +189,18 @@ class IntentAnalyzer:
         targets = []
         seen = set()
 
+        # 已提取 URL 的原文区间。URL 检测优先于裸 IP/域名：避免
+        # "http://127.0.0.1:8000/" 内嵌的 "127.0.0.1" 再被 IP 正则提取成
+        # 独立目标（误判为 ip_host，导致策略蓝图丢失 content_discovery 阶段）。
+        url_spans: List[Tuple[int, int]] = []
+
         # 尝试各种模式
         for pattern_name, pattern in self._target_patterns.items():
-            matches = pattern.finditer(user_input)
-
-            for match in matches:
+            for match in pattern.finditer(user_input):
+                start, end = match.span()
+                # 落在已提取 URL 区间内的匹配直接跳过（URL 优先）
+                if any(start >= s and end <= e for s, e in url_spans):
+                    continue
                 value = match.group(0)
 
                 # 去重（检查是否已处理）
@@ -205,6 +212,8 @@ class IntentAnalyzer:
                 if target_info:
                     seen.add(value.lower())  # 只有成功创建TargetInfo才加入seen
                     targets.append(target_info)
+                    if target_info.type == TargetType.URL:
+                        url_spans.append((start, end))
 
         # 如果没有找到显式目标，尝试提取IP/域名
         if not targets:

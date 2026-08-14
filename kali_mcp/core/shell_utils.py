@@ -49,5 +49,8 @@ EXEC_CONFIG = {
         "httpx": 30,
         "subfinder": 60,
         "amass": 120,
+        # fastsec 自研引擎（默认模板目录 http-core 子集扫描真实目标 ~60s；
+        # 全量 http/ 1m55s+ 曾触发 180s 硬超时；给 300s 兜底慢目标/慢网络）
+        "fastsec": 300,
     },
 }

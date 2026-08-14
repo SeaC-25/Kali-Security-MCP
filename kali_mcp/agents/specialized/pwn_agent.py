@@ -54,7 +54,6 @@ class PwnAgent(BaseAgentV2):
 
     专门负责PWN和逆向分析，包括：
     - 快速PWN检查（quick_pwn_check）
-    - 自动化利用（pwnpasi_auto_pwn）
     - 逆向分析（radare2, ghidra）
     - 反编译（auto_reverse_analyze）
     """
@@ -66,7 +65,7 @@ class PwnAgent(BaseAgentV2):
             category="specialized",
             supported_tools={
                 # PWN自动化工具
-                "quick_pwn_check", "pwnpasi_auto_pwn", "pwn_comprehensive_attack",
+                "quick_pwn_check", "pwn_comprehensive_attack",
 
                 # 逆向分析工具
                 "auto_reverse_analyze", "radare2_analyze_binary",
@@ -152,14 +151,16 @@ class PwnAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            # 解析结果
-            parsed_findings = self._parse_pwn_output(
-                task.tool_name,
-                output,
-                target
-            )
-
-            success = True
+            # 解析结果（工具失败/被拒绝的输出不得生成 finding）
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_pwn_output(
+                    task.tool_name,
+                    output,
+                    target
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"PWN分析失败: {str(e)}"
@@ -191,8 +192,6 @@ class PwnAgent(BaseAgentV2):
         """执行任务实现"""
         if task_type == "quick_pwn_check":
             return await self._execute_quick_check_impl(task_data)
-        elif task_type == "pwnpasi_auto_pwn":
-            return await self._execute_pwnpasi_impl(task_data)
         elif task_type == "auto_reverse_analyze":
             return await self._execute_reverse_impl(task_data)
         elif task_type == "radare2_analyze_binary":
@@ -208,18 +207,6 @@ class PwnAgent(BaseAgentV2):
 
         return await self._call_tool("quick_pwn_check", {
             "binary_path": binary_path
-        })
-
-    async def _execute_pwnpasi_impl(self, parameters: Dict[str, Any]) -> str:
-        """执行PwnPasi自动化利用"""
-        binary_path = parameters.get("binary_path", "")
-        remote_ip = parameters.get("remote_ip", "")
-        remote_port = parameters.get("remote_port", 0)
-
-        return await self._call_tool("pwnpasi_auto_pwn", {
-            "binary_path": binary_path,
-            "remote_ip": remote_ip,
-            "remote_port": remote_port
         })
 
     async def _execute_reverse_impl(self, parameters: Dict[str, Any]) -> str:
@@ -252,10 +239,6 @@ class PwnAgent(BaseAgentV2):
         # 解析快速PWN检查输出
         if tool_name == "quick_pwn_check":
             findings.extend(self._parse_quick_check_output(output, target))
-
-        # 解析PwnPasi输出
-        elif tool_name == "pwnpasi_auto_pwn":
-            findings.extend(self._parse_pwnpasi_output(output, target))
 
         # 解析逆向分析输出
         elif tool_name in ["auto_reverse_analyze", "radare2_analyze_binary"]:
@@ -307,33 +290,6 @@ class PwnAgent(BaseAgentV2):
                 source=self.agent_id,
                 confidence=0.95
             ))
-
-        return findings
-
-    def _parse_pwnpasi_output(self, output: str, target: str) -> List[Finding]:
-        """解析PwnPasi输出"""
-        findings = []
-
-        # PwnPasi成功标志
-        success_indicators = [
-            r"Exploit successful",
-            r"Shell obtained",
-            r"Got shell",
-            r"pwn!"
-        ]
-
-        for pattern in success_indicators:
-            if re.search(pattern, output, re.IGNORECASE):
-                findings.append(Finding(
-                    finding_type=ResultType.VULNERABILITY,
-                    severity=ResultSeverity.CRITICAL,
-                    title="PWN利用成功",
-                    description=f"目标 {target} 利用成功",
-                    evidence=[pattern],
-                    source=self.agent_id,
-                    confidence=0.95
-                ))
-                break
 
         return findings
 
@@ -436,23 +392,5 @@ class PwnAgent(BaseAgentV2):
         ))
 
         task_id += 1
-
-        # 3. 自动化利用（如果有远程目标）
-        if remote_target:
-            ip, port = remote_target.split(':') if ':' in remote_target else (remote_target, 0)
-            tasks.append(Task(
-                task_id=f"pwn_{task_id}",
-                name=f"PWN自动化利用: {binary_path}",
-                category=TaskCategory.EXPLOITATION,
-                tool_name="pwnpasi_auto_pwn",
-                parameters={
-                    "binary_path": binary_path,
-                    "remote_ip": ip,
-                    "remote_port": int(port)
-                },
-                priority=9,
-                estimated_duration=300,
-                tags=["pwn", "exploit"]
-            ))
 
         return tasks

@@ -67,7 +67,12 @@ class SubdomainAgent(BaseAgentV2):
             category="information_gathering",
             supported_tools={
                 # fastsec -osint 统一处理（667万 DNS 字典 + crt.sh + hackertarget 聚合）
-                "fastsec_scan"
+                "fastsec_scan",
+
+                # 旧工具名（impl 已统一路由到 fastsec -osint，见 _execute_task_impl）
+                "subfinder_scan", "amass_enum", "sublist3r_scan",
+                "dnsrecon_scan", "dnsenum_scan", "dnsmap_scan",
+                "fierce_scan", "theharvester_osint",
             },
             max_concurrent_tasks=5,
             specialties=["subdomain_enum", "dns_enum", "osint"]
@@ -161,14 +166,16 @@ class SubdomainAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            # 解析结果
-            parsed_findings = self._parse_subdomain_output(
-                task.tool_name,
-                output,
-                target
-            )
-
-            success = True
+            # 解析结果（工具失败/被拒绝的输出不得生成 finding）
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_subdomain_output(
+                    task.tool_name,
+                    output,
+                    target
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"子域名枚举失败: {str(e)}"

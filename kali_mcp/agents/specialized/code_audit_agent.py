@@ -145,10 +145,13 @@ class CodeAuditAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            parsed_findings = self._parse_audit_output(
-                task.tool_name, output, target
-            )
-            success = True
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_audit_output(
+                    task.tool_name, output, target
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"代码审计失败: {str(e)}"

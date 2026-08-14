@@ -559,6 +559,28 @@ class BaseAgentV2(BaseAgent):
                 task_id=id(task)
             )
 
+    # 工具失败输出特征（_call_tool 失败时返回 "[错误] <tool>: <err>" / "[异常] ..." 前缀；
+    # executor 层拒绝/超时也会在输出中带出这些标记）
+    TOOL_FAILURE_PREFIXES: tuple = ("[错误]", "[异常]")
+    TOOL_FAILURE_KEYWORDS: tuple = (
+        "不在白名单", "拒绝执行", "拒绝构建命令", "未知工具名",
+        "Command timeout", "timed out", "执行失败",
+    )
+
+    def is_tool_failure_output(self, output: Any) -> bool:
+        """判断工具输出是否表示执行失败/被拒绝。
+
+        工具被白名单拦截、命令超时、调用异常时，_call_tool 返回带失败标记的
+        文本。此类输出不能作为漏洞 finding 的证据来源。
+        """
+        if not output:
+            return False
+        text = str(output)
+        if text.startswith(self.TOOL_FAILURE_PREFIXES):
+            return True
+        lowered = text.lower()
+        return any(keyword.lower() in lowered for keyword in self.TOOL_FAILURE_KEYWORDS)
+
     async def _call_tool(self, tool_name: str, parameters: Dict[str, Any]) -> str:
         """
         调用安全工具（通过executor桥接到真实工具）

@@ -37,7 +37,7 @@ K1_KEEP_TOOLS = frozenset({
     "hashcat_crack",
     # exploit (ai_tools.py)
     # pwn (pwn_tools.py — pruned)
-    "quick_pwn_check", "pwnpasi_auto_pwn",
+    "quick_pwn_check",
     # intel (code_audit_tools.py — pruned)
     "comprehensive_recon",
     # harness (harness_tools.py — pruned; exact names for the plan's
@@ -63,6 +63,8 @@ K1_KEEP_TOOLS = frozenset({
     # K3 orchestrate workflow
     "wf_init", "wf_transition", "wf_record_result", "wf_record_issue",
     "wf_status", "wf_pack_turn",
+    # 多智能体集群入口
+    "agent_run", "agent_status",
 })
 
 # ---------------------------------------------------------------------------
@@ -144,4 +146,7 @@ def register_meta_tools(mcp, executor):
             }
 
         logger.info("[kali_run] %s → %s", name, cmd)
-        return executor.execute_command(cmd)
+        # 与原生工具一致：走 execute_tool_with_data 获得 ssh 后端路由 / 结果缓存 / 输出解析。
+        # 直接 execute_command 会把命令丢到本地 subprocess，绕过已配置的 ssh 后端
+        # （harness 档位下归档工具的唯一入口，nmap/fastsec 等在 Windows 主机上全部不可用）。
+        return executor.execute_tool_with_data(registry_name, data)

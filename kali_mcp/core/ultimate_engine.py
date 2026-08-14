@@ -755,7 +755,7 @@ class CTFUltimateSolver:
                 "radare2_analyze_binary", "ghidra_analyze_binary",
             ],
             "exploitation": [
-                "pwnpasi_auto_pwn", "pwn_comprehensive_attack",
+                "pwn_comprehensive_attack",
                 "ctf_pwn_solver",
             ],
         },

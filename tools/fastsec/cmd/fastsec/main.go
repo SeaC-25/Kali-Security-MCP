@@ -87,7 +87,8 @@ func main() {
 	tplFile := flag.String("t", "", "single template file")
 	tplDir := flag.String("d", "", "template directory")
 	diffParams := flag.String("diff", "", "behavioral diff params (comma list)")
-	injectParams := flag.String("inject", "", "SQL injection scan params (comma list, e.g. id,user)")
+	injectParams := flag.String("inject", "", "SQL injection scan params (comma list, e.g. id,user); XSS 检测用 -xss")
+	xssParam := flag.String("xss", "", "XSS reflection scan param (comma list; auto = discover from URL query, requires -u)")
 	bruteTarget := flag.String("brute", "", "brute-force target (host or http://url)")
 	bruteService := flag.String("service", "http-form", "brute service: http-form|tcp-banner")
 	brutePort := flag.Int("port", 0, "brute port (tcp-banner)")
@@ -158,7 +159,7 @@ func main() {
 
 	// 模式 flag 优先（brute/dir/soceng/orchestrate/osint 不需要 -u）
 	hasMode := *bruteTarget != "" || *dirURL != "" || *socengName != "" ||
-		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *diffParams != "" || *seqFile != "" ||
+		*orchestrateTarget != "" || *osintDomain != "" || *injectParams != "" || *xssParam != "" || *diffParams != "" || *seqFile != "" ||
 		*fingerprintTarget != "" || *crackHash != "" || *kerberosKDC != "" || *cmsURL != "" || *auditPath != "" ||
 		*filePath != "" || *userSearch != "" || *scanTarget != "" ||
 		*shellLang != "" || *listenPort > 0 || *samFile != "" || *smbHost != "" || *dumpURL != "" || *kbQuery != ""
@@ -359,6 +360,22 @@ func main() {
 				fmt.Println(string(out))
 			}
 		}
+		return
+	}
+
+	// XSS 反射检测模式（injector.ScanXSS：payload 未转义回显）
+	if *xssParam != "" {
+		if *url == "" {
+			fmt.Fprintln(os.Stderr, "错误: -xss 需要 -u 目标 URL")
+			os.Exit(2)
+		}
+		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
+		var params []string
+		if p := strings.TrimSpace(*xssParam); p != "" && strings.ToLower(p) != "auto" {
+			params = strings.Split(p, ",")
+		}
+		res := injector.ScanXSS(*url, params, cli)
+		fmt.Print(injector.FormatXSS(res))
 		return
 	}
 

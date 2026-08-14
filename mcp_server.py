@@ -55,36 +55,36 @@ except ImportError as e:
     VULN_TOOL_COUNT = 0
     logger.warning(f"⚠️ vuln_db 模块加载失败: {e}")
 
-# 多智能体集群系统模块导入 (v4.0) — LLM-key 依赖，无 key 时不激活
+# 多智能体集群系统模块导入 (v4.0)
+# 注意: agents 通过 executor(ssh 后端) 做确定性编排+真实工具调用，不依赖 LLM key。
+# LLM key 仅影响深度推理增强（llm_brain 等），缺失时降级提示，不再硬性禁掉整个集群。
 if not _llm_api_key_available():
+    logger.info("multi_agent: no LLM API key — 深度推理增强降级，确定性编排照常")
+try:
+    from kali_mcp.core.agent_registry import AgentRegistry
+    from kali_mcp.core.agent_coordinator import CoordinatorAgent
+    from kali_mcp.agents.information_gathering.recon_agent import ReconAgent
+    from kali_mcp.agents.information_gathering.subdomain_agent import SubdomainAgent
+    from kali_mcp.agents.information_gathering.web_recon_agent import WebReconAgent
+    from kali_mcp.agents.vulnerability_discovery.vuln_scanner_agent import VulnScannerAgent
+    from kali_mcp.agents.vulnerability_discovery.web_vuln_agent import WebVulnAgent
+    from kali_mcp.agents.vulnerability_discovery.auth_agent import AuthAgent
+    from kali_mcp.agents.vulnerability_discovery.network_vuln_agent import NetworkVulnAgent
+    from kali_mcp.agents.vulnerability_discovery.vuln_verifier_agent import VulnVerifierAgent
+    from kali_mcp.agents.exploitation.exploit_agent import ExploitAgent
+    from kali_mcp.agents.exploitation.privilege_agent import PrivilegeAgent
+    from kali_mcp.agents.exploitation.lateral_agent import LateralAgent
+    from kali_mcp.agents.specialized.pwn_agent import PwnAgent
+    from kali_mcp.agents.specialized.crypto_agent import CryptoAgent
+    from kali_mcp.agents.specialized.forensics_agent import ForensicsAgent
+    from kali_mcp.agents.specialized.code_audit_agent import CodeAuditAgent
+    from kali_mcp.agents.specialized.source_code_agent import SourceCodeAgent
+    from kali_mcp.agents.specialized.code_analyze_agent import CodeAnalyzeAgent
+    MULTI_AGENT_SYSTEM_AVAILABLE = True
+    logger.info("✅ 多智能体集群系统模块加载成功 - v4.0 架构")
+except ImportError as e:
     MULTI_AGENT_SYSTEM_AVAILABLE = False
-    logger.info("skipped multi_agent (no LLM API key)")
-else:
-    try:
-        from kali_mcp.core.agent_registry import AgentRegistry
-        from kali_mcp.core.agent_coordinator import CoordinatorAgent
-        from kali_mcp.agents.information_gathering.recon_agent import ReconAgent
-        from kali_mcp.agents.information_gathering.subdomain_agent import SubdomainAgent
-        from kali_mcp.agents.information_gathering.web_recon_agent import WebReconAgent
-        from kali_mcp.agents.vulnerability_discovery.vuln_scanner_agent import VulnScannerAgent
-        from kali_mcp.agents.vulnerability_discovery.web_vuln_agent import WebVulnAgent
-        from kali_mcp.agents.vulnerability_discovery.auth_agent import AuthAgent
-        from kali_mcp.agents.vulnerability_discovery.network_vuln_agent import NetworkVulnAgent
-        from kali_mcp.agents.vulnerability_discovery.vuln_verifier_agent import VulnVerifierAgent
-        from kali_mcp.agents.exploitation.exploit_agent import ExploitAgent
-        from kali_mcp.agents.exploitation.privilege_agent import PrivilegeAgent
-        from kali_mcp.agents.exploitation.lateral_agent import LateralAgent
-        from kali_mcp.agents.specialized.pwn_agent import PwnAgent
-        from kali_mcp.agents.specialized.crypto_agent import CryptoAgent
-        from kali_mcp.agents.specialized.forensics_agent import ForensicsAgent
-        from kali_mcp.agents.specialized.code_audit_agent import CodeAuditAgent
-        from kali_mcp.agents.specialized.source_code_agent import SourceCodeAgent
-        from kali_mcp.agents.specialized.code_analyze_agent import CodeAnalyzeAgent
-        MULTI_AGENT_SYSTEM_AVAILABLE = True
-        logger.info("✅ 多智能体集群系统模块加载成功 - v4.0 架构")
-    except ImportError as e:
-        MULTI_AGENT_SYSTEM_AVAILABLE = False
-        logger.warning(f"⚠️ 多智能体集群系统模块加载失败: {e}")
+    logger.warning(f"⚠️ 多智能体集群系统模块加载失败: {e}")
 
 
 # 多智能体系统全局状态存储（用于MCP工具访问）
@@ -457,6 +457,23 @@ def setup_mcp_server(
 
     # P0 harness tools (always-on orchestration surface: task/graph/playbook/verify/chain)
     _safe_register("harness", "P0 Harness编排工具", register_harness_tools, mcp, executor)
+
+    # 多智能体集群入口（K4 legacy cluster，经 K4_LEGACY_CLUSTER=1 启用）
+    # agent_run/agent_status 直接暴露 CoordinatorAgent，harness 档位也可见。
+    if MULTI_AGENT_STATE.get("initialized"):
+        try:
+            from kali_mcp.mcp_tools.multi_agent_tools import register_multi_agent_tools
+
+            _safe_register(
+                "harness",
+                "多智能体集群工具",
+                register_multi_agent_tools,
+                mcp,
+                MULTI_AGENT_STATE.get("multi_agent_coordinator"),
+                MULTI_AGENT_STATE.get("agent_registry"),
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"  ⚠️ 多智能体集群工具注册失败: {e}")
 
     if VULN_DB_TOOLS_AVAILABLE and _module_enabled("vuln_db"):
         try:

@@ -258,6 +258,7 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
             ToolParam(name="form_url", flag="-form-url", sanitize="arg", default=""),
             ToolParam(name="form_success", flag="-form-success", sanitize="arg", default=""),
             ToolParam(name="inject", flag="-inject", sanitize="arg", default=""),
+            ToolParam(name="xss", flag="-xss", sanitize="arg", default=""),
             ToolParam(name="diff", flag="-diff", sanitize="arg", default=""),
             ToolParam(name="osint", flag="-osint", sanitize="arg", default=""),
             ToolParam(name="crack", flag="-crack", sanitize="arg", default=""),
@@ -280,7 +281,7 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
             ToolParam(name="soceng", flag="-soceng", sanitize="arg", default=""),
             ToolParam(name="orchestrate", flag="-orchestrate", sanitize="arg", default=""),
         ],
-        timeout=180,
+        timeout=300,
         output_parser="",
         additional_args_sanitize="arg",
     ),
@@ -298,7 +299,9 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
         binary="fping",
         params=[
             ToolParam(name="count", flag="-c", sanitize="arg", default="3"),
-            ToolParam(name="targets", flag="", sanitize="arg"),
+            # alt_keys: 兼容 agent 侧统一用 "target" 传参（task 参数键为 target）；
+            # 否则参数被丢弃 → 命令退化为 "fping -c 3"（无主机）在 Kali 上等 stdin 直到超时。
+            ToolParam(name="targets", flag="", sanitize="arg", alt_keys=("target",)),
         ],
         additional_args_sanitize="arg",
     ),

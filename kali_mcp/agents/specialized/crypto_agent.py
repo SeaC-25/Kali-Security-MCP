@@ -73,6 +73,9 @@ class CryptoAgent(BaseAgentV2):
                 "john_crack",
                 "hashcat_crack",
 
+                # 编码/哈希识别（impl 自定义分析，见 _execute_task_impl）
+                "identify_encoding", "identify_hash",
+
                 # 编码工具（在MCP中可能不存在，但可以实现自定义分析）
             },
             max_concurrent_tasks=3,
@@ -166,14 +169,16 @@ class CryptoAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            # 解析结果
-            parsed_findings = self._parse_crypto_output(
-                task.tool_name,
-                output,
-                task.parameters.get("target", data)
-            )
-
-            success = True
+            # 解析结果（工具失败/被拒绝的输出不得生成 finding）
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_crypto_output(
+                    task.tool_name,
+                    output,
+                    task.parameters.get("target", data)
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"密码学分析失败: {str(e)}"

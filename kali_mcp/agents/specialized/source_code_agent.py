@@ -148,7 +148,7 @@ class SourceCodeAgent(BaseAgentV2):
                     ))
             else:
                 output = str(result)
-                success = True
+                success = not self.is_tool_failure_output(output)
         except Exception as e:
             output = str(e)
 

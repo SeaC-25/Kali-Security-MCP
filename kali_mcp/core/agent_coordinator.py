@@ -107,6 +107,7 @@ class ExecutionSession:
     decisions: List[Decision] = field(default_factory=list)  # 决策历史
     agent_results: List[AgentResult] = field(default_factory=list)  # Agent结果
     aggregated_result: Optional[AggregatedResult] = None  # 聚合结果
+    report: str = ""                            # 最终报告（coordinator 承接 report_generator 时生成）
     started_at: datetime = field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
@@ -279,6 +280,9 @@ class CoordinatorAgent:
             )
             session.aggregated_result = aggregated
 
+            # 8.5 协调器承接的 report_generator：聚合完成后生成最终报告
+            session.report = await self._finalize_coordinator_report(session)
+
             # 9. 完成
             session.state = CoordinatorState.COMPLETED
             session.completed_at = datetime.now()
@@ -328,6 +332,22 @@ class CoordinatorAgent:
 
         for task in sorted_tasks:
             stage_candidates = self._select_stage_candidate_agents(task, available_agents)
+
+            # REPORTING 阶段报告任务由协调器直接承接：不占用 agent 名额、不进
+            # 调度器失败统计；报告在结果聚合完成后生成（见 _execute_plan 的
+            # report_generator 分支与 process_request 步骤 8.5）。
+            if task.tool_name == "report_generator":
+                decisions.append(
+                    SchedulingDecision(
+                        task=task,
+                        selected_agent=None,
+                        strategy=self.agent_scheduler.strategy,
+                        confidence=1.0,
+                        reasoning=["report_generator 由 CoordinatorAgent 承接（聚合后生成报告）"],
+                    )
+                )
+                continue
+
             decision = await self.agent_scheduler.schedule_task(task, stage_candidates)
 
             # 非策略强约束任务允许回退分配；策略任务保持强约束
@@ -360,60 +380,73 @@ class CoordinatorAgent:
         return plan
 
     async def _execute_plan(self, plan: CoordinatorExecutionPlan) -> List[AgentResult]:
-        """执行计划"""
+        """执行计划（阶段内并发、阶段间依赖串行）。
+
+        v2: 原实现按拓扑序逐任务串行执行；含多个 60s+ 模板扫描的任务计划
+        （fastsec http-core 1931 模板实测 ~62s/个）串行叠加会击穿会话总超时
+        （300s）。改为按"依赖已满足"分波，波内任务 asyncio.gather 并发执行：
+        同阶段任务相互独立（无内部依赖）可并行；跨阶段仍等依赖完成（保序）。
+        agent 实例相互独立、executor 走线程池，可安全并发。
+        """
         results = []
+        task_graph = plan.task_graph
+        pending = set(task_graph.tasks.keys())
+        completed = set()
 
-        # 获取所有可用的agents
-        all_agents = self.agent_registry.get_all_agents()
+        def _deps_satisfied(task_id: str) -> bool:
+            deps = list(getattr(task_graph.tasks[task_id], "dependencies", None) or [])
+            return all(d in completed for d in deps)
 
-        # 按依赖关系顺序执行任务
-        sorted_tasks = self._topological_sort(plan.task_graph)
-
-        for task_id in sorted_tasks:
-            task = plan.task_graph.tasks[task_id]
-
-            # 查找对应的调度决策
-            decision = next(
+        def _find_decision(task_id: str):
+            return next(
                 (d for d in plan.scheduling_decisions if d.task.task_id == task_id),
                 None
             )
 
+        async def _run_one(task_id: str) -> AgentResult:
+            task = task_graph.tasks[task_id]
+            decision = _find_decision(task_id)
+
             if not decision or not decision.selected_agent:
-                reason = "无可用Agent满足策略约束或能力要求"
-                if decision and decision.reasoning:
-                    reason = "; ".join(decision.reasoning)
-                results.append(
-                    AgentResult(
+                # REPORTING 阶段任务（report_generator）由协调器直接承接：
+                # 不占用 agent 名额，报告在结果聚合完成后生成（见
+                # process_request 步骤 8.5 的 _finalize_coordinator_report）。
+                if task.tool_name == "report_generator":
+                    return AgentResult(
                         agent_id="coordinator",
                         task_id=task_id,
                         tool_name=task.tool_name,
                         target=task.parameters.get("target", ""),
-                        success=False,
+                        success=True,
                         execution_time=0,
                         output="",
-                        errors=[reason],
+                        parsed_data={"coordinator_handled": True},
+                        errors=[],
                     )
-                )
-                continue
 
-            # 执行任务
+                reason = "无可用Agent满足策略约束或能力要求"
+                if decision and decision.reasoning:
+                    reason = "; ".join(decision.reasoning)
+                return AgentResult(
+                    agent_id="coordinator",
+                    task_id=task_id,
+                    tool_name=task.tool_name,
+                    target=task.parameters.get("target", ""),
+                    success=False,
+                    execution_time=0,
+                    output="",
+                    errors=[reason],
+                )
+
             try:
-                result = await self._execute_single_task(
+                return await self._execute_single_task(
                     task,
                     decision.selected_agent.agent_id
                 )
-                results.append(result)
-
-                # 标记任务完成
-                self.agent_scheduler.mark_task_complete(
-                    task_id,
-                    success=result.success
-                )
-
             except Exception as e:
                 logger.error(f"执行任务 {task_id} 失败: {e}")
                 # 创建失败结果
-                result = AgentResult(
+                return AgentResult(
                     agent_id=decision.selected_agent.agent_id,
                     task_id=task_id,
                     tool_name=task.tool_name,
@@ -421,9 +454,30 @@ class CoordinatorAgent:
                     success=False,
                     execution_time=0,
                     output="",
-                    errors=[str(e)]
+                    errors=[str(e)],
                 )
+
+        while pending:
+            wave_ids = [tid for tid in pending if _deps_satisfied(tid)]
+            if not wave_ids:
+                # 死锁保护（拓扑有序的 DAG 理论上不会出现）：强制放行一个兜底
+                logger.error(f"执行计划无就绪任务（疑似环），强制放行: {sorted(pending)[:1]}")
+                wave_ids = [sorted(pending)[0]]
+
+            wave_results = await asyncio.gather(*(_run_one(tid) for tid in wave_ids))
+
+            for tid, result in zip(wave_ids, wave_results):
                 results.append(result)
+                completed.add(tid)
+                pending.discard(tid)
+                # 仅真实调度到 agent 的任务标记调度完成（与 v1 语义一致：
+                # coordinator 承接 / 无可用 agent 不占调度名额）
+                decision = _find_decision(tid)
+                if decision and decision.selected_agent:
+                    self.agent_scheduler.mark_task_complete(
+                        tid,
+                        success=result.success
+                    )
 
         return results
 
@@ -504,6 +558,28 @@ class CoordinatorAgent:
             if getattr(agent, "agent_id", "") in preferred_set
         ]
         return selected
+
+    async def _finalize_coordinator_report(self, session: ExecutionSession) -> str:
+        """为协调器承接的 report_generator 任务生成最终报告。
+
+        需在结果聚合（session.aggregated_result）之后调用：报告基于聚合后的
+        全量发现生成，并回填到对应 AgentResult 与 session.report。
+        没有协调器承接的报告任务时返回空串。
+        """
+        handled = [
+            result for result in session.agent_results
+            if result.agent_id == "coordinator"
+            and result.tool_name == "report_generator"
+            and result.parsed_data.get("coordinator_handled")
+        ]
+        if not handled or session.aggregated_result is None:
+            return session.report
+
+        report_text = await self.generate_report(session.session_id)
+        for result in handled:
+            result.output = report_text
+            result.parsed_data["report"] = report_text
+        return report_text
 
     async def _execute_single_task(
         self,

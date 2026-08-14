@@ -40,7 +40,6 @@ Kali MCP Server 是一个基于 Model Context Protocol (MCP) 的智能安全测�
 | **APT 攻击模拟** | 完整的 MITRE ATT&CK 框架支持，自适应攻击链 |
 | **Session 生命周期管理** | TTL 自动过期（4h），后台清理，防内存泄漏 |
 | **本地执行模式** | 无需额外后端服务器，直接调用系统工具 |
-| **PWN 自动化** | 集成 pwnpasi：ROP 分析、堆漏洞检测、符号执行、模糊测试 |
 
 ---
 
@@ -65,12 +64,6 @@ MCP-Kali-Server/
 │   ├── agents/                # 专用 Agent 实现
 │   ├── security/              # 安全模型 (授权/档位/范围)
 │   └── reasoning/             # 知识图谱与推理
-├── pwnpasi/                   # PWN 自动化框架 (集成自 pwnpasi)
-│   ├── advanced_rop.py        # SROP/Ret2CSU/Ret2DLResolve/BROP
-│   ├── heap_exploit.py        # Fastbin/Tcache/House-of-Force
-│   ├── auto_fuzzing.py        # 自动模糊测试
-│   ├── symbolic_analysis.py   # 符号执行 (angr)
-│   └── pwn_suite.py           # 综合利用套件
 ├── tests/                     # 测试套件 (224 个测试函数)
 ├── status_check.py            # 系统状态检查
 └── connection_pool.py         # 连接池
@@ -364,7 +357,6 @@ sudo systemctl start ssh
 | 工具 | 说明 |
 |------|------|
 | `quick_pwn_check` | PWN 漏洞快速检查 |
-| `pwnpasi_auto_pwn` | 自动化 PWN 利用 |
 | `auto_reverse_analyze` | 自动逆向分析 |
 | `radare2_analyze_binary` | Radare2 分析 |
 | `ghidra_analyze_binary` | Ghidra 分析 |
@@ -502,7 +494,6 @@ The tool surface is being consolidated (see `PLAN_2026-08-09_kali_orchestrate_fu
 | **APT Attack Simulation** | Full MITRE ATT&CK framework support with adaptive attack chains |
 | **Session Lifecycle Management** | TTL auto-expiry (4h), background cleanup, memory leak prevention |
 | **Local Execution Mode** | No additional backend server required |
-| **PWN Automation** | Integrated pwnpasi: ROP analysis, heap exploit detection, symbolic execution |
 
 ### 🚀 Quick Start
 
@@ -582,12 +573,6 @@ Edit configuration file:
 - **Benchmark**: `py scripts/benchmark.py` (or `python scripts/benchmark.py`) runs 3 fixed tasks against a local target (local HTTP recon via `whatweb_scan`, port scan via `nmap_scan`, and `server_health`), recording per task: success, wall time (`tt_wall_s`), tool-call count (`tool_calls`) and a token estimate (`tokens_est`, baseline-style schema-byte measurement). It writes `scripts/benchmark_report.json` + `scripts/benchmark_report.md` and proves the K1-converged surface has no capability regression (B >= A). Tasks are marked `skipped-binary-missing` when a binary is absent; exit code is always 0.
 - **Telemetry**: every tool execution is recorded automatically into `data/usage.sqlite` (K0-5: `tool`, `args_hash`, `duration_s`, `timed_out`, `success`, `cache_hit`, `target`, `ts`).
 - **Pruning**: `py scripts/prune_tools.py` (dry-run by default) prints the per-tool usage ranking and the bottom-decile drop candidates; `py scripts/prune_tools.py --apply` removes bottom-decile tools from `K1_KEEP_TOOLS` in `kali_mcp/mcp_tools/meta_tools.py`. **Run monthly**; `kali_run` is always kept, the keep-set never falls below 15 tools, and pruning below 15 is refused.
-
-### 🙏 Acknowledgments
-
-- **[pwnpasi](https://github.com/heimao-box/pwnpasi)** — This project integrates the pwnpasi automated binary exploitation framework for PWN challenge analysis and exploitation (ROP technique analysis, heap vulnerability detection, fuzzing, symbolic execution, etc.). Thanks to the original author for the excellent work.
-
-  本项目集成了 pwnpasi 自动化二进制漏洞利用框架，用于 PWN 题目的自动化分析和利用（ROP 技术分析、堆漏洞检测、模糊测试、符号执行等）。感谢原作者的出色工作。
 
 ### 📄 License
 

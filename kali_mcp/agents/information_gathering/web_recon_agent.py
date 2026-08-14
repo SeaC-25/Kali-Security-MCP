@@ -60,6 +60,10 @@ class WebReconAgent(BaseAgentV2):
                 # WAF检测（fastsec -inject 内置）
                 "wafw00f_scan",
 
+                # 旧工具名（impl 已统一路由到 fastsec -dir / -cms，见 _execute_task_impl）
+                "gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan",
+                "wfuzz_scan", "whatweb_scan", "whatweb_identify",
+
                 # 高级扫描
                 "comprehensive_web_security_scan"
             },
@@ -151,14 +155,16 @@ class WebReconAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
-            # 解析结果
-            parsed_findings = self._parse_web_recon_output(
-                task.tool_name,
-                output,
-                target
-            )
-
-            success = True
+            # 解析结果（工具失败/被拒绝的输出不得生成 finding）
+            if self.is_tool_failure_output(output):
+                errors.append(output[:300])
+            else:
+                parsed_findings = self._parse_web_recon_output(
+                    task.tool_name,
+                    output,
+                    target
+                )
+                success = True
 
         except Exception as e:
             error_msg = f"Web侦察失败: {str(e)}"

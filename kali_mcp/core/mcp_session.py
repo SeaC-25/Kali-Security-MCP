@@ -91,7 +91,7 @@ class StrategyEngine:
             },
             "pwn_exploitation": {
                 "description": "二进制漏洞利用",
-                "tools": ["pwnpasi_auto_pwn", "auto_reverse_analyze", "quick_pwn_check"],
+                "tools": ["auto_reverse_analyze", "quick_pwn_check"],
                 "conditions": ["binary_file", "pwn_challenge"],
                 "complexity": "high",
                 "estimated_time": "20-45 minutes"

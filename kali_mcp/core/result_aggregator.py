@@ -223,6 +223,10 @@ class ResultAggregator:
         """解析Agent结果"""
         findings = []
 
+        # 执行失败/被拒绝的结果不得产生 finding（防无证据漏洞误报）
+        if not result.success:
+            return findings
+
         # 如果已经有解析数据，直接使用（不进行auto-discovery）
         if result.parsed_data and result.parsed_data.get("findings"):
             for item in result.parsed_data.get("findings", []):
@@ -252,7 +256,11 @@ class ResultAggregator:
         if not output:
             return findings
 
-        # 检测漏洞
+        # 工具失败/被拒绝/超时的输出不得作为漏洞 finding 的证据来源
+        if self._is_failure_output(output):
+            return findings
+
+        # 检测漏洞（行级匹配：含否定上下文标记的行 = 无漏洞/扫描干净，不产 finding）
         vuln_keywords = {
             "SQL injection": ResultType.VULNERABILITY,
             "XSS": ResultType.VULNERABILITY,
@@ -260,18 +268,44 @@ class ResultAggregator:
             "LFI": ResultType.VULNERABILITY,
             "CSRF": ResultType.VULNERABILITY
         }
+        # 否定上下文标记（同一行命中任一标记 → 该行视为"无漏洞"）：
+        #   - fastsec 命中计数 0/N: "[xss] 0/0 params XSS reflected"（0 命中）
+        #   - clean / not vulnerable / no match: "无参数可测，clean"、nuclei 类输出
+        #   - 未发现/无匹配/无参数: "[-] 未发现匹配"、"URL 无 query 参数"
+        negative_re = re.compile(
+            r"(?:"
+            r"\b0/\d+\b|"
+            r"\bclean\b|"
+            r"\bnot vulnerable\b|"
+            r"\bno match(?:es|ing)?\b|"
+            r"未发现|无匹配|无参数|未命中"
+            r")",
+            re.IGNORECASE,
+        )
 
+        lines = output.splitlines()
         for keyword, vtype in vuln_keywords.items():
-            if keyword.lower() in output.lower():
-                findings.append(Finding(
-                    finding_type=vtype,
-                    severity=ResultSeverity.HIGH,
-                    title=f"{keyword} detected",
-                    description=f"Tool {result.tool_name} detected {keyword}",
-                    evidence=[f"Tool: {result.tool_name}", f"Target: {result.target}"],
-                    source=result.agent_id,
-                    confidence=0.7
-                ))
+            k_low = keyword.lower()
+            hit_lines = [
+                line for line in lines
+                if k_low in line.lower() and not negative_re.search(line)
+            ]
+            if not hit_lines:
+                continue
+            hit_text = "\n".join(hit_lines)
+            findings.append(Finding(
+                finding_type=vtype,
+                severity=ResultSeverity.HIGH,
+                title=f"{keyword} detected",
+                description=f"Tool {result.tool_name} detected {keyword}",
+                evidence=[
+                    self._extract_evidence_snippet(hit_text, keyword),
+                    f"Tool: {result.tool_name}",
+                    f"Target: {result.target}",
+                ],
+                source=result.agent_id,
+                confidence=0.7
+            ))
 
         # 检测开放端口 - 支持多种格式
         port_patterns = [
@@ -292,6 +326,38 @@ class ResultAggregator:
                 ))
 
         return findings
+
+    # 工具失败/被拒绝输出特征（与 base_agent_v2.is_tool_failure_output 一致，
+    # 独立实现避免跨模块耦合）
+    _FAILURE_PREFIXES = ("[错误]", "[异常]")
+    _FAILURE_KEYWORDS = (
+        "不在白名单", "拒绝执行", "拒绝构建命令", "未知工具名",
+        "Command timeout", "timed out", "执行失败",
+    )
+
+    @classmethod
+    def _is_failure_output(cls, output: str) -> bool:
+        """判断输出是否表示工具执行失败/被拒绝（此类输出不得生成漏洞 finding）。"""
+        if not output:
+            return False
+        if output.startswith(cls._FAILURE_PREFIXES):
+            return True
+        lowered = output.lower()
+        return any(keyword.lower() in lowered for keyword in cls._FAILURE_KEYWORDS)
+
+    @staticmethod
+    def _extract_evidence_snippet(output: str, keyword: str, radius: int = 80) -> str:
+        """从工具输出中摘录关键字命中的实际片段作为证据。"""
+        lowered = output.lower()
+        idx = lowered.find(keyword.lower())
+        if idx < 0:
+            return f"output contains: {keyword}"
+        start = max(0, idx - radius)
+        end = min(len(output), idx + len(keyword) + radius)
+        snippet = output[start:end].replace("\n", " ").strip()
+        prefix = "..." if start > 0 else ""
+        suffix = "..." if end < len(output) else ""
+        return f"{prefix}{snippet}{suffix}"
 
     def _deduplicate_findings(self, findings: List[Finding]) -> List[Finding]:
         """去重发现"""
