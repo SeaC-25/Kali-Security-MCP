@@ -15,7 +15,8 @@ import re
 from typing import Dict, List, Any
 from datetime import datetime
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import (
     AgentResult, Finding, ResultType, ResultSeverity
@@ -24,7 +25,7 @@ from kali_mcp.core.result_aggregator import (
 logger = logging.getLogger(__name__)
 
 
-class CodeAuditAgent(BaseAgentV2):
+class CodeAuditAgent(LLMAgentBase):
     """
     代码审计智能体
 
@@ -35,6 +36,17 @@ class CodeAuditAgent(BaseAgentV2):
     - shellcheck_scan: Shell 脚本分析
     - code_pattern_search: 危险代码模式搜索
     """
+
+    ROLE_PROMPT = (
+        "CodeAuditAgent，负责源码静态审计（SAST）的专业评估代理。"
+        "目标：对授权源码目录运行 semgrep/bandit/flawfinder/shellcheck 与危险模式搜索，"
+        "产出可验证的代码漏洞。"
+        "可用工具边界：semgrep_scan / bandit_scan / flawfinder_scan / shellcheck_scan / "
+        "code_pattern_search。"
+        "回报标准：只报告命中真实代码位置的漏洞，无证据不报；"
+        "达到目标或轮次上限即 done；done 时 structured_summary.findings 每项给出 "
+        "title / severity / confidence / evidence，evidence 必须来自真实扫描输出。"
+    )
 
     # 危险代码模式
     DANGEROUS_PATTERNS = [
@@ -60,7 +72,8 @@ class CodeAuditAgent(BaseAgentV2):
     ]
 
     def __init__(self, message_bus=None, tool_registry=None,
-                 executor=None):
+                 executor=None, brain=None, retriever=None,
+                 dag_service=None):
         capabilities = AgentCapability(
             name="code_audit",
             category="specialized",
@@ -84,7 +97,10 @@ class CodeAuditAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         logger.info("CodeAuditAgent初始化完成")
@@ -145,6 +161,10 @@ class CodeAuditAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(output, AgentResult):
+                return output
+
             if self.is_tool_failure_output(output):
                 errors.append(output[:300])
             else:
@@ -187,7 +207,22 @@ class CodeAuditAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现"""
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(
+        self,
+        task_type: str,
+        task_data: Dict[str, Any],
+        task_id: str
+    ) -> Any:
+        """旧规则路径（架构设计 §3.3 降级保留）"""
         if task_type == "semgrep_scan":
             return await self._call_tool("semgrep_scan", task_data)
         elif task_type == "bandit_scan":

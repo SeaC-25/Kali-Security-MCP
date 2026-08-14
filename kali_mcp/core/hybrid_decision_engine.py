@@ -2,6 +2,15 @@
 """
 混合决策引擎 (HybridDecisionEngine)
 
+⚠️ 废弃状态（ARCH_DESIGN §9，refactor/llm-autonomous）：
+  战略/战术决策已由 **LLM 取代**（LLM orchestrator 顶层规划 + 子 agent LLM
+  决策循环）。本模块的规则/ML 决策模型不再作为主路径；类（HybridDecisionEngine /
+  DecisionModel / 决策 dataclass）**保留**供：
+  1. legacy 确定性回退（CoordinatorAgent._process_request_legacy，经
+     K4_LEGACY_ORCHESTRATOR=1 / legacy_fallback=True 触发）；
+  2. 观测日志（决策 dataclass 保留给观测记录）。
+  主路径 import 不受影响（符号全部保留），但新代码不应再调用决策逻辑。
+
 结合中心战略决策和智能体战术决策：
 - 战略决策模型（中心调控层）
 - 战术决策模型（智能体层）

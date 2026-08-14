@@ -21,7 +21,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import AgentResult, Finding, ResultType, ResultSeverity
 
@@ -48,7 +49,7 @@ class BinaryInfo:
     confidence: float                # 置信度
 
 
-class PwnAgent(BaseAgentV2):
+class PwnAgent(LLMAgentBase):
     """
     二进制利用智能体
 
@@ -58,7 +59,20 @@ class PwnAgent(BaseAgentV2):
     - 反编译（auto_reverse_analyze）
     """
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    ROLE_PROMPT = (
+        "PwnAgent，负责二进制利用与逆向分析的专业评估代理。"
+        "目标：对授权二进制做保护机制检查、危险函数识别、逆向与反编译分析，"
+        "评估可利用性（栈溢出、格式化字符串、UAF 等）。"
+        "可用工具边界：quick_pwn_check / pwn_comprehensive_attack / auto_reverse_analyze / "
+        "radare2_analyze_binary / ghidra_analyze_binary / binwalk_analysis / "
+        "memory_forensics / ctf_pwn_solver / ctf_reverse_solver / ctf_crypto_reverser。"
+        "回报标准：只报告有真实输出支撑的二进制弱点，无证据不报；"
+        "达到目标或轮次上限即 done；done 时 structured_summary.findings 每项给出 "
+        "title / severity / confidence / evidence，evidence 必须来自真实工具输出。"
+    )
+
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         # 创建能力对象
         capabilities = AgentCapability(
             name="pwn_binary_exploitation",
@@ -87,7 +101,10 @@ class PwnAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         logger.info("PwnAgent初始化完成")
@@ -151,6 +168,10 @@ class PwnAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(output, AgentResult):
+                return output
+
             # 解析结果（工具失败/被拒绝的输出不得生成 finding）
             if self.is_tool_failure_output(output):
                 errors.append(output[:300])
@@ -189,7 +210,22 @@ class PwnAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现"""
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(
+        self,
+        task_type: str,
+        task_data: Dict[str, Any],
+        task_id: str
+    ) -> Any:
+        """旧规则路径（架构设计 §3.3 降级保留）"""
         if task_type == "quick_pwn_check":
             return await self._execute_quick_check_impl(task_data)
         elif task_type == "auto_reverse_analyze":
@@ -226,6 +262,15 @@ class PwnAgent(BaseAgentV2):
         })
 
     # ==================== 结果解析 ====================
+
+    def _parse_tool_output(
+        self,
+        tool_name: str,
+        output: str,
+        target: str
+    ) -> List[Finding]:
+        """LLM 自主路径的证据提炼：复用确定性正则解析器（LLM 决定调什么，正则提炼证据）。"""
+        return self._parse_pwn_output(tool_name, output, target)
 
     def _parse_pwn_output(
         self,

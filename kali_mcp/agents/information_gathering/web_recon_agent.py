@@ -20,7 +20,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import AgentResult, Finding, ResultType, ResultSeverity
 
@@ -37,7 +38,7 @@ class ResourceType(Enum):
     VULNERABILITY = "vulnerability"   # 漏洞
 
 
-class WebReconAgent(BaseAgentV2):
+class WebReconAgent(LLMAgentBase):
     """
     Web侦察智能体
 
@@ -48,7 +49,20 @@ class WebReconAgent(BaseAgentV2):
     - CMS扫描（wpscan, joomscan）
     """
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    ROLE_PROMPT = (
+        "WebReconAgent，负责 Web 应用侦察的专业评估代理。"
+        "目标：对授权 Web 目标做目录与文件枚举、技术栈识别、WAF 检测与 CMS 指纹识别，"
+        "绘制应用暴露面与防护措施。"
+        "可用工具边界：fastsec_scan（-dir / -cms）/ wafw00f_scan / "
+        "gobuster_scan / dirb_scan / ffuf_scan / feroxbuster_scan / wfuzz_scan / "
+        "whatweb_scan / whatweb_identify / comprehensive_web_security_scan。"
+        "回报标准：收集到足以判断目标 Web 暴露面与防护措施的技术事实即 done；"
+        "done 时 structured_summary.findings 每项给出 title / severity / confidence / evidence，"
+        "evidence 必须来自真实工具输出。"
+    )
+
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         # 创建能力对象
         capabilities = AgentCapability(
             name="web_reconnaissance",
@@ -77,7 +91,10 @@ class WebReconAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         # 字典配置
@@ -155,6 +172,10 @@ class WebReconAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(output, AgentResult):
+                return output
+
             # 解析结果（工具失败/被拒绝的输出不得生成 finding）
             if self.is_tool_failure_output(output):
                 errors.append(output[:300])
@@ -193,7 +214,22 @@ class WebReconAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现（fastsec 统一处理 dir/cms）"""
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(
+        self,
+        task_type: str,
+        task_data: Dict[str, Any],
+        task_id: str
+    ) -> Any:
+        """旧规则路径（架构设计 §3.3 降级保留）：fastsec 统一处理 dir/cms"""
         if task_type in ("gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan", "wfuzz_scan"):
             return await self._execute_fastsec_dir_impl(task_data)
         elif task_type in ("whatweb_scan", "whatweb_identify"):
@@ -237,6 +273,15 @@ class WebReconAgent(BaseAgentV2):
         })
 
     # ==================== 结果解析 ====================
+
+    def _parse_tool_output(
+        self,
+        tool_name: str,
+        output: str,
+        target: str
+    ) -> List[Finding]:
+        """LLM 自主路径的证据提炼：复用确定性正则解析器（LLM 决定调什么，正则提炼证据）。"""
+        return self._parse_web_recon_output(tool_name, output, target)
 
     def _parse_web_recon_output(
         self,

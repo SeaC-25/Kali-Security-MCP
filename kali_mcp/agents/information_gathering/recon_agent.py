@@ -18,7 +18,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability, LoadReport
+from kali_mcp.agents.base_agent_v2 import AgentCapability, LoadReport
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import AgentResult, Finding, ResultType, ResultSeverity
 
@@ -43,7 +44,7 @@ class ReconTarget:
     phases: List[ReconPhase]                    # 侦察阶段列表
 
 
-class ReconAgent(BaseAgentV2):
+class ReconAgent(LLMAgentBase):
     """
     侦察智能体
 
@@ -55,7 +56,19 @@ class ReconAgent(BaseAgentV2):
     - 技术栈识别
     """
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    ROLE_PROMPT = (
+        "ReconAgent，负责信息收集与侦察的专业评估代理。"
+        "目标：识别开放端口、服务与版本、操作系统指纹、技术栈与网络拓扑。"
+        "可用工具边界：nmap_scan / masscan_scan / masscan_fast_scan / arp_scan / "
+        "fping_scan / netdiscover_scan / fastsec_scan / whatweb_scan / whatweb_identify / "
+        "httpx_probe / onesixtyone_scan / comprehensive_network_scan / tshark_capture / ngrep_search。"
+        "回报标准：收集到足以判断目标暴露面的技术事实即 done；"
+        "done 时 structured_summary.findings 每项给出 title / severity / confidence / evidence，"
+        "evidence 必须来自真实工具输出。"
+    )
+
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         # 创建能力对象
         capabilities = AgentCapability(
             name="reconnaissance",
@@ -88,7 +101,10 @@ class ReconAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         # 侦察配置
@@ -208,6 +224,10 @@ class ReconAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(output, AgentResult):
+                return output
+
             # 解析结果（工具失败/被拒绝的输出不得生成 finding）
             if self.is_tool_failure_output(output):
                 errors.append(output[:300])
@@ -240,6 +260,15 @@ class ReconAgent(BaseAgentV2):
             findings=parsed_findings,
             errors=errors
         )
+
+    def _parse_tool_output(
+        self,
+        tool_name: str,
+        output: str,
+        target: str
+    ) -> List[Finding]:
+        """LLM 自主路径的证据提炼：复用确定性正则解析器（LLM 决定调什么，正则提炼证据）。"""
+        return self._parse_recon_output(tool_name, output, target)
 
     def _parse_recon_output(
         self,
@@ -405,18 +434,24 @@ class ReconAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """
-        执行任务实现（BaseAgentV2抽象方法）
+        """执行任务实现（BaseAgentV2抽象方法）—— LLM 自主 / legacy 规则路由。
 
-        Args:
-            task_type: 任务类型（工具名称）
-            task_data: 任务数据（参数）
-            task_id: 任务ID
-
-        Returns:
-            任务结果
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
         """
-        # 根据工具类型调用相应的执行方法
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(
+        self,
+        task_type: str,
+        task_data: Dict[str, Any],
+        task_id: str
+    ) -> Any:
+        """
+        旧规则路径（架构设计 §3.3 降级保留）：根据工具类型调用相应的执行方法
+        """
         if task_type == "nmap_scan":
             return await self._execute_nmap_scan_impl(task_data)
         elif task_type in ("masscan_fast_scan", "masscan_scan"):

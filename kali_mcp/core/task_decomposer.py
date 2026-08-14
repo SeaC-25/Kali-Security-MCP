@@ -2,6 +2,15 @@
 """
 任务分解器 (TaskDecomposer)
 
+⚠️ 废弃状态（ARCH_DESIGN §9，refactor/llm-autonomous）：
+  主路径已由 **LLM orchestrator** 取代（CoordinatorAgent 内部 LLM 顶层规划 →
+  dispatch_mission → 子 agent LLM 决策循环）。本模块仅 **legacy 确定性回退**
+  （K4_LEGACY_ORCHESTRATOR=1 / legacy_fallback=True）使用，且其中
+  `StrategyTemplate` / `TaskDecomposer.decompose` 已标记 @deprecated。
+  `Task` / `TaskGraph` 数据类**保留**：AttackDAG（kali_mcp/reasoning/attack_dag.py）
+  复用了其 DAG 数据结构与 validate 的 DFS 环检测思路，且 17 个子 agent /
+  AgentScheduler 仍 import 这两个符号，物理删除会导致 import 崩溃。
+
 将高层攻击意图分解为可执行的任务图：
 - 策略模板管理
 - 任务分解规则
@@ -11,7 +20,9 @@
 作者: Kali MCP Team
 """
 
+import functools
 import logging
+import warnings
 from typing import Dict, List, Optional, Set, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -28,7 +39,48 @@ from kali_mcp.core.intent_analyzer import (
 logger = logging.getLogger(__name__)
 
 
+def _deprecated(message: str = ""):
+    """@deprecated 标记：主路径已由 LLM orchestrator 取代，仅 legacy 回退使用。
+
+    类：加 `__deprecated__` 属性并在 __init__ 时发 DeprecationWarning（不破坏
+    isinstance/继承）；函数/方法：包一层发警告后原样调用。警告非致命。
+    """
+
+    def deco(obj):
+        if isinstance(obj, type):
+            obj.__deprecated__ = True
+            orig_init = obj.__init__
+
+            @functools.wraps(orig_init)
+            def _init_with_warning(self, *args, **kwargs):
+                warnings.warn(
+                    message or f"{obj.__name__} 已废弃：主路径由 LLM orchestrator 取代，仅 legacy 回退使用。",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                return orig_init(self, *args, **kwargs)
+
+            obj.__init__ = _init_with_warning
+            return obj
+
+        @functools.wraps(obj)
+        def wrapper(*args, **kwargs):
+            warnings.warn(
+                message or f"{obj.__name__} 已废弃：主路径由 LLM orchestrator 取代，仅 legacy 回退使用。",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return obj(*args, **kwargs)
+
+        return wrapper
+
+    return deco
+
+
 # ==================== 数据结构 ====================
+# 以下数据类（Task/TaskGraph/ExecutionPlan/TaskCategory/TaskStatus）**保留**，
+# 不标记废弃：AttackDAG（reasoning/attack_dag.py）复用其 DAG 数据结构与
+# validate 的 DFS 环检测思路，17 个子 agent 与 AgentScheduler 仍 import 它们。
 
 class TaskCategory(Enum):
     """任务类别"""
@@ -174,9 +226,15 @@ class ExecutionPlan:
 
 # ==================== 策略模板 ====================
 
+@_deprecated("StrategyTemplate 已废弃：主路径已由 LLM orchestrator 取代，仅 legacy 回退使用。")
 @dataclass
 class StrategyTemplate:
-    """策略模板"""
+    """策略模板
+
+    @deprecated：确定性策略模板是旧分解路径的输入；LLM orchestrator 主路径
+    不再使用，仅 legacy 确定性回退（TaskDecomposer.decompose）引用。保留代码
+    以保证 orchestrator legacy 回退 import 不崩溃。
+    """
     name: str                          # 策略名称
     description: str                    # 描述
     required_intents: Set[AttackIntent] # 适用的意图类型
@@ -194,6 +252,10 @@ class TaskDecomposer:
     任务分解器
 
     将高层意图分解为可执行的任务图
+
+    ⚠️ @deprecated（ARCH_DESIGN §9）：主路径已由 LLM orchestrator 取代，
+    本类仅 legacy 确定性回退使用（CoordinatorAgent._process_request_legacy）。
+    类与 `decompose` 均保留，避免 orchestrator legacy 回退 import 崩溃。
     """
 
     def __init__(self):
@@ -201,9 +263,12 @@ class TaskDecomposer:
         self._strategy_templates = self._init_strategy_templates()
         logger.info("TaskDecomposer初始化完成")
 
+    @_deprecated("TaskDecomposer.decompose 已废弃：主路径由 LLM orchestrator 取代，仅 legacy 回退使用。")
     def decompose(self, intent_analysis: IntentAnalysis) -> ExecutionPlan:
         """
         分解意图分析为执行计划
+
+        @deprecated：LLM orchestrator 主路径不调用；仅 legacy 确定性回退使用。
 
         Args:
             intent_analysis: 意图分析结果

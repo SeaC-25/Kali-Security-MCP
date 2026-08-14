@@ -35,6 +35,59 @@ class ToolRegistry:
         return decorator
 
 
+def _register_web_search_tools(reg: ToolRegistry) -> None:
+    """注册联网搜索工具 web_search / web_fetch（架构设计 §8 决策七）。
+
+    通过 WebSearchBackend（WEB_SEARCH_BACKEND=ddg|tavily，默认 ddg）实现，
+    作为普通工具进入 get_catalog_prompt() 目录，orchestrator 与子 agent
+    都能在标准 call_tool 路径调用；tool.result / execution_log 事件留审计。
+    网络不可达时静默降级返回空结果 + 错误说明，不阻塞 LLM 决策循环。
+    """
+    from kali_mcp.core.search_backends import get_search_backend
+
+    backend = get_search_backend()
+
+    @reg.tool()
+    def web_search(query: str, max_results: int = 5) -> Dict[str, Any]:
+        """联网搜索漏洞情报/CVE/绕过技巧，返回 title/url/snippet 列表"""
+        try:
+            max_results = max(1, min(int(max_results), 10))
+        except (TypeError, ValueError):
+            max_results = 5
+        data = backend.search(query, max_results=max_results)
+        results = data.get("results") or []
+        error = data.get("error")
+        lines = []
+        for idx, item in enumerate(results, 1):
+            lines.append(
+                f"{idx}. {item.get('title', '')}\n"
+                f"   {item.get('url', '')}\n"
+                f"   {item.get('snippet', '')}"
+            )
+        if error:
+            output = f"[web_search 不可用] {error}"
+            if lines:
+                output += "\n" + "\n".join(lines)
+        elif not lines:
+            output = "[web_search] 未找到相关结果"
+        else:
+            output = "\n".join(lines)
+        return {"output": output, "results": results, "error": error}
+
+    @reg.tool()
+    def web_fetch(url: str) -> Dict[str, Any]:
+        """抓取网页正文(清洗后纯文本)，用于阅读 CVE 详情/PoC/漏洞公告"""
+        data = backend.fetch(url)
+        text = data.get("text") or ""
+        error = data.get("error")
+        if error or not text:
+            return {"output": f"[web_fetch 不可用] {error or '空响应'}",
+                    "text": "", "error": error}
+        return {"output": text, "text": text, "error": None}
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # ToolBridge — 初始化全部工具 + 调用接口
 # ---------------------------------------------------------------------------
@@ -72,7 +125,7 @@ class ToolBridge:
             register_misc_tools,
             register_apt_tools,
             register_ctf_tools,
-            register_scan_workflow_tools,
+            register_wf_tools,
             register_advanced_ctf_tools,
             register_session_tools,
             register_pwn_tools,
@@ -123,7 +176,7 @@ class ToolBridge:
             ("ctf",             lambda: register_ctf_tools(
                 reg, exe, ctf_mode_enabled, ctf_sessions,
                 current_ctf_session, detected_flags, ctf_challenges)),
-            ("scan_workflow",   lambda: register_scan_workflow_tools(reg, exe)),
+            ("workflow",        lambda: register_wf_tools(reg, exe)),
             ("advanced_ctf",    lambda: register_advanced_ctf_tools(reg, exe)),
             ("session",         lambda: register_session_tools(reg, exe, attack_sessions, current_session_id)),
             ("pwn",             lambda: register_pwn_tools(reg, exe)),
@@ -141,6 +194,7 @@ class ToolBridge:
             _calls.append(("v2_tools", lambda: register_v2_tools(reg, exe)))
         if register_vulnerability_tools:
             _calls.append(("vuln_db_tools", lambda: register_vulnerability_tools(reg)))
+        _calls.append(("web_search", lambda: _register_web_search_tools(reg)))
 
         for name, fn in _calls:
             try:
@@ -245,6 +299,7 @@ class ToolBridge:
             "fierce", "dnsmap", "theharvester", "whatweb", "httpx",
             "wafw00f", "sherlock", "recon", "tshark", "ngrep",
             "comprehensive_recon",
+            "web_search", "web_fetch",
         )):
             return "信息收集"
         if any(k in n for k in (

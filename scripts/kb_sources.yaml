@@ -1,0 +1,68 @@
+# 向量化知识库数据源清单（ARCH_DESIGN §7.2 / P0）
+#
+# 每条 source 声明 include/exclude glob（相对仓库根，`**` 递归）与 category 元数据。
+# parser 决定切分方式：
+#   - markdown           按标题分节、代码块整体保留、正文 300~800 字符、相邻重叠 50
+#   - yaml               工具配方，整文件成块（文件都很小）
+#   - playbook_docstring 仅摘录 playbook 的 docstring（不执行/不解析代码逻辑）
+#   - attack_chain       对 knowledge_graph.py 做 AST 结构化提取（不 import 模块）
+#
+# 注意：只列出仓库中真实存在的源；新源加入时在此登记即可，构建脚本按 glob 发现。
+
+sources:
+  - name: credentials_guide
+    description: 渗透字典与默认账号库（内网横向首选凭据）
+    include: ["data/wordlists/*.md"]
+    exclude: []
+    parser: markdown
+    category: credentials
+
+  - name: runbook_internal
+    description: 内部运行约定（MCP 能力清单 / 调用方式 / Kali 真机验收记录）
+    include: ["doc/runbook-internal.md"]
+    exclude: []
+    parser: markdown
+    category: runbook
+
+  - name: capability_plan
+    description: 能力升级总计划（演进方向与阶段安排）
+    include: ["doc/能力升级总计划.md"]
+    exclude: []
+    parser: markdown
+    category: strategy
+
+  - name: writeups
+    description: 实战 writeup 沉淀
+    include: ["docs/writeups/*.md"]
+    exclude: []
+    parser: markdown
+    category: writeup
+
+  - name: plans
+    description: 设计/计划文档
+    include: ["docs/plans/*.md"]
+    exclude: []
+    parser: markdown
+    category: plan
+
+  - name: recipes
+    description: 工具使用配方（curl/httpx/nmap 参数模板）
+    include: ["tools_recipes/*.yaml"]
+    exclude: []
+    parser: yaml
+    category: recipe
+
+  - name: playbooks
+    description: 表面剧本 docstring 摘录（web/api/auth/svc/internal_lateral/stealth/ai_guided/chain）
+    include: ["kali_mcp/core/playbooks/*.py"]
+    exclude: ["kali_mcp/core/playbooks/__init__.py"]
+    parser: playbook_docstring
+    category: playbook_ref
+
+  - name: attack_chains
+    description: AttackChain 结构化条目（漏洞 A -> 漏洞 B 推理链，25 条）
+    include: ["kali_mcp/reasoning/knowledge_graph.py"]
+    exclude: []
+    parser: attack_chain
+    extract: AttackChain
+    category: chain

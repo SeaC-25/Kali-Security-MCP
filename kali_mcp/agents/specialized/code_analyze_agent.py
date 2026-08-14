@@ -17,7 +17,8 @@ import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import (
     AgentResult, Finding, ResultType, ResultSeverity
@@ -26,7 +27,7 @@ from kali_mcp.core.result_aggregator import (
 logger = logging.getLogger(__name__)
 
 
-class CodeAnalyzeAgent(BaseAgentV2):
+class CodeAnalyzeAgent(LLMAgentBase):
     """
     代码分析智能体 (白盒审计核心)
 
@@ -36,6 +37,17 @@ class CodeAnalyzeAgent(BaseAgentV2):
     - analyze_file: 深度分析单个文件
     - whitebox_audit: 完整白盒审计流程
     """
+
+    ROLE_PROMPT = (
+        "CodeAnalyzeAgent，负责白盒源码树分析的专业评估代理。"
+        "目标：扫描授权源码目录结构，按漏洞类型（SQLi/XSS/RCE/LFI/SSRF/反序列化等）"
+        "搜索危险模式，深度分析候选文件并提交验证。"
+        "可用工具边界：scan_source_tree / search_dangerous_patterns / analyze_file / "
+        "whitebox_audit / semgrep_scan / bandit_scan。"
+        "回报标准：只报告命中真实代码位置的候选漏洞，无证据不报；"
+        "达到目标或轮次上限即 done；done 时 structured_summary.findings 每项给出 "
+        "title / severity / confidence / evidence，evidence 必须来自真实源码扫描输出。"
+    )
 
     # 危险代码模式库 (按漏洞类型分类)
     VULN_PATTERNS = {
@@ -112,7 +124,8 @@ class CodeAnalyzeAgent(BaseAgentV2):
         ".asp", ".aspx", ".jsp", ".pl", ".sh",
     }
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         capabilities = AgentCapability(
             name="code_analysis",
             category="specialized",
@@ -134,7 +147,10 @@ class CodeAnalyzeAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         # VulnManager集成
@@ -168,6 +184,17 @@ class CodeAnalyzeAgent(BaseAgentV2):
             return {"success": False, "error": str(e)}
 
     async def _execute_task_impl(self, task_type: str, task_data: Dict, task_id: str):
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(self, task_type: str, task_data: Dict, task_id: str):
+        """旧规则路径（架构设计 §3.3 降级保留）"""
         source_path = task_data.get("source_path", "")
         if task_type == "scan_source_tree":
             return self.scan_source_tree(source_path)
@@ -190,6 +217,9 @@ class CodeAnalyzeAgent(BaseAgentV2):
             result = await self._execute_task_impl(
                 task.tool_name, task.parameters, task.task_id
             )
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(result, AgentResult):
+                return result
             if isinstance(result, dict):
                 output = str(result)
                 success = result.get("success", True)

@@ -39,3 +39,22 @@ pytest-cov>=4.1.0
 # 可选: 浏览器自动化引擎 (反检测 + 心跳维持)
 # 安装后需运行: playwright install chromium
 # playwright>=1.40.0
+
+# ---- LLM 自主多智能体：向量化知识库（P0）----
+# 本地 embedding（首次运行自动下载模型到 data/models，需联网一次；之后离线可跑）
+sentence-transformers>=2.7.0
+# transformers 4.57.2 存在本地路径加载 bug（mistral 兼容分支对 dict 取 .model_type），
+# 4.57.6 修复；sentence-transformers 拉取 transformers<5，这里钉住下限
+transformers>=4.57.6,<5.0.0
+# 向量存储（单文件 data/kb_vectors.db；Windows 加载失败时自动降级 numpy+JSON）
+sqlite-vec>=0.1.6
+# 关键词召回（混合检索 RRF 融合）
+rank-bm25>=0.2.2
+# 向量运算
+numpy>=1.24.0
+
+# ---- LLM 自主多智能体：联网搜索（P4，架构设计 §8）----
+# 默认搜索后端（免费无 key，纯 Python；8.x 起包名迁移为 ddgs，代码两者兼容）
+duckduckgo-search>=6.3.0
+# 可选后端（质量更高；需 TAVILY_API_KEY，并设 WEB_SEARCH_BACKEND=tavily 切换）
+# tavily-python>=0.3.0

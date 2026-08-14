@@ -19,7 +19,8 @@ import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import (
     AgentResult, Finding, ResultType, ResultSeverity
@@ -28,7 +29,7 @@ from kali_mcp.core.result_aggregator import (
 logger = logging.getLogger(__name__)
 
 
-class SourceCodeAgent(BaseAgentV2):
+class SourceCodeAgent(LLMAgentBase):
     """
     源码获取智能体
 
@@ -40,6 +41,17 @@ class SourceCodeAgent(BaseAgentV2):
     - analyze_source_structure: 分析源码结构
     - detect_tech_stack: 识别技术栈
     """
+
+    ROLE_PROMPT = (
+        "SourceCodeAgent，负责源码获取的专业评估代理。"
+        "目标：检测目标站点的 .git/.svn 泄露、备份文件泄露与 LFI 源码读取，"
+        "获取并分析目标源代码与技术栈。"
+        "可用工具边界：git_dump / svn_dump / backup_scan / lfi_source_read / "
+        "analyze_source_structure / detect_tech_stack。"
+        "回报标准：只报告确认真实存在的源码泄露/可读证据，无证据不报；"
+        "达到目标或轮次上限即 done；done 时 structured_summary.findings 每项给出 "
+        "title / severity / confidence / evidence，evidence 必须来自真实请求输出。"
+    )
 
     # 常见备份文件路径
     BACKUP_PATHS = [
@@ -65,7 +77,8 @@ class SourceCodeAgent(BaseAgentV2):
         "go": {"files": ["go.mod", "go.sum", "main.go"], "headers": []},
     }
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         capabilities = AgentCapability(
             name="source_code_acquisition",
             category="specialized",
@@ -87,7 +100,10 @@ class SourceCodeAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
         logger.info("SourceCodeAgent初始化完成")
 
@@ -109,6 +125,17 @@ class SourceCodeAgent(BaseAgentV2):
             return {"success": False, "error": str(e)}
 
     async def _execute_task_impl(self, task_type: str, task_data: Dict, task_id: str):
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(self, task_type: str, task_data: Dict, task_id: str):
+        """旧规则路径（架构设计 §3.3 降级保留）"""
         target = task_data.get("target", "")
         if task_type == "git_dump":
             return await self.check_git_leak(target)
@@ -135,6 +162,9 @@ class SourceCodeAgent(BaseAgentV2):
             result = await self._execute_task_impl(
                 task.tool_name, task.parameters, task.task_id
             )
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(result, AgentResult):
+                return result
             if isinstance(result, dict):
                 output = str(result)
                 success = result.get("success", True)

@@ -21,7 +21,8 @@ from datetime import datetime
 from enum import Enum
 from ipaddress import ip_address
 
-from kali_mcp.agents.base_agent_v2 import BaseAgentV2, AgentCapability
+from kali_mcp.agents.base_agent_v2 import AgentCapability
+from kali_mcp.agents.llm_agent_base import LLMAgentBase, MissionTicket
 from kali_mcp.core.task_decomposer import Task, TaskCategory
 from kali_mcp.core.result_aggregator import AgentResult, Finding, ResultType, ResultSeverity
 
@@ -49,7 +50,7 @@ class Subdomain:
     confidence: float                 # 置信度
 
 
-class SubdomainAgent(BaseAgentV2):
+class SubdomainAgent(LLMAgentBase):
     """
     子域名智能体
 
@@ -60,7 +61,20 @@ class SubdomainAgent(BaseAgentV2):
     - OSINT搜集（theharvester）
     """
 
-    def __init__(self, message_bus=None, tool_registry=None, executor=None):
+    ROLE_PROMPT = (
+        "SubdomainAgent，负责子域名枚举与 DNS 侦察的专业评估代理。"
+        "目标：通过字典爆破、证书透明度（crt.sh）、DNS 记录枚举与 OSINT 聚合"
+        "发现目标域名的子域名与 DNS 记录，绘制域名资产面。"
+        "可用工具边界：fastsec_scan（-osint 聚合）/ subfinder_scan / amass_enum / "
+        "sublist3r_scan / dnsrecon_scan / dnsenum_scan / dnsmap_scan / fierce_scan / "
+        "theharvester_osint。"
+        "回报标准：收集到足以判断目标域名暴露面（子域名、解析 IP、DNS 记录）的"
+        "技术事实即 done；done 时 structured_summary.findings 每项给出 "
+        "title / severity / confidence / evidence，evidence 必须来自真实工具输出。"
+    )
+
+    def __init__(self, message_bus=None, tool_registry=None, executor=None,
+                 brain=None, retriever=None, dag_service=None):
         # 创建能力对象
         capabilities = AgentCapability(
             name="subdomain_discovery",
@@ -84,7 +98,10 @@ class SubdomainAgent(BaseAgentV2):
             message_bus=message_bus,
             capabilities=capabilities,
             tool_registry=tool_registry,
-            executor=executor
+            executor=executor,
+            brain=brain,
+            retriever=retriever,
+            dag_service=dag_service
         )
 
         # 子域名发现配置
@@ -166,6 +183,10 @@ class SubdomainAgent(BaseAgentV2):
                 task_id=task.task_id
             )
 
+            # LLM 自主路径：_execute_task_impl 已返回最终 AgentResult，直接透传
+            if isinstance(output, AgentResult):
+                return output
+
             # 解析结果（工具失败/被拒绝的输出不得生成 finding）
             if self.is_tool_failure_output(output):
                 errors.append(output[:300])
@@ -204,7 +225,22 @@ class SubdomainAgent(BaseAgentV2):
         task_data: Dict[str, Any],
         task_id: str
     ) -> Any:
-        """执行任务实现（fastsec -osint 统一处理）"""
+        """执行任务实现 —— LLM 自主 / legacy 规则路由。
+
+        brain 可用且 task_data 显式开启 llm_autonomous → LLM 决策循环；
+        否则回退到旧 if/else 规则路径（降级安全，不空转）。
+        """
+        if self.brain.available and task_data.get("llm_autonomous"):
+            return await self.llm_drive_mission(MissionTicket.from_task(task_data))
+        return await self._execute_task_impl_legacy(task_type, task_data, task_id)
+
+    async def _execute_task_impl_legacy(
+        self,
+        task_type: str,
+        task_data: Dict[str, Any],
+        task_id: str
+    ) -> Any:
+        """旧规则路径（架构设计 §3.3 降级保留）：fastsec -osint 统一处理"""
         if task_type in ("subfinder_scan", "amass_enum", "sublist3r_scan",
                           "dnsrecon_scan", "dnsenum_scan", "dnsmap_scan",
                           "fierce_scan", "theharvester_osint", "fastsec_scan"):
@@ -225,6 +261,15 @@ class SubdomainAgent(BaseAgentV2):
     # ==================== DNS枚举相关 ====================
 
     # ==================== 结果解析 ====================
+
+    def _parse_tool_output(
+        self,
+        tool_name: str,
+        output: str,
+        target: str
+    ) -> List[Finding]:
+        """LLM 自主路径的证据提炼：复用确定性正则解析器（LLM 决定调什么，正则提炼证据）。"""
+        return self._parse_subdomain_output(tool_name, output, target)
 
     def _parse_subdomain_output(
         self,

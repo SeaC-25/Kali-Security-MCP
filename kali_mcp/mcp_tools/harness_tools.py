@@ -28,6 +28,15 @@ def _env_int(name: str, default: int, *, lo: int = 1, hi: int = 64) -> int:
     return max(lo, min(hi, val))
 
 
+def _legacy_playbooks_enabled() -> bool:
+    """playbooks 是否注册为 MCP 工具（ARCH_DESIGN §9）。
+
+    默认 **不注册**（预定义 playbook 已移出主路径，战术内容向量化进 KB）；
+    仅当环境变量 `K4_LEGACY_PLAYBOOKS=1` 时显式开启，作为过渡期兼容。
+    """
+    return os.environ.get("K4_LEGACY_PLAYBOOKS") == "1"
+
+
 def multi_chain_quotas() -> Dict[str, int]:
     """Return effective multi-target quotas for run_surface_chain_multi."""
     max_targets = _env_int(
@@ -208,64 +217,78 @@ def register_harness_tools(mcp, executor):
         graph.save()
         return {"ok": True, "node": node.to_dict()}
 
-    @mcp.tool()
-    def run_playbook(
-        task_id: str,
-        playbook: str = "web_surface",
-        target: str = "",
-        depth: str = "standard",
-    ) -> Dict[str, Any]:
-        """Run a named playbook (web_surface | api_surface | auth_surface | svc_surface)."""
-        from kali_mcp.core.playbooks import list_playbooks, run_playbook as _run
+    # ---- playbook 注册表（ARCH_DESIGN §9）----
+    # 预定义 playbook 已移出主路径：run_playbook / run_surface_chain 默认
+    # **不注册**（K4_LEGACY_PLAYBOOKS=1 显式开启过渡）。playbook 战术内容
+    # 已向量化进 KB 作参考；核心实现保留在 kali_mcp/core/playbooks/。
+    # run_surface_chain_multi（多目标配额扇出工具）独立于 playbook 注册表保留。
+    if _legacy_playbooks_enabled():
 
-        if not task_id:
-            return {"ok": False, "error": "task_id required"}
-        if not target:
-            return {"ok": False, "error": "target required", "available_playbooks": list_playbooks()}
-        try:
-            return _run(playbook or "web_surface", task_id, target, executor, depth=depth or "standard")
-        except Exception as e:
-            logger.exception("run_playbook failed")
-            return {"ok": False, "error": str(e), "available_playbooks": list_playbooks()}
+        @mcp.tool()
+        def run_playbook(
+            task_id: str,
+            playbook: str = "web_surface",
+            target: str = "",
+            depth: str = "standard",
+        ) -> Dict[str, Any]:
+            """Run a named playbook (web_surface | api_surface | auth_surface | svc_surface).
 
-    @mcp.tool()
-    def run_surface_chain(
-        task_id: str,
-        target: str = "",
-        depth: str = "mixed",
-        playbooks: str = "",
-        stop_on_error: bool = False,
-    ) -> Dict[str, Any]:
-        """Sequentially run surface playbooks after start_task (no run_goal).
+            @legacy（ARCH_DESIGN §9）：预定义 playbook 已移出主路径，本工具仅在
+            K4_LEGACY_PLAYBOOKS=1 时注册，作为过渡期兼容。
+            """
+            from kali_mcp.core.playbooks import list_playbooks, run_playbook as _run
 
-        Default order: web_surface(standard) → api_surface(quick) → auth_surface(quick) → svc_surface(quick).
-        depth=mixed keeps that mix; depth=quick|standard|thorough applies to all.
-        playbooks: optional comma/space list to subset/reorder (must be registered playbooks).
-        """
-        from kali_mcp.core.playbooks import list_playbooks, run_surface_chain as _chain
+            if not task_id:
+                return {"ok": False, "error": "task_id required"}
+            if not target:
+                return {"ok": False, "error": "target required", "available_playbooks": list_playbooks()}
+            try:
+                return _run(playbook or "web_surface", task_id, target, executor, depth=depth or "standard")
+            except Exception as e:
+                logger.exception("run_playbook failed")
+                return {"ok": False, "error": str(e), "available_playbooks": list_playbooks()}
 
-        if not task_id:
-            return {"ok": False, "error": "task_id required"}
-        if not target:
-            return {
-                "ok": False,
-                "error": "target required",
-                "available_playbooks": list_playbooks(),
-                "default_order": ["web_surface", "api_surface", "auth_surface", "svc_surface"],
-            }
-        try:
-            return _chain(
-                task_id=task_id,
-                target=target,
-                executor=executor,
-                depth=depth or "mixed",
-                playbooks=playbooks or None,
-                stop_on_error=bool(stop_on_error),
-                seed_task=True,
-            )
-        except Exception as e:
-            logger.exception("run_surface_chain failed")
-            return {"ok": False, "error": str(e), "available_playbooks": list_playbooks()}
+        @mcp.tool()
+        def run_surface_chain(
+            task_id: str,
+            target: str = "",
+            depth: str = "mixed",
+            playbooks: str = "",
+            stop_on_error: bool = False,
+        ) -> Dict[str, Any]:
+            """Sequentially run surface playbooks after start_task (no run_goal).
+
+            Default order: web_surface(standard) → api_surface(quick) → auth_surface(quick) → svc_surface(quick).
+            depth=mixed keeps that mix; depth=quick|standard|thorough applies to all.
+            playbooks: optional comma/space list to subset/reorder (must be registered playbooks).
+
+            @legacy（ARCH_DESIGN §9）：预定义 playbook 已移出主路径，本工具仅在
+            K4_LEGACY_PLAYBOOKS=1 时注册，作为过渡期兼容。
+            """
+            from kali_mcp.core.playbooks import list_playbooks, run_surface_chain as _chain
+
+            if not task_id:
+                return {"ok": False, "error": "task_id required"}
+            if not target:
+                return {
+                    "ok": False,
+                    "error": "target required",
+                    "available_playbooks": list_playbooks(),
+                    "default_order": ["web_surface", "api_surface", "auth_surface", "svc_surface"],
+                }
+            try:
+                return _chain(
+                    task_id=task_id,
+                    target=target,
+                    executor=executor,
+                    depth=depth or "mixed",
+                    playbooks=playbooks or None,
+                    stop_on_error=bool(stop_on_error),
+                    seed_task=True,
+                )
+            except Exception as e:
+                logger.exception("run_surface_chain failed")
+                return {"ok": False, "error": str(e), "available_playbooks": list_playbooks()}
 
     @mcp.tool()
     def verify_finding(
@@ -638,7 +661,11 @@ def register_harness_tools(mcp, executor):
         }
 
     logger.info(
-        "harness tools registered (start_task/graph/playbook/run_surface_chain/"
+        "harness tools registered (start_task/graph/%srun_playbook/%srun_surface_chain/"
         "run_surface_chain_multi/verify/export_task_summary/handoff/observe/"
         "propose_insights/attack_coverage/task_status/task_timeline)"
+        % (
+            "" if _legacy_playbooks_enabled() else "NO-",
+            "" if _legacy_playbooks_enabled() else "NO-",
+        )
     )

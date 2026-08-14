@@ -99,10 +99,23 @@ class TestMCPToolsRegistration:
         mcp_mock = MagicMock()
         exe_mock = MagicMock()
         short = modname.split(".")[-1]
-        extra_args = EXTRA_ARGS_MODULES.get(short, [])
-        kwargs: Dict[str, Any] = {"mcp": mcp_mock, "executor": exe_mock}
-        for earg in extra_args:
-            kwargs[earg] = MagicMock()
+        # 按函数实际签名构造 mock kwargs（mcp/executor 用固定 mock，其余参数全 MagicMock）：
+        # 兼容 multi_agent_tools(mcp, coordinator, agent_registry) 这类非 (mcp, executor) 签名。
+        sig = inspect.signature(func)
+        kwargs: Dict[str, Any] = {}
+        for pname, param in sig.parameters.items():
+            if pname == "mcp":
+                kwargs[pname] = mcp_mock
+            elif pname == "executor":
+                kwargs[pname] = exe_mock
+            elif param.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            ):
+                kwargs[pname] = MagicMock()
+        for earg in EXTRA_ARGS_MODULES.get(short, []):
+            kwargs.setdefault(earg, MagicMock())
         try:
             result = func(**kwargs)
         except Exception as e:
