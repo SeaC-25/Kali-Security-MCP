@@ -393,7 +393,21 @@ def setup_mcp_server(
                 logger.info(f"✅ {desc} ({agent.agent_id}) 初始化成功")
 
             multi_agent_coordinator = CoordinatorAgent(agent_registry=agent_registry)
-            logger.info(f"✅ 中心调控智能体初始化成功")
+
+            # 预构建向量库检索器 + 主线程预加载 embedding 模型。
+            # 原因：kb_search 首次调用若在 FastMCP worker 线程里惰性加载
+            # sentence-transformers/torch，Windows 上原生库多线程初始化会卡死。
+            # 这里在启动主线程完成加载（约 10-15s），后续检索仅前向推理，秒回。
+            try:
+                from kali_mcp.reasoning.knowledge_retriever import KnowledgeRetriever
+
+                retriever = KnowledgeRetriever()
+                retriever._embed("warmup")  # 触发 _ensure_model，在主线程完成 torch 初始化
+                multi_agent_coordinator.retriever = retriever
+                multi_agent_coordinator._retriever_attempted = True
+                logger.info("✅ 向量库检索器预加载完成（embedding 模型已就绪）")
+            except Exception as _kb_e:  # noqa: BLE001 —— 预加载失败不阻塞集群，kb_search 降级为空
+                logger.warning(f"⚠️ 向量库检索器预加载失败（kb_search 将降级为空）: {_kb_e}")
             logger.info(f"✅ 多智能体集群系统v4.0启动完成 - {len(agents)}个专业智能体就绪")
 
             MULTI_AGENT_STATE["agent_registry"] = agent_registry

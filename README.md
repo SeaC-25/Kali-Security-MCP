@@ -5,13 +5,14 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Protocol-00D4AA?style=for-the-badge)
 ![LLM](https://img.shields.io/badge/LLM-Driven-DeepReasoning-FF6F00?style=for-the-badge)
+![Embedding](https://img.shields.io/badge/Embedding-bge--small--zh-8A2BE2?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 **深度推理增强的 LLM 自主多智能体渗透系统：LLM 是唯一决策者**
 
 *一条自然语言指令 → LLM 顶层规划 → 17 个 LLM 自主智能体逐步动态规划 → 攻击 DAG + 蚁群算法路径引导 → 向量化知识库 + 联网搜索增强 → 实时总结推送*
 
-[中文](#中文) | [English](#english)
+[中文](#中文) | [English](#english) | [架构设计 ARCH_DESIGN](ARCH_DESIGN.md)
 
 </div>
 
@@ -40,7 +41,7 @@ flowchart TB
     subgraph KB[向量化知识库]
         IDX[(kb_vectors.db<br/>sqlite-vec)]
         RT[KnowledgeRetriever<br/>语义 top-k + 元数据过滤 + BM25 融合]
-        EMB[Embedding 模型<br/>sentence-transformers 本地]
+        EMB[Embedding 模型<br/>BAAI/bge-small-zh-v1.5 本地 512 维]
     end
 
     subgraph DAG[攻击 DAG + ACO]
@@ -93,8 +94,10 @@ flowchart TB
 | **17 个 LLM 自主子 agent** | 每个子 agent 继承 `LLMAgentBase`：角色 prompt（ROLE_PROMPT）+ 工具面（`AgentCapability.supported_tools ∩ ToolBridge` 注册表）+ `llm_drive_mission` 决策循环。任务以 **MissionTicket**（即 DAG 节点）经 `mission.created` 事件下发、按角色认领。工具调用仍走原 `_call_tool` executor 桥，输出由确定性正则提炼成 Finding 证据（结构化证据提取保持确定性，避免 LLM 编造） | `kali_mcp/agents/llm_agent_base.py` |
 | **攻击 DAG + 蚁群算法（ACO）** | 子 agent 的发现（observation / hypothesis / attack_action / finding / mission / summary）作为 DAG 节点，边承载信息素 τ ∈ [0.05, 1]。验证/平台判定成功时沿 `enables`/`yields` 路径**沉积信息素**，定期蒸发，`P(e) = τ^α·η^β` 归一化后给出候选边评分。**诚实说明：ACO 只做路径推荐（top-k 候选边），LLM 可以采纳、引用或否决——否决本身作为负反馈进入启发式；LLM 才是决策者** | `kali_mcp/reasoning/attack_dag.py`、`kali_mcp/reasoning/aco.py` |
 | **总结智能体 SummarizerAgent** | 订阅 `mission.completed/failed`、`tool.result`（critical/high 过滤）、`vuln.verified`、`dag.updated`、`flag.found`；流水线：规范化 → sha1 指纹去重 → 三层去误报（硬过滤 / confidence 阈值 / LLM 三分类研判）→ 严重性排序 → `SummarySnapshot`；经 EventBus + EventStream 实时 SSE 推送（同 session 2s 节流，`flag.found` 立即高优推送） | `kali_mcp/core/summarizer_agent.py` |
-| **向量化知识库** | 本地 `sentence-transformers` embedding + `sqlite-vec` 单文件向量库（`data/kb_vectors.db`）+ `rank-bm25` 关键词召回，**RRF 融合**。orchestrator 下发任务前与子 agent 执行中（每 3 步）注入 KB 命中块，语义检索经验库（战术 / writeup / 口令 / 绕过技巧等）。索引构建幂等增量（`content_hash` 跳过未变文件） | `kali_mcp/reasoning/knowledge_retriever.py`、`scripts/build_kb_index.py`、`scripts/kb_sources.yaml` |
+| **向量化知识库** | 本地 `sentence-transformers` embedding（**`BAAI/bge-small-zh-v1.5`，512 维，权重随仓库提供**）+ `sqlite-vec` 单文件向量库（`data/kb_vectors.db`）+ `rank-bm25` 关键词召回，**RRF 融合**。orchestrator 下发任务前与子 agent 执行中（每 3 步）注入 KB 命中块，语义检索经验库（战术 / writeup / 口令 / 绕过技巧等）。索引构建幂等增量（`content_hash` 跳过未变文件） | `kali_mcp/reasoning/knowledge_retriever.py`、`scripts/build_kb_index.py`、`scripts/kb_sources.yaml` |
 | **联网搜索** | `web_search` / `web_fetch` 注册为 ToolBridge 普通工具（进入工具目录，走标准 `call_tool` 路径，天然留审计日志），LLM 自主决定何时搜索 CVE / 漏洞情报 / 绕过技巧。后端按 `WEB_SEARCH_BACKEND=ddg\|tavily` 切换（默认 ddg 免费无 key） | `kali_mcp/core/search_backends.py`、`kali_mcp/core/tool_bridge.py` |
+| **自研 fastsec 扫描引擎** | Go 单二进制 AI 原生扫描器，**替代 25 个外部工具**（gobuster/nikto/sqlmap/whatweb/subfinder/ffuf/nuclei/hydra/dirb/wfuzz/feroxbuster/dnsrecon/fierce/dnsenum/theharvester/sherlock/joomscan/wpscan/medusa/patator/ncrack/crowbar/brutespray/searchsploit/masscan）。能力：目录枚举 / CMS 指纹 / 注入检测 / XSS 反射 / 登录爆破（含 263 万口令字典）/ Kerberos AS-REP 与 Kerberoast / 服务指纹 / OSINT / 哈希破解 / 反连 shell 生成 / SAM 提取等，内置 `tools/fastsec/data/` 字典与知识库 | `tools/fastsec/` |
+| **执行后端自适应** | 启动时 `resolve_backend()` 自动检测：本地 subprocess（默认）、SSH 远程主机、Docker 容器，无需改代码 | `kali_mcp/core/backend.py` |
 
 ### 17 个 LLM 自主子 agent
 
@@ -120,13 +123,75 @@ flowchart TB
 | | `pwn_agent` | 二进制漏洞检查 / 逆向 / 反编译 |
 | | `source_code_agent` | .git/.svn 泄露 / 备份扫描 / LFI 读源码 |
 
-> 迁移状态（按 ARCH_DESIGN §3.3 分阶段实施）：`recon_agent` / `web_vuln_agent` / `exploit_agent` 三个试点已上线 LLM 决策路径（覆盖侦察 / Web 漏洞 / 利用三个典型面），其余 14 个按同一模板迁移中；未迁移前自动回退 legacy 规则路径，系统不空转。
+### 工具面（MCP surface）
+
+MCP 表面已从 192 个工具收敛为 **keep-set（约 50 个原生注册）+ `kali_run` 元回退**：归档模块文件保留但**不再注册**，其命令仍可经 `kali_mcp.core.tool_registry` 构建，通过 `kali_run` 按名调用（keep-set 或归档、registry key 或别名均可）。
+
+| 类别 | 工具 |
+|---|---|
+| **LLM 编排** | `agent_run`（自然语言任务 → LLM orchestrator 全流程）、`agent_status`（集群健康/调度统计）、`dag_status`（攻击 DAG 全局状态：节点/边、信息素 top 路径、前沿候选边）、`kb_search`（语义+关键词混合检索知识库） |
+| **任务板** | `start_task`、`task_status`、`run_surface_chain`、`verify_finding`、`task_create`、`task_claim`、`task_complete`、`task_renew`、`task_list`、`board_snapshot` |
+| **fastsec 扫描** | `fastsec_scan`（dir/cms/inject/xss/brute/osint/fingerprint/crack/kerberos/template 等全能力，见下节） |
+| **端口/服务** | `nmap_scan`、`rustscan_scan`、`naabu_scan`、`comprehensive_recon`、`server_health` |
+| **口令/域渗透** | `john_crack`、`hashcat_crack`、`kerbrute_attack`、`GetNPUsers_scan`、`GetUserSPNs_scan`、`nxc_attack`、`evil_winrm_attack`、`secretsdump_scan`、`psexec_attack`、`smbexec_attack` |
+| **利用** | `metasploit_run`、`quick_pwn_check` |
+| **会话/工作流** | `start_attack_session`、`list_attack_sessions`、`wf_init`、`wf_transition`、`wf_record_result`、`wf_record_issue`、`wf_status`、`wf_pack_turn` |
+| **异步扫描** | `scan_start`、`scan_collect`、`scan_wait`、`scan_jobs` |
+| **元回退** | `kali_run`（任意 registry 工具按名执行） |
+
+> 预定义 playbook（`run_playbook` / `run_surface_chain`）已**移出主路径**（战术内容向量化进 KB 作参考），仅设置 `K4_LEGACY_PLAYBOOKS=1` 时作为过渡期兼容注册。
+
+### fastsec 自研扫描引擎
+
+`tools/fastsec/` 是 Go 单二进制引擎（含 `data/` 内置字典：`dns/` 子域字典 63MB、`brute/` 口令字典 40MB 含 263 万 top 口令、`knowledge/` 经验库 2.5MB），核心能力：
+
+| 能力 | 参数 |
+|---|---|
+| 目录枚举 | `-dir <url>` / `-w <wordlist>` |
+| CMS 识别 | `-cms <url>` |
+| SQL 注入检测 | `-inject <param,...>` |
+| XSS 反射检测 | `-xss <param,...>`（auto = 从 URL 自动发现参数） |
+| 登录爆破 | `-brute <host>`、`-service http-form\|tcp-banner`、`-U/-P` 字典、`-form-*` 表单配置 |
+| 口令字典生成 | `-soceng <name>`（社工字典） |
+| Kerberos | `-kerberos <kdc>`、`-domain`、`-kusers`（AS-REP / Kerberoast）、`-kpass` |
+| 服务指纹 | `-fingerprint <host>` / `-fp-ports` |
+| 模板扫描 | `-t <file>` / `-d <dir>`（nuclei 风格模板） |
+| 行为差异 | `-diff <params>` |
+| OSINT | `-osint <domain>` |
+| 哈希破解 | `-crack md5:<hash>` / `-crack-wordlist` |
+| 反连 shell | `-shell <lang>` / `-s-host` / `-s-port` / `-s-enc` |
+| 凭据提取 | `-sam <hive>` |
+| 用户名检索 | `-user <name>` |
+| 端口扫描 | `-scan <target>` |
+| 编排扫描 | `-orchestrate <target>` |
 
 ### 快速开始
 
-#### 方式一：MCP（自然语言编排）
+#### 1. 环境准备
 
-在支持 MCP 的客户端（Claude Desktop / Claude Code / Oh My Pi）配置：
+```bash
+# Python 3.10+
+python -m venv .venv
+# Windows: .venv\Scripts\activate   |   Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+- **embedding 模型已随仓库提供**：`data/models/models--BAAI--bge-small-zh-v1.5/`（512 维，完全离线可跑，无需联网下载）。
+- **知识库索引已随仓库提供**：`data/kb_vectors.db`（sqlite-vec 单文件）。
+- fastsec 引擎需要 Go 工具链时自行 `cd tools/fastsec && go build -o fastsec ./cmd/fastsec`（或直接用仓库内已构建产物；扫描也可完全走 `nmap_scan` 等 keep-set 工具，不强制 fastsec）。
+
+#### 2. MCP 接入（Claude Code / Codex / OpenCode / Pi）
+
+Kali MCP 是标准 **stdio MCP 服务器**，任何支持 MCP 的 harness 都能接入。核心要点：
+
+- 入口：`python mcp_server.py --tool-profile harness`
+- 工具档位 `harness`：只暴露编排与观测工具面（agent_run/agent_status/dag_status/kb_search + 任务板 + fastsec + 扫描工具），让主 LLM 只看到编排 API；
+- **LLM 自主多智能体集群**需额外开两个开关：`K4_LEGACY_CLUSTER=1`（初始化 17-agent 集群）+ `KALI_MCP_FORCE_ENABLE_MODULES=multi_agent`（harness 档默认禁用 multi_agent 模块，需强制启用）；
+- **LLM key**（二选一）：`ANTHROPIC_API_KEY`（Claude）或 `OPENAI_API_KEY`（OpenAI/Codex）——有 key 走 LLM 自主决策路径；无 key 自动降级 legacy 确定性路径，集群照常可用。
+
+##### Claude Code
+
+项目级配置：仓库根目录 `.mcp.json`（与 Claude Code 共享，Claude Desktop 也可用）：
 
 ```json
 {
@@ -134,10 +199,93 @@ flowchart TB
     "kali": {
       "command": "python",
       "args": ["mcp_server.py", "--tool-profile", "harness"],
+      "cwd": ".",
       "env": {
-        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
+        "KALI_MCP_TOOL_PROFILE": "harness",
         "K4_LEGACY_CLUSTER": "1",
-        "LLM_PROVIDER": "anthropic",
+        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
+        "ANTHROPIC_API_KEY": "sk-ant-...",
+        "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
+      }
+    }
+  }
+}
+```
+
+或用户级（对全部项目生效）：
+
+```bash
+claude mcp add kali -- python mcp_server.py --tool-profile harness
+claude mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULES=multi_agent
+```
+
+> Claude Code 自带 Bash 子代理能力。安全评估任务建议配合 `Task` 工具并行派发多个独立子代理（多目标侦察 / 扫描 / 代码审计并行），主对话只做汇总决策。
+
+##### Codex（OpenAI Codex CLI）
+
+用户级配置 `~/.codex/config.toml`：
+
+```toml
+[mcp_servers.kali]
+command = "python"
+args = ["mcp_server.py", "--tool-profile", "harness"]
+env = {
+  KALI_MCP_TOOL_PROFILE = "harness",
+  K4_LEGACY_CLUSTER = "1",
+  KALI_MCP_FORCE_ENABLE_MODULES = "multi_agent",
+  OPENAI_API_KEY = "sk-...",
+  OPENAI_MODEL = "gpt-4o",
+}
+```
+
+或命令行注册：
+
+```bash
+codex mcp add kali -- python mcp_server.py --tool-profile harness
+codex mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULES=multi_agent
+```
+
+> Codex 场景下 LLM 决策循环建议走 OpenAI provider（`OPENAI_API_KEY` / `OPENAI_MODEL`），与 Codex 自身同源。
+
+##### OpenCode
+
+项目级 `opencode.json`（或用户级 `~/.config/opencode/opencode.json`）：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kali": {
+      "type": "local",
+      "command": ["python", "mcp_server.py", "--tool-profile", "harness"],
+      "environment": {
+        "KALI_MCP_TOOL_PROFILE": "harness",
+        "K4_LEGACY_CLUSTER": "1",
+        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
+        "OPENAI_API_KEY": "sk-...",
+        "OPENAI_MODEL": "gpt-4o"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+##### Pi / Oh My Pi
+
+Pi（omp）读取仓库根目录标准 `.mcp.json`（与 Claude Code 同一格式），在项目根放：
+
+```json
+{
+  "mcpServers": {
+    "kali": {
+      "command": "python",
+      "args": ["mcp_server.py", "--tool-profile", "harness"],
+      "cwd": ".",
+      "env": {
+        "KALI_MCP_TOOL_PROFILE": "harness",
+        "K4_LEGACY_CLUSTER": "1",
+        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
         "ANTHROPIC_API_KEY": "sk-ant-..."
       }
     }
@@ -145,22 +293,17 @@ flowchart TB
 }
 ```
 
-- `--tool-profile harness`：harness 档位，暴露编排与观测工具面；
-- `KALI_MCP_FORCE_ENABLE_MODULES=multi_agent`：强制启用多智能体模块；
-- `K4_LEGACY_CLUSTER=1`：启用多智能体集群初始化（名称保留自旧版，语义升级为 LLM orchestrator 入口）；**配置 LLM key 后走 LLM 自主路径，无 key 时集群降级到 legacy 确定性路径，两者均可用**。
+> 注意：`command` 里把 `python` 换成你机器上的解释器绝对路径（Windows 常见 `C:\Windows\py.exe -3` 或 `.venv\Scripts\python.exe`）；`cwd` 指向仓库根目录，保证 `mcp_server.py`、`data/`、`tools/fastsec/` 相对路径正确。仓库自带的 `.mcp.json` 即此格式的部署实例。
 
-harness 档位下的核心工具：
+接入后在任意 harness 里直接说：
 
-| 工具 | 用途 |
-|---|---|
-| `agent_run` | 自然语言任务 → LLM orchestrator 全流程（LLM 顶层规划 → dispatch_mission → 子 agent LLM 决策循环 → review → 汇总） |
-| `agent_status` | 集群健康 / agent 列表 / 能力摘要 / 调度统计 |
-| `dag_status` | 观测攻击 DAG 全局状态：节点/边数、信息素 top 路径、前沿候选边 |
-| `kb_search` | 直接查询向量化知识库（`KnowledgeRetriever.retrieve`，语义 + 关键词混合检索） |
+```
+对 http://target/ 做一次完整渗透：先侦察，再扫 Web 漏洞，验证后给出利用建议
+```
 
-另有 `start_task` / `task_*` / `verify_finding` 等任务板与验证工具。预定义 playbook（`run_playbook` / `run_surface_chain`）已**移出主路径**（战术内容向量化进 KB 作参考），仅设置 `K4_LEGACY_PLAYBOOKS=1` 时作为过渡期兼容注册。
+即会触发 `agent_run` → LLM orchestrator 全流程。
 
-#### 方式二：CLI 实时可视化
+#### 3. CLI 实时可视化（不接 harness）
 
 ```bash
 # Windows
@@ -172,6 +315,15 @@ python3 agent_live.py "对 http://localhost:8000/ 做 web 漏洞扫描" --agents
 
 `agent_live.py` 是纯展示层：逐行分色打印 orchestrator 的规划/派活决策、每个子 agent 的 LLM 决策与工具调用结果、findings 与总结推送，Windows Terminal 分屏即可获得类 tmux 的实时观察体验。`--agents` 可按 agent_id 精确或前缀匹配（如 `recon` 匹配 `recon_agent`）。
 
+#### 4. SSE 远程模式
+
+```bash
+python mcp_server.py --transport sse --host 0.0.0.0 --port 8765 --tool-profile harness
+# SSE 端点: http://<your-ip>:8765/sse
+```
+
+供远程客户端 / 多机部署接入（OpenCode 等支持 remote MCP 的 harness 可用 `"type": "remote", "url": "http://<ip>:8765/sse"` 连接）。
+
 ### LLM Provider 配置
 
 决策循环由 `kali_mcp/core/llm_brain.py` 的 `LLMBrain` 驱动，双 provider 支持，全部走环境变量：
@@ -180,36 +332,110 @@ python3 agent_live.py "对 http://localhost:8000/ 做 web 漏洞扫描" --agents
 |---|---|
 | `LLM_PROVIDER` | 显式指定 provider：`anthropic`（或 `claude`）/ `openai`（或 `codex`）。不设时自动探测：存在 `OPENAI_API_KEY` 走 OpenAI，否则走 Claude |
 | `ANTHROPIC_API_KEY`（或 `ANTHROPIC_AUTH_TOKEN`） | Claude provider 密钥 |
-| `ANTHROPIC_MODEL` | Claude 模型名（默认见 `LLMBrain.DEFAULT_MODEL_CLAUDE`） |
+| `ANTHROPIC_MODEL` | Claude 模型名 |
 | `ANTHROPIC_BASE_URL` | 自定义 Claude 端点（自动补 `/v1` 后缀，兼容代理/网关） |
 | `OPENAI_API_KEY`（或 `OPENAI_AUTH_TOKEN`） | OpenAI provider 密钥 |
-| `OPENAI_MODEL` | OpenAI 模型名（默认见 `LLMBrain.DEFAULT_MODEL_CODEX`） |
+| `OPENAI_MODEL` | OpenAI 模型名 |
 | `OPENAI_BASE_URL` | 自定义 OpenAI 端点（兼容代理 / 兼容网关） |
 
 **无任何 LLM key**：`LLMBrain.available = False`，子 agent 自动回退 legacy 确定性路径（`kali_mcp/agents/*/_execute_task_impl_legacy`），集群照常运行、不空转；但 LLM 自主决策（动态规划、语义检索、ACO 引导、联网情报）不可用——**那不是本项目的常态模式**。
 
 联网搜索可选配置：`WEB_SEARCH_BACKEND=ddg|tavily`（默认 `ddg`）；切 `tavily` 需 `TAVILY_API_KEY`。
 
-### 依赖说明
+### 知识库与 Embedding
 
-```text
-sentence-transformers>=2.7.0    # 本地 embedding（paraphrase-multilingual-MiniLM-L12-v2，384 维；
-                                # 中文场景可换 BAAI/bge-small-zh-v1.5）
-sqlite-vec>=0.1.6               # 单文件向量库 data/kb_vectors.db（无服务）
-rank-bm25>=0.2.2                # 关键词召回，与向量召回 RRF 融合
-duckduckgo-search>=6.3.0        # 默认搜索后端（免费无 key；8.x 起包名迁移为 ddgs，代码两者兼容）
-# 可选：tavily-python>=0.3.0    # 质量更高的搜索后端（需 TAVILY_API_KEY）
-```
+- **Embedding 模型**：`BAAI/bge-small-zh-v1.5`（512 维，中文友好），权重随仓库提供于 `data/models/models--BAAI--bge-small-zh-v1.5/`（HuggingFace cache 结构），完全离线加载（`snapshot_download(local_files_only=True)`）。
+- **向量库**：`data/kb_vectors.db`（sqlite-vec 单文件，随仓库提供），失败自动降级 numpy+JSON。
+- **召回**：向量 top-k + BM25 关键词 + **RRF 融合**；中英混合 tokenizer（ASCII 词 + CJK 单字）。
+- **数据源**（`scripts/kb_sources.yaml`）：
 
-**Embedding 模型已随仓库提供**：权重在 `data/models/`（`paraphrase-multilingual-MiniLM-L12-v2`），完全离线可跑；重新构建/增量更新知识库索引：
+| source | 内容 | parser |
+|---|---|---|
+| `credentials_guide` | `data/wordlists/` 渗透字典与默认账号库 | markdown |
+| `runbook_internal` | `doc/runbook-internal.md` 内部运行约定 | markdown |
+| `capability_plan` | `doc/能力升级总计划.md` 演进方向 | markdown |
+| `writeups` | `docs/writeups/*.md` 实战 writeup | markdown |
+| `plans` | `docs/plans/*.md` 设计/计划文档 | markdown |
+| `recipes` | `tools_recipes/*.yaml` 工具配方 | yaml |
+| `playbooks` | playbook docstring 摘录 | playbook_docstring |
+| `attack_chains` | `knowledge_graph.py` AttackChain 结构化条目（25 条） | attack_chain |
+
+重建 / 增量更新知识库索引（幂等：按 `content_hash` 跳过未变文件）：
 
 ```bash
-python scripts/build_kb_index.py   # 幂等增量：按 content_hash 跳过未变文件
+python scripts/build_kb_index.py
+```
+
+### 执行后端
+
+`mcp_server.py` 启动时经 `kali_mcp/core/backend.resolve_backend()` 自动检测执行后端，无需改代码：
+
+| 后端 | 说明 |
+|---|---|
+| `local`（默认） | subprocess 直接调用本机工具（Kali / 自建环境） |
+| `ssh` | 通过 SSH 在远程 Kali 主机执行（配置远程主机信息后自动启用） |
+| `docker` | 在容器内执行 |
+
+### 环境变量总表
+
+| 环境变量 | 默认 | 说明 |
+|---|---|---|
+| `KALI_MCP_TOOL_PROFILE` | `harness` | 工具档位：`strict` / `compliance` / `full` / `harness` |
+| `KALI_MCP_FORCE_ENABLE_MODULES` | — | 强制启用模块（逗号分隔），如 `multi_agent` |
+| `KALI_MCP_FORCE_DISABLE_MODULES` | — | 强制禁用模块（逗号分隔） |
+| `K4_LEGACY_CLUSTER` | — | `1` 时初始化 17-agent 多智能体集群（LLM orchestrator 入口） |
+| `K4_LEGACY_PLAYBOOKS` | — | `1` 时注册 legacy playbook 工具（过渡期兼容） |
+| `KALI_MCP_WORKSPACE` | `workspace/` | 任务工作区（扫描产物/证据/报告落盘） |
+| `KALI_MCP_ENGAGEMENT_JSON` / `KALI_MCP_ENGAGEMENT_FILE` | — | 授权范围声明（目标 scope），工具执行前校验 |
+| `KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT` | — | `1` 时强制要求授权上下文 |
+| `LLM_PROVIDER` | 自动探测 | `anthropic` / `openai` |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` / `ANTHROPIC_BASE_URL` | — | Claude provider |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` / `OPENAI_BASE_URL` | — | OpenAI provider |
+| `WEB_SEARCH_BACKEND` | `ddg` | 搜索后端：`ddg` / `tavily` |
+| `TAVILY_API_KEY` | — | tavily 后端密钥 |
+
+### 目录结构
+
+```
+Kali-Security-MCP/
+├── mcp_server.py            # MCP 入口（FastMCP；工具按模块注册 + K1 收敛裁剪）
+├── agent_live.py            # CLI 实时可视化（逐行分色打印 orchestrator/agent 决策）
+├── kali_mcp/
+│   ├── core/                # llm_brain / agent_coordinator / summarizer_agent /
+│   │                        # tool_bridge / search_backends / event_bus / registry ...
+│   ├── agents/              # 17 个 LLM 自主子 agent（LLMAgentBase + llm_drive_mission）
+│   ├── reasoning/           # knowledge_retriever / attack_dag / aco / chain_engine
+│   ├── mcp_tools/           # harness_tools / multi_agent_tools / meta_tools / board_tools ...
+│   └── security/            # tool_profile / engagement（授权范围）
+├── tools/fastsec/           # 自研 Go 扫描引擎 + 内置字典（dns/brute/knowledge）
+├── data/
+│   ├── kb_vectors.db        # 向量化知识库索引（sqlite-vec，随仓库提供）
+│   ├── models/              # embedding 模型权重（bge-small-zh-v1.5，随仓库提供）
+│   └── wordlists/           # 口令/默认账号指南（KB 源）
+├── scripts/
+│   ├── build_kb_index.py    # 知识库索引构建（幂等增量）
+│   └── kb_sources.yaml      # KB 数据源声明
+├── docs/                    # writeups / plans
+├── doc/                     # runbook-internal / 能力升级总计划
+├── tests/                   # pytest 全量测试（含 KB 索引 / LLM agent / DAG / ACO / e2e）
+├── workspace/               # 任务工作区（运行产物）
+├── .mcp.json                # MCP 部署配置实例（Claude Code / Pi 等）
+├── CLAUDE.md                # Claude Code 仓库指引
+└── requirements.txt
+```
+
+### 测试
+
+```bash
+pytest                    # 全量
+pytest -x                 # 首个失败即停
+pytest --cov=kali_mcp     # 覆盖率
+pytest -k "kb or dag or aco or orchestrator or llm"   # 关键子系统
 ```
 
 ### 合规声明
 
-本项目仅用于**已获书面授权**的渗透测试、CTF 竞赛、安全研究与防御性评估。使用前通过 `set_engagement_context` 声明授权范围；越权扫描、破坏性操作、未授权攻击严格禁止。使用者须自行确保对目标的所有操作均符合适用法律法规。
+本项目仅用于**已获书面授权**的渗透测试、CTF 竞赛、安全研究与防御性评估。使用前通过 `set_engagement_context`（或 `KALI_MCP_ENGAGEMENT_JSON/FILE`）声明授权范围；越权扫描、破坏性操作、未授权攻击严格禁止。使用者须自行确保对目标的所有操作均符合适用法律法规。
 
 ### License
 
@@ -221,9 +447,74 @@ MIT License — 详见 [LICENSE](LICENSE)。
 
 ### Positioning
 
-Kali MCP is an **LLM-autonomous multi-agent penetration testing system**: the **LLM is the sole decision-maker**, planning each next step dynamically from a **vectorized knowledge base + live web search + its own capabilities** — not along a predefined path. One **OrchestratorAgent** (the top-level LLM planner) understands the goal, dispatches missions, and reviews results; each of the **17 sub-agents is itself an LLM-autonomous agent** (role prompt + tool surface + an LLMBrain decision loop). Their discoveries become **nodes in an attack DAG**, an **Ant Colony Optimization (ACO)** layer deposits **pheromone (success confidence)** along attack paths to *recommend* — never decide — subsequent moves, and a **SummarizerAgent** deduplicates, filters false positives, ranks by severity, and pushes results to the main agent and the user in real time over SSE.
+Kali MCP is an **LLM-autonomous multi-agent penetration testing system**: the **LLM is the sole decision-maker**, planning each next step dynamically from a **vectorized knowledge base + live web search + its own capabilities** — not along a predefined path. One **OrchestratorAgent** (the top-level LLM planner) understands the goal, dispatches missions, and reviews results; each of the **17 sub-agents is itself an LLM-autonomous agent** (role prompt + tool surface + an LLMBrain decision loop). Their discoveries become **nodes in an attack DAG**, an **Ant Colony Optimization (ACO)** layer deposits **pheromone (success confidence)** along attack paths to *recommend* — never decide — subsequent moves, and a **SummarizerAgent** deduplicates, filters false positives, ranks, and pushes results in real time (SSE).
 
 Without any LLM API key the system **still runs**: it degrades to the legacy deterministic path (sub-agents fall back to rule routing; the `K4_LEGACY_CLUSTER=1` cluster stays available) — but that is the **fallback mode**. The core value of this project is **deep-reasoning penetration driven by LLM autonomy**.
+
+### Quick Start
+
+```bash
+python -m venv .venv && source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+The embedding model (`BAAI/bge-small-zh-v1.5`, 512-dim) ships in `data/models/` and the vectorized KB index (`data/kb_vectors.db`) ships in `data/` — fully offline, no download needed.
+
+**Connect from any MCP-capable harness** (all use the same stdio server `python mcp_server.py --tool-profile harness`):
+
+- **Claude Code / Pi**: `.mcp.json` at project root —
+
+```json
+{
+  "mcpServers": {
+    "kali": {
+      "command": "python",
+      "args": ["mcp_server.py", "--tool-profile", "harness"],
+      "env": {
+        "KALI_MCP_TOOL_PROFILE": "harness",
+        "K4_LEGACY_CLUSTER": "1",
+        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
+    }
+  }
+}
+```
+
+- **Codex** (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.kali]
+command = "python"
+args = ["mcp_server.py", "--tool-profile", "harness"]
+env = { KALI_MCP_TOOL_PROFILE = "harness", K4_LEGACY_CLUSTER = "1", KALI_MCP_FORCE_ENABLE_MODULES = "multi_agent", OPENAI_API_KEY = "sk-..." }
+```
+
+- **OpenCode** (`opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kali": {
+      "type": "local",
+      "command": ["python", "mcp_server.py", "--tool-profile", "harness"],
+      "environment": { "KALI_MCP_TOOL_PROFILE": "harness", "K4_LEGACY_CLUSTER": "1", "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent", "OPENAI_API_KEY": "sk-..." },
+      "enabled": true
+    }
+  }
+}
+```
+
+**CLI live view** (no harness needed):
+
+```bash
+python3 agent_live.py "scan http://localhost:8000/ for web vulnerabilities" --no-cache
+```
+
+**LLM provider env vars**: `LLM_PROVIDER=anthropic|openai` (auto-detected from keys), `ANTHROPIC_API_KEY/MODEL/BASE_URL`, `OPENAI_API_KEY/MODEL/BASE_URL`. No key → deterministic fallback mode.
+
+**KB rebuild**: `python scripts/build_kb_index.py` (idempotent, content-hash incremental).
 
 ### Architecture
 
@@ -240,7 +531,7 @@ flowchart TB
     subgraph KB[Vectorized knowledge base]
         IDX[(kb_vectors.db<br/>sqlite-vec)]
         RT[KnowledgeRetriever<br/>semantic top-k + metadata filter + BM25 fusion]
-        EMB[Embedding model<br/>sentence-transformers local]
+        EMB[Embedding model<br/>BAAI/bge-small-zh-v1.5 local 512-dim]
     end
 
     subgraph DAG[Attack DAG + ACO]
@@ -289,137 +580,58 @@ flowchart TB
 
 | Capability | Description | Module |
 |---|---|---|
-| **LLM is the sole decision-maker** | Every "what next" conclusion comes from an LLM decision JSON (`call_tool / run_tool / done / retry`). DAG, ACO and the knowledge base only provide **context and scored recommendations** injected into the LLM prompt — they never trigger tools directly. Top-level planning runs in the refactored orchestrator (LLM loop: goal understanding → `dispatch_mission` → review → re-plan → termination) | `kali_mcp/core/llm_brain.py`, `kali_mcp/core/agent_coordinator.py` |
-| **17 LLM-autonomous sub-agents** | Every sub-agent extends `LLMAgentBase`: role prompt (`ROLE_PROMPT`) + tool surface (`AgentCapability.supported_tools ∩ ToolBridge` registry) + the `llm_drive_mission` decision loop. Work is dispatched as **MissionTickets** (which are also DAG nodes) via `mission.created` events and claimed by role. Tool calls still go through the original `_call_tool` executor bridge; deterministic regex parsers distill Finding evidence from tool output (structured evidence extraction stays deterministic to prevent the LLM from fabricating) | `kali_mcp/agents/llm_agent_base.py` |
-| **Attack DAG + Ant Colony Optimization** | Discoveries (observation / hypothesis / attack_action / finding / mission / summary) become DAG nodes; edges carry pheromone τ ∈ [0.05, 1]. Pheromone is **deposited** along `enables`/`yields` paths when a verifier or the platform judges success, and **evaporates** periodically; `P(e) = τ^α·η^β` normalized yields candidate-edge scores. **Honest note: ACO only recommends (top-k candidate edges) — the LLM may adopt, cite, or veto a recommendation; a veto feeds back as negative signal into the heuristic. The LLM decides.** | `kali_mcp/reasoning/attack_dag.py`, `kali_mcp/reasoning/aco.py` |
-| **SummarizerAgent** | Subscribes to `mission.completed/failed`, `tool.result` (critical/high filter), `vuln.verified`, `dag.updated`, `flag.found`; pipeline: normalize → sha1-fingerprint dedupe → three-layer false-positive filtering (hard filter / confidence threshold / LLM triage) → severity sort → `SummarySnapshot`; pushes real-time SSE via EventBus + EventStream (2s throttle per session; `flag.found` pushes immediately) | `kali_mcp/core/summarizer_agent.py` |
-| **Vectorized knowledge base** | Local `sentence-transformers` embeddings + `sqlite-vec` single-file vector store (`data/kb_vectors.db`) + `rank-bm25` keyword recall fused with **RRF**. The orchestrator injects KB hits when composing MissionBriefs and sub-agents every 3 steps during execution, semantically retrieving the experience library (tactics / writeups / credential guides / bypass techniques). Index builds are idempotent and incremental (`content_hash` skips unchanged files) | `kali_mcp/reasoning/knowledge_retriever.py`, `scripts/build_kb_index.py`, `scripts/kb_sources.yaml` |
-| **Live web search** | `web_search` / `web_fetch` are registered as ordinary ToolBridge tools (they appear in the tool catalog, go through the standard `call_tool` path, and leave audit logs naturally); the LLM decides when to search for CVEs, vulnerability intel, and bypass techniques. Backend switches via `WEB_SEARCH_BACKEND=ddg\|tavily` (default `ddg`, free, no key) | `kali_mcp/core/search_backends.py`, `kali_mcp/core/tool_bridge.py` |
+| **LLM is the sole decision-maker** | Every "what next" conclusion comes from an LLM decision JSON (`call_tool / run_tool / done / retry`). DAG, ACO and the knowledge base only provide **context and scored recommendations** — they never trigger tools directly | `kali_mcp/core/llm_brain.py`, `kali_mcp/core/agent_coordinator.py` |
+| **17 LLM-autonomous sub-agents** | Each extends `LLMAgentBase` (role prompt + tool surface + `llm_drive_mission` decision loop); deterministic regex parsers distill Finding evidence to prevent LLM fabrication | `kali_mcp/agents/llm_agent_base.py` |
+| **Attack DAG + ACO** | Discoveries become DAG nodes; edges carry pheromone τ ∈ [0.05, 1]; `P(e) = τ^α·η^β` scores candidate edges. **ACO only recommends — the LLM decides** | `kali_mcp/reasoning/attack_dag.py`, `kali_mcp/reasoning/aco.py` |
+| **SummarizerAgent** | sha1-fingerprint dedupe → three-layer false-positive filtering → severity sort → real-time SSE push | `kali_mcp/core/summarizer_agent.py` |
+| **Vectorized knowledge base** | Local `BAAI/bge-small-zh-v1.5` embeddings (shipped) + `sqlite-vec` single-file store (`data/kb_vectors.db`, shipped) + BM25, RRF-fused; idempotent incremental index builds | `kali_mcp/reasoning/knowledge_retriever.py`, `scripts/build_kb_index.py` |
+| **Live web search** | `web_search` / `web_fetch` as ordinary ToolBridge tools; backend `ddg` (free) / `tavily` | `kali_mcp/core/search_backends.py` |
+| **fastsec engine** | Self-developed Go scanner replacing 25 external tools (gobuster/nikto/sqlmap/ffuf/nuclei/hydra/whatweb/...): dir / CMS / SQLi / XSS / brute (2.63M-pass dicts) / Kerberos / fingerprint / OSINT / hash crack / reverse-shell / SAM | `tools/fastsec/` |
+| **Adaptive execution backend** | Auto-detected at startup: local subprocess (default) / SSH / Docker | `kali_mcp/core/backend.py` |
 
 ### The 17 LLM-Autonomous Sub-agents
 
-Each sub-agent is an **LLM-autonomous agent**: its own role prompt, its own tool surface, and its own LLMBrain decision loop, deciding — in the context of its mission brief, knowledge-base hits, the pheromone view of the attack graph, and prior findings — *which tool to call, with what parameters, how to interpret output, and when to report back*. Tool-failure detection and structured evidence extraction remain deterministic.
+| Group | Agents |
+|---|---|
+| **Information gathering** | `recon_agent`, `subdomain_agent`, `web_recon_agent` |
+| **Vulnerability discovery** | `vuln_scanner_agent`, `web_vuln_agent`, `auth_agent`, `network_vuln_agent`, `vuln_verifier_agent` |
+| **Exploitation** | `exploit_agent`, `privilege_agent`, `lateral_agent` |
+| **Specialized** | `code_analyze_agent`, `code_audit_agent`, `crypto_agent`, `forensics_agent`, `pwn_agent`, `source_code_agent` |
 
-| Group | Agent | Responsibility |
+### MCP Tool Surface (converged keep-set)
+
+| Category | Tools |
+|---|---|
+| **LLM orchestration** | `agent_run`, `agent_status`, `dag_status`, `kb_search` |
+| **Task board** | `start_task`, `task_status`, `run_surface_chain`, `verify_finding`, `task_create/claim/complete/renew/list`, `board_snapshot` |
+| **fastsec** | `fastsec_scan` (dir/cms/inject/xss/brute/osint/fingerprint/crack/kerberos/template) |
+| **Port/service** | `nmap_scan`, `rustscan_scan`, `naabu_scan`, `comprehensive_recon`, `server_health` |
+| **Credential / AD** | `john_crack`, `hashcat_crack`, `kerbrute_attack`, `GetNPUsers_scan`, `GetUserSPNs_scan`, `nxc_attack`, `evil_winrm_attack`, `secretsdump_scan`, `psexec_attack`, `smbexec_attack` |
+| **Exploit / PWN** | `metasploit_run`, `quick_pwn_check` |
+| **Session / workflow** | `start_attack_session`, `list_attack_sessions`, `wf_init/transition/record_result/record_issue/status/pack_turn` |
+| **Async scan** | `scan_start/collect/wait/jobs` |
+| **Meta fallback** | `kali_run` (any registry tool by name) |
+
+### Environment Variables
+
+| Variable | Default | Purpose |
 |---|---|---|
-| **Information gathering** | `recon_agent` | Port scanning / service identification / OS fingerprinting / topology recon |
-| | `subdomain_agent` | Subdomain enumeration / DNS records / OSINT |
-| | `web_recon_agent` | Directory enumeration / tech-stack fingerprinting / WAF detection / CMS fingerprinting |
-| **Vulnerability discovery** | `vuln_scanner_agent` | CVE / template-based vulnerability scanning |
-| | `web_vuln_agent` | Web vulnerabilities: SQLi / XSS / command injection |
-| | `auth_agent` | Online brute-force / hash cracking / credential spraying |
-| | `network_vuln_agent` | SMB enumeration / LLMNR poisoning / MITM / sniffing |
-| | `vuln_verifier_agent` | Candidate verification / PoC construction / exploitation confirmation |
-| **Exploitation** | `exploit_agent` | Metasploit / exploit search / reverse shells |
-| | `privilege_agent` | Linux / Windows privilege-escalation vector analysis |
-| | `lateral_agent` | DCSync / Kerberoast / AD attacks / credential reuse |
-| **Specialized** | `code_analyze_agent` | White-box source-tree scanning / dangerous-pattern analysis |
-| | `code_audit_agent` | SAST static analysis / dangerous-pattern search |
-| | `crypto_agent` | CTF cryptography / encoding identification / hash cracking |
-| | `forensics_agent` | Steganography / memory forensics / filesystem forensics / traffic analysis |
-| | `pwn_agent` | Binary vulnerability checks / reverse engineering / decompilation |
-| | `source_code_agent` | .git/.svn leaks / backup scanning / LFI source reads |
+| `KALI_MCP_TOOL_PROFILE` | `harness` | `strict` / `compliance` / `full` / `harness` |
+| `KALI_MCP_FORCE_ENABLE_MODULES` | — | Force-enable modules, e.g. `multi_agent` |
+| `K4_LEGACY_CLUSTER` | — | `1` initializes the 17-agent cluster (LLM orchestrator entry) |
+| `K4_LEGACY_PLAYBOOKS` | — | `1` registers legacy playbook tools |
+| `KALI_MCP_WORKSPACE` | `workspace/` | Task workspace (evidence/reports) |
+| `KALI_MCP_ENGAGEMENT_JSON/FILE` | — | Authorization scope declaration |
+| `LLM_PROVIDER` | auto | `anthropic` / `openai` |
+| `ANTHROPIC_API_KEY/MODEL/BASE_URL` | — | Claude provider |
+| `OPENAI_API_KEY/MODEL/BASE_URL` | — | OpenAI provider |
+| `WEB_SEARCH_BACKEND` | `ddg` | `ddg` / `tavily` |
+| `TAVILY_API_KEY` | — | tavily key |
 
-> Migration status (staged per ARCH_DESIGN §3.3): the three pilots — `recon_agent`, `web_vuln_agent`, `exploit_agent` — are live on the LLM decision path (covering recon / web-vuln / exploitation). The remaining 14 follow the same template and fall back to the legacy rule path until migrated; the system never idles.
+### Compliance
 
-### Quick Start
-
-#### Option 1: MCP (natural-language orchestration)
-
-Configure in any MCP client (Claude Desktop / Claude Code / Oh My Pi):
-
-```json
-{
-  "mcpServers": {
-    "kali": {
-      "command": "python",
-      "args": ["mcp_server.py", "--tool-profile", "harness"],
-      "env": {
-        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
-        "K4_LEGACY_CLUSTER": "1",
-        "LLM_PROVIDER": "anthropic",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
-      }
-    }
-  }
-}
-```
-
-- `--tool-profile harness`: exposes the orchestration + observation tool surface;
-- `KALI_MCP_FORCE_ENABLE_MODULES=multi_agent`: force-enables the multi-agent module;
-- `K4_LEGACY_CLUSTER=1`: enables the multi-agent cluster (name kept from the legacy version; semantics upgraded to the LLM-orchestrator entry). **With an LLM key the cluster runs the LLM-autonomous path; without one it degrades to the legacy deterministic path — both work.**
-
-Core tools under the harness profile:
-
-| Tool | Purpose |
-|---|---|
-| `agent_run` | Natural-language task → full LLM-orchestrator flow (LLM top-level planning → `dispatch_mission` → sub-agent LLM decision loops → review → summarization) |
-| `agent_status` | Cluster health / agent list / capability summary / scheduling stats |
-| `dag_status` | Observe the attack DAG: node/edge counts, top pheromone paths, frontier candidate edges |
-| `kb_search` | Query the vectorized knowledge base directly (`KnowledgeRetriever.retrieve`, hybrid semantic + keyword retrieval) |
-
-There are also task-board and verification tools (`start_task` / `task_*` / `verify_finding`). The predefined playbooks (`run_playbook` / `run_surface_chain`) are **off the main path** (their tactics are vectorized into the KB as reference) and are only re-registered for transition when `K4_LEGACY_PLAYBOOKS=1`.
-
-#### Option 2: CLI real-time visualization
-
-```bash
-# Windows
-C:/Windows/py.exe -3 agent_live.py "web vuln scan on http://localhost:8000/ : directory enum, CMS fingerprint, injection checks" --no-cache --timeout 300
-
-# Linux / macOS
-python3 agent_live.py "web vuln scan on http://localhost:8000/" --agents recon,web_vuln --no-cache
-```
-
-`agent_live.py` is a pure presentation layer: it prints the orchestrator's planning/dispatch decisions, each sub-agent's LLM decisions and tool results, findings, and summary pushes line by line in color — a tmux-like live view in a split Windows Terminal. `--agents` matches by exact agent_id or prefix (e.g. `recon` matches `recon_agent`).
-
-### LLM Provider Configuration
-
-The decision loop is driven by `LLMBrain` (`kali_mcp/core/llm_brain.py`) with dual-provider support, all via environment variables:
-
-| Env var | Description |
-|---|---|
-| `LLM_PROVIDER` | Explicit provider: `anthropic` (or `claude`) / `openai` (or `codex`). Unset → auto-detect: `OPENAI_API_KEY` present → OpenAI, otherwise Claude |
-| `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) | Claude provider key |
-| `ANTHROPIC_MODEL` | Claude model name (default: `LLMBrain.DEFAULT_MODEL_CLAUDE`) |
-| `ANTHROPIC_BASE_URL` | Custom Claude endpoint (auto-appends `/v1`, proxy/gateway friendly) |
-| `OPENAI_API_KEY` (or `OPENAI_AUTH_TOKEN`) | OpenAI provider key |
-| `OPENAI_MODEL` | OpenAI model name (default: `LLMBrain.DEFAULT_MODEL_CODEX`) |
-| `OPENAI_BASE_URL` | Custom OpenAI endpoint (proxy / compatible gateway friendly) |
-
-**No LLM key at all**: `LLMBrain.available = False`; sub-agents fall back to the legacy deterministic path (`kali_mcp/agents/*/_execute_task_impl_legacy`), the cluster still runs and never idles — but LLM autonomy (dynamic planning, semantic retrieval, ACO-guided moves, live threat intel) is unavailable. **That is not the project's normal mode.**
-
-Optional search config: `WEB_SEARCH_BACKEND=ddg|tavily` (default `ddg`); `tavily` requires `TAVILY_API_KEY`.
-
-### Dependencies
-
-```text
-sentence-transformers>=2.7.0    # local embeddings (paraphrase-multilingual-MiniLM-L12-v2, 384-dim;
-                                # BAAI/bge-small-zh-v1.5 for Chinese-centric workloads)
-sqlite-vec>=0.1.6               # single-file vector store data/kb_vectors.db (no service)
-rank-bm25>=0.2.2                # keyword recall, RRF-fused with vector recall
-duckduckgo-search>=6.3.0        # default search backend (free, no key; package renamed to ddgs in 8.x,
-                                # the code supports both)
-# optional: tavily-python>=0.3.0  # higher-quality search backend (requires TAVILY_API_KEY)
-```
-
-**The embedding model ships with the repo** at `data/models/` (`paraphrase-multilingual-MiniLM-L12-v2`) — fully offline. Rebuild / incrementally update the KB index:
-
-```bash
-python scripts/build_kb_index.py   # idempotent incremental: content_hash skips unchanged files
-```
-
-### Disclaimer
-
-For **authorized security testing only** — pentests with written authorization, CTF competitions, security research, and defensive assessments. Declare the engagement scope via `set_engagement_context` before use; out-of-scope scanning, destructive operations, and unauthorized attacks are strictly prohibited. You are responsible for complying with all applicable laws and regulations for every operation against a target.
+For **authorized** penetration testing, CTF competitions, security research and defensive assessments only. Declare your engagement scope (`set_engagement_context` or `KALI_MCP_ENGAGEMENT_JSON/FILE`) before use. Unauthorized scanning or destructive operations are strictly prohibited.
 
 ### License
 
-MIT License — see [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-**⭐ Star this repo if you find it useful!**
-
-</div>
+MIT — see [LICENSE](LICENSE).

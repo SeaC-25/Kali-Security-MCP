@@ -59,19 +59,25 @@ kali-mcp-deploy.tar.gz
 cookies.txt
 example.com_ips.txt
 web_ui.pid
-data/
 reports/
 .augment/
 
-# LLM autonomous refactor — build artifacts / large files (rebuildable/downloadable)
-data/models/
-data/kb_vectors.db
-data/kb_vectors.json
-data/attack_dag.sqlite
+# data/ — 运行时状态忽略；知识库索引与 embedding 模型纳入版本控制（随仓库提供）
+# 豁免：credentials 指南是 KB 数据源（kb_sources.yaml credentials_guide），
+# 被上方 *_GUIDE.md 通配规则误挡，这里显式放行
+!data/wordlists/CREDENTIALS_GUIDE.md
+# 运行时状态（每次运行都会变化，不入库）
 data/result_cache.sqlite
 data/usage.sqlite
 data/taskboard.json
 data/async_jobs.json
+data/attack_dag.sqlite
+data/kb_vectors.json
+# 遗留 embedding 模型（1.5GB，paraphrase-multilingual-MiniLM-L12-v2，已被 bge-small-zh 替代；
+# 文件含 470MB 单文件超出 GitHub 100MB 限制，不入库，可手动删除省 1.5GB）
+data/models/models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2/
+# HF 缓存锁文件
+data/models/.locks/
 
 # Coverage
 .coverage

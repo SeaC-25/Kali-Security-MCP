@@ -41,10 +41,10 @@ REAL_SOURCES = 17  # scripts/kb_sources.yaml 展开的真实文件数
 
 
 def _token_embed(text: str) -> list:
-    """确定性词袋向量（384 维，归一化）：共享 token -> 高余弦。测试用假 embedder。"""
-    v = np.zeros(384, dtype=np.float32)
+    """确定性词袋向量（512 维，归一化）：共享 token -> 高余弦。测试用假 embedder。"""
+    v = np.zeros(512, dtype=np.float32)
     for t in tokenize(text):
-        v[abs(hash(t)) % 384] += 1.0
+        v[abs(hash(t)) % 512] += 1.0
     n = float(np.linalg.norm(v))
     return (v / n).tolist() if n else v.tolist()
 
@@ -244,7 +244,7 @@ CHUNK_C = {
 
 def _write_numpy_json(tmp_path):
     payload = {
-        "backend": "numpy", "version": 1, "embedding_dim": 384,
+        "backend": "numpy", "version": 1, "embedding_dim": 512,
         "chunks": [
             {**CHUNK_A, "embedding": _token_embed(CHUNK_A["text"])},
             {**CHUNK_B, "embedding": _token_embed(CHUNK_B["text"])},

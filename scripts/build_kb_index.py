@@ -50,8 +50,8 @@ DEFAULT_CONFIG = ROOT / "scripts" / "kb_sources.yaml"
 DEFAULT_DB = ROOT / "data" / "kb_vectors.db"
 DEFAULT_JSON = ROOT / "data" / "kb_vectors.json"
 DEFAULT_MODEL_DIR = ROOT / "data" / "models"
-MODEL_ID = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-EMBED_DIM = 384
+MODEL_ID = "BAAI/bge-small-zh-v1.5"
+EMBED_DIM = 512  # BAAI/bge-small-zh-v1.5 为 512 维（官方 model card）
 
 # --------------------------------------------------------------------------
 # 通用

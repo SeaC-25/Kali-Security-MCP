@@ -65,6 +65,8 @@ K1_KEEP_TOOLS = frozenset({
     "wf_status", "wf_pack_turn",
     # 多智能体集群入口
     "agent_run", "agent_status",
+    # 向量库检索 + 蚁群 DAG 观测（P4，暴露到 MCP surface）
+    "kb_search", "dag_status",
 })
 
 # ---------------------------------------------------------------------------

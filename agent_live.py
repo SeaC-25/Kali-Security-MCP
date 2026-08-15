@@ -466,18 +466,19 @@ def resolve_allowed_agents(agent_registry, agents_arg: str):
 def hook_runtime(coordinator, executor, state: LiveState, no_cache: bool, allowed_agents=None):
     """包装 coordinator/executor 的实例方法：结构化信息到达即打印。"""
 
-    # 1. 任务分解 → 任务清单
-    _decompose = coordinator.task_decomposer.decompose
+    # 1. 任务分解 → 任务清单（仅 legacy 路径存在 task_decomposer；LLM orchestrator 下跳过）
+    _decompose_attr = getattr(coordinator, "task_decomposer", None)
+    if _decompose_attr is not None:
 
-    def _wrapped_decompose(intent):
-        plan = _decompose(intent)
-        try:
-            state.print_tasks(plan.task_graph)
-        except Exception:
-            pass
-        return plan
+        def _wrapped_decompose(intent):
+            plan = _decompose_attr.decompose(intent)
+            try:
+                state.print_tasks(plan.task_graph)
+            except Exception:
+                pass
+            return plan
 
-    coordinator.task_decomposer.decompose = _wrapped_decompose
+        coordinator.task_decomposer.decompose = _wrapped_decompose
 
     # 2. 执行计划创建 → 调度决策（--agents 过滤：仅保留允许 agent 的决策，
     #    其余替换为 coordinator 承接的跳过决策；集群核心调度逻辑不改动）

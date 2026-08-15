@@ -381,7 +381,7 @@ LLM 可以在 `plan`/`reason` 字段里引用或否决推荐；**否决本身作
 
 | 项 | 决策 | 理由 |
 |---|---|---|
-| Embedding | **默认本地 `sentence-transformers`**（`paraphrase-multilingual-MiniLM-L12-v2`，384 维；中文可换 `BAAI/bge-small-zh-v1.5`）；配置可切 OpenAI `text-embedding-3-small` | 离线、零 API 成本、与现有「本地 lab」定位一致；LLM provider 已有 key 时可切 API 提质量 |
+| Embedding | **默认本地 `sentence-transformers`**（`BAAI/bge-small-zh-v1.5`，512 维，权重随仓库提供于 `data/models/`）；配置可切 OpenAI `text-embedding-3-small` | 离线、零 API 成本、与现有「本地 lab」定位一致；LLM provider 已有 key 时可切 API 提质量 |
 | 向量库 | **`sqlite-vec`**（单文件 `data/kb_vectors.db`），`chromadb` 作为规模兜底 | 与仓库 data/*.sqlite 惯例一致、零新服务；KB 预估几千 chunk，暴力检索足够（见不确定点 U2） |
 | 混合检索 | `rank-bm25` 关键词召回 + 向量召回做 **RRF 融合** | 工具名/CVE 编号等专名靠关键词更稳 |
 
