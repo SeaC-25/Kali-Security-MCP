@@ -30,40 +30,40 @@ Kali MCP 是一套 **LLM 自主多智能体渗透系统**：LLM 是**唯一决�
 
 ```mermaid
 flowchart TB
-    U[用户 / 主 agent] -->|自然语言任务| ORCH
+    U["用户 / 主 agent"] -->|自然语言任务| ORCH
 
-    subgraph ORCH[OrchestratorAgent（主 LLM 决策者）]
-        OL[LLMBrain 顶层规划循环]
-        OB[MissionBrief 生成]
-        OV[结果评审 / 回收 / 再规划]
+    subgraph ORCH["OrchestratorAgent（主 LLM 决策者）"]
+        OL["LLMBrain 顶层规划循环"]
+        OB["MissionBrief 生成"]
+        OV["结果评审 / 回收 / 再规划"]
     end
 
-    subgraph KB[向量化知识库]
-        IDX[(kb_vectors.db<br/>sqlite-vec)]
-        RT[KnowledgeRetriever<br/>语义 top-k + 元数据过滤 + BM25 融合]
-        EMB[Embedding 模型<br/>BAAI/bge-small-zh-v1.5 本地 512 维]
+    subgraph KB["向量化知识库"]
+        IDX[("kb_vectors.db<br/>sqlite-vec")]
+        RT["KnowledgeRetriever<br/>语义 top-k + 元数据过滤 + BM25 融合"]
+        EMB["Embedding 模型<br/>BAAI/bge-small-zh-v1.5 本地 512 维"]
     end
 
-    subgraph DAG[攻击 DAG + ACO]
-        DAGS[DAGService<br/>唯一写入者]
-        ACO[蚁群算法<br/>信息素蒸发/沉积/选路]
-        PHE[(攻击路径信息素表)]
+    subgraph DAG["攻击 DAG + ACO"]
+        DAGS["DAGService<br/>唯一写入者"]
+        ACO["蚁群算法<br/>信息素蒸发/沉积/选路"]
+        PHE[("攻击路径信息素表")]
     end
 
-    subgraph AGENTS[17 个 LLM 子 agent]
-        A1[recon_agent] -->|共享| LB[LLMAgentBase<br/>LLMBrain 决策循环]
-        A2[web_vuln_agent] -->|共享| LB
-        A3[exploit_agent] -->|共享| LB
-        AX[...其余 14 个]
+    subgraph AGENTS["17 个 LLM 子 agent"]
+        A1["recon_agent"] -->|共享| LB["LLMAgentBase<br/>LLMBrain 决策循环"]
+        A2["web_vuln_agent"] -->|共享| LB
+        A3["exploit_agent"] -->|共享| LB
+        AX["...其余 14 个"]
     end
 
-    SUM[SummarizerAgent 总结智能体]
-    ES[EventStream<br/>SSE 推送]
-    BUS[EventBus<br/>tool.result / mission.* / dag.* / summary.*]
-    MESH[MeshMessageBus<br/>agent 点对点]
-    TB[ToolBridge<br/>call_tool + catalog]
-    EX[executor / fastsec 等真实工具]
-    WS[WebSearch<br/>ddg/tavily 工具]
+    SUM["SummarizerAgent 总结智能体"]
+    ES["EventStream<br/>SSE 推送"]
+    BUS["EventBus<br/>tool.result / mission / dag / summary"]
+    MESH["MeshMessageBus<br/>agent 点对点"]
+    TB["ToolBridge<br/>call_tool + catalog"]
+    EX["executor / fastsec 等真实工具"]
+    WS["WebSearch<br/>ddg/tavily 工具"]
 
     ORCH -->|mission.created| BUS
     ORCH -->|检索| RT
@@ -524,40 +524,40 @@ python3 agent_live.py "scan http://localhost:8000/ for web vulnerabilities" --no
 
 ```mermaid
 flowchart TB
-    U[User / Main agent] -->|natural-language task| ORCH
+    U["User / Main agent"] -->|natural-language task| ORCH
 
-    subgraph ORCH[OrchestratorAgent (main LLM decision-maker)]
-        OL[LLMBrain top-level planning loop]
-        OB[MissionBrief generation]
-        OV[Result review / recycle / re-plan]
+    subgraph ORCH["OrchestratorAgent (main LLM decision-maker)"]
+        OL["LLMBrain top-level planning loop"]
+        OB["MissionBrief generation"]
+        OV["Result review / recycle / re-plan"]
     end
 
-    subgraph KB[Vectorized knowledge base]
-        IDX[(kb_vectors.db<br/>sqlite-vec)]
-        RT[KnowledgeRetriever<br/>semantic top-k + metadata filter + BM25 fusion]
-        EMB[Embedding model<br/>BAAI/bge-small-zh-v1.5 local 512-dim]
+    subgraph KB["Vectorized knowledge base"]
+        IDX[("kb_vectors.db<br/>sqlite-vec")]
+        RT["KnowledgeRetriever<br/>semantic top-k + metadata filter + BM25 fusion"]
+        EMB["Embedding model<br/>BAAI/bge-small-zh-v1.5 local 512-dim"]
     end
 
-    subgraph DAG[Attack DAG + ACO]
-        DAGS[DAGService<br/>single writer]
-        ACO[Ant Colony Optimization<br/>pheromone evaporation/deposit/route]
-        PHE[(attack-path pheromone table)]
+    subgraph DAG["Attack DAG + ACO"]
+        DAGS["DAGService<br/>single writer"]
+        ACO["Ant Colony Optimization<br/>pheromone evaporation/deposit/route"]
+        PHE[("attack-path pheromone table")]
     end
 
-    subgraph AGENTS[17 LLM sub-agents]
-        A1[recon_agent] -->|shared| LB[LLMAgentBase<br/>LLMBrain decision loop]
-        A2[web_vuln_agent] -->|shared| LB
-        A3[exploit_agent] -->|shared| LB
-        AX[...remaining 14]
+    subgraph AGENTS["17 LLM sub-agents"]
+        A1["recon_agent"] -->|shared| LB["LLMAgentBase<br/>LLMBrain decision loop"]
+        A2["web_vuln_agent"] -->|shared| LB
+        A3["exploit_agent"] -->|shared| LB
+        AX["...remaining 14"]
     end
 
-    SUM[SummarizerAgent]
-    ES[EventStream<br/>SSE push]
-    BUS[EventBus<br/>tool.result / mission.* / dag.* / summary.*]
-    MESH[MeshMessageBus<br/>agent peer-to-peer]
-    TB[ToolBridge<br/>call_tool + catalog]
-    EX[executor / fastsec etc. real tools]
-    WS[WebSearch<br/>ddg/tavily tools]
+    SUM["SummarizerAgent"]
+    ES["EventStream<br/>SSE push"]
+    BUS["EventBus<br/>tool.result / mission / dag / summary"]
+    MESH["MeshMessageBus<br/>agent peer-to-peer"]
+    TB["ToolBridge<br/>call_tool + catalog"]
+    EX["executor / fastsec etc. real tools"]
+    WS["WebSearch<br/>ddg/tavily tools"]
 
     ORCH -->|mission.created| BUS
     ORCH -->|retrieve| RT
