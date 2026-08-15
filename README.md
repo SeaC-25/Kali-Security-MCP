@@ -7,9 +7,8 @@
 ![Embedding](https://img.shields.io/badge/Embedding-bge--small--zh-8A2BE2?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**深度推理增强的 LLM 自主多智能体渗透系统：LLM 是唯一决策者**
+**深度推理增强的 LLM 自主多智能体渗透系统**
 
-*一条自然语言指令 → LLM 顶层规划 → 17 个 LLM 自主智能体逐步动态规划 → 攻击 DAG + 蚁群算法路径引导 → 向量化知识库 + 联网搜索增强 → 实时总结推送*
 
 [中文](#中文) | [English](#english) | [架构设计 ARCH_DESIGN](ARCH_DESIGN.md)
 
@@ -21,7 +20,7 @@
 
 ### 定位
 
-Kali MCP 是一套 **LLM 自主多智能体渗透系统**：LLM 是**唯一决策者**，依据「向量化知识库 + 联网搜索 + 自身能力」逐步动态规划下一步，而不是沿预定义路径执行。1 个 **OrchestratorAgent**（主 LLM 决策者）负责顶层规划与派活，**17 个子 agent 各自都是 LLM 自主智能体**（角色 prompt + 工具面 + LLMBrain 决策循环），它们的发现沉淀为**攻击 DAG 节点**，**蚁群算法（ACO）** 在攻击路径上沉积信息素（成功置信度）为后续行动提供**推荐**（仅推荐，不决策），最终由 **SummarizerAgent** 去重、去误报、排序并实时推送（SSE）给主 agent 与用户。
+Kali MCP 是一套 **LLM 自主多智能体渗透系统**，依据「向量化知识库 + 联网搜索 + 自身能力」逐步动态规划下一步，而不是沿预定义路径执行。1 个 **OrchestratorAgent**（主 LLM 决策者）负责顶层规划与派活，**17 个子 agent 各自都是 LLM 自主智能体**（角色 prompt + 工具面 + LLMBrain 决策循环），它们的发现沉淀为**攻击 DAG 节点**，**蚁群算法（ACO）** 在攻击路径上沉积信息素（成功置信度）为后续行动提供**推荐**（仅推荐，不决策），最终由 **SummarizerAgent** 去重、去误报、排序并实时推送（SSE）给主 agent 与用户。
 
 无 LLM 密钥时系统**依然可以运行**：自动降级到 legacy 确定性路径（子 agent 回退到原规则路由，`K4_LEGACY_CLUSTER=1` 集群照常可用）——但那是**回退模式**，本项目的核心竞争力是 **LLM 自主决策的深度推理渗透**。
 
