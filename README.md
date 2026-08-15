@@ -4,7 +4,6 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Protocol-00D4AA?style=for-the-badge)
-![LLM](https://img.shields.io/badge/LLM-Driven-DeepReasoning-FF6F00?style=for-the-badge)
 ![Embedding](https://img.shields.io/badge/Embedding-bge--small--zh-8A2BE2?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
