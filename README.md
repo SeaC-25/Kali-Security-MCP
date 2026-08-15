@@ -447,7 +447,11 @@ MIT License — 详见 [LICENSE](LICENSE)。
 
 ### Positioning
 
-Kali MCP is an **LLM-autonomous multi-agent penetration testing system**: the **LLM is the sole decision-maker**, planning each next step dynamically from a **vectorized knowledge base + live web search + its own capabilities** — not along a predefined path. One **OrchestratorAgent** (the top-level LLM planner) understands the goal, dispatches missions, and reviews results; each of the **17 sub-agents is itself an LLM-autonomous agent** (role prompt + tool surface + an LLMBrain decision loop). Their discoveries become **nodes in an attack DAG**, an **Ant Colony Optimization (ACO)** layer deposits **pheromone (success confidence)** along attack paths to *recommend* — never decide — subsequent moves, and a **SummarizerAgent** deduplicates, filters false positives, ranks, and pushes results in real time (SSE).
+Kali MCP is an **LLM-autonomous multi-agent penetration testing system**:  
+the **LLM is the sole decision-maker**, planning each next step dynamically from a **vectorized knowledge base + live web search + its own capabilities** — not along a predefined path.  
+One **OrchestratorAgent** (the top-level LLM planner) understands the goal, dispatches missions, and reviews results;  
+each of the **17 sub-agents is itself an LLM-autonomous agent** (role prompt + tool surface + an LLMBrain decision loop).  
+Their discoveries become **nodes in an attack DAG**, an **Ant Colony Optimization (ACO)** layer deposits **pheromone (success confidence)** along attack paths to *recommend* — never decide — subsequent moves, and a **SummarizerAgent** deduplicates, filters false positives, ranks, and pushes results in real time (SSE).
 
 Without any LLM API key the system **still runs**: it degrades to the legacy deterministic path (sub-agents fall back to rule routing; the `K4_LEGACY_CLUSTER=1` cluster stays available) — but that is the **fallback mode**. The core value of this project is **deep-reasoning penetration driven by LLM autonomy**.
 
