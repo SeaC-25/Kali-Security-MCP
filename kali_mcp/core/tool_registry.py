@@ -261,7 +261,7 @@ TOOL_REGISTRY: Dict[str, ToolSpec] = {
             ToolParam(name="form_success", flag="-form-success", sanitize="arg", default=""),
             ToolParam(name="inject", flag="-inject", sanitize="arg", default=""),
             ToolParam(name="xss", flag="-xss", sanitize="arg", default=""),
-            # Stealth 分级（会话2 雁过无痕）：SQLi 只读探测默认；XSS 无害 marker 默认
+            # Stealth 分级（会话2 痕迹最小化）：SQLi 只读探测默认；XSS 无害 marker 默认
             ToolParam(name="danger_level", flag="-danger-level", sanitize="arg", default="0"),
             ToolParam(name="xss_benign", flag="-xss-benign=", join="", sanitize="arg", default="true"),
             ToolParam(name="diff", flag="-diff", sanitize="arg", default=""),

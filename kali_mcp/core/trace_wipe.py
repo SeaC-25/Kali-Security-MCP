@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kali MCP 自动清理渗透测试痕迹（雁过无痕）。
+"""Kali MCP 自动清理渗透测试痕迹（测试后痕迹清理）。
 
 三级清理粒度（用户决策）：
   - task    : 删除 workspace/tasks/<task_id>/ 整目录（含 evidence/logs/findings/graph/handoff/report）

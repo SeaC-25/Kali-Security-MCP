@@ -7,7 +7,7 @@
 专用 MCP 工具，薄包装 `executor.execute_tool_with_data("fastsec", data)`：
 复用 tool_registry 的 ToolSpec 命令构建 + ssh 后端路由 + 结果缓存 + 输出解析。
 
-Stealth 默认（继承会话2 雁过无痕）：
+Stealth 默认（继承会话2 痕迹最小化）：
 - `fastsec_xss_scan` 默认 `xss_benign=True`（无害 marker 单请求，无 alert(1)）
 - `fastsec_sqli_scan` 默认 `danger_level=0`（只读探测，无时间盲注/写操作）
 - 通用节流参数透传（concurrency/delay_min/delay_max），不覆盖内建默认。
@@ -159,7 +159,7 @@ def register_fastsec_tools(mcp, executor):
         delay_max: int = 800,
         proxy: str = "",
     ) -> Dict[str, Any]:
-        """fastsec XSS 反射检测（无害 marker 单请求默认，雁过无痕）。
+        """fastsec XSS 反射检测（无害 marker 单请求默认，对目标影响最小）。
 
         Args:
             url: 目标 URL

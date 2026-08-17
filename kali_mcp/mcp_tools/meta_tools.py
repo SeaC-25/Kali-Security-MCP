@@ -77,7 +77,7 @@ K1_KEEP_TOOLS = frozenset({
     "kb_search", "dag_status", "dag_apply", "dag_recommend",
     # 证据提炼（复用 17 agent 确定性解析器）
     "extract_findings",
-    # 痕迹清理（三粒度：task/session/global，雁过无痕）
+    # 痕迹清理（三粒度：task/session/global，测试后清理）
     "wipe_traces",
 })
 

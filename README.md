@@ -8,7 +8,7 @@
 ![Embedding](https://img.shields.io/badge/Embedding-bge--small--zh-8A2BE2?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**能力层 MCP 服务器 + 18 个 harness 原生子代理 + hooks 自动集成：LLM 决策、MCP 执行、雁过无痕**
+**能力层 MCP 服务器 + 18 个 harness 原生子代理 + hooks 自动集成：LLM 决策、MCP 执行、测试后自动清理**
 
 *一条自然语言指令 → coordinator 子代理派发 → 17 个专业子代理调能力工具 → hooks 自动建攻击 DAG + 提炼证据 → ACO 推荐路径 → 测试完成自动清理痕迹*
 
@@ -27,7 +27,7 @@ Kali MCP 是一套 **能力层 MCP + 原生子代理** 渗透测试框架：**LL
 - **18 个原生子代理**：`coordinator`（派发/评审/done，自动读 ACO 推荐）+ 17 个专业子代理（recon/web_vuln/auth/lateral 等），定义在 `.claude/agents/`、`AGENTS.md`、`opencode.json`、`skills/`。
 - **hooks 自动集成**：子代理每次扫描工具调用后**自动** `dag_apply` 建节点 + `extract_findings` 提炼证据（LLM 透明，治"靠提示才调 DAG"的根因）。
 - **攻击 DAG + 蚁群算法（ACO）**：发现沉淀为 DAG 节点，信息素沿攻击路径沉积，为后续行动提供**推荐**（仅推荐，不决策——LLM 可否决）。
-- **雁过无痕**：stealth 默认（XSS 无害 marker / SQLi 只读探测 / 无品牌 UA）+ `wipe_traces` 三粒度痕迹清理。
+- **测试后痕迹清理**：stealth 默认（XSS 无害 marker / SQLi 只读探测 / 无品牌 UA）+ `wipe_traces` 三粒度痕迹清理。
 
 MCP 编排面（agent_run/agent_status）与 17-agent 集群初始化已**移除**——编排移入 harness 侧 coordinator 子代理；17 个 Python agent 类保留为 `extract_findings` 的解析器来源（`_parse_*_output` 确定性正则）。
 
@@ -420,7 +420,7 @@ pytest -k "kb or dag or aco or orchestrator or llm"   # 关键子系统
 
 **Stealth & Rate Discipline**：XSS 等检测默认无害 marker 单请求验证（`-xss-benign`，不向生产打 alert(1) 集）；SQLi 默认 `-danger-level 0` 只读探测（写操作需显式 `-danger-level 2` 授权）；所有外发请求 UA 为真实浏览器随机 UA（品牌 UA 已移除）；速率纪律见 `RATE_DISCIPLINE`（`kali_mcp/core/playbooks/stealth.py`），机械兜底 = fastsec 内建节流（-c 20 / delay 300-800ms）。
 
-**痕迹清理（雁过无痕）**：`wipe_traces` 工具按粒度自动清理本机痕迹——`task`（删 workspace/tasks/<id>/ 整目录，chain REPORT 终态默认自动触发，`KALI_MCP_AUTO_WIPE=0` 关闭）、`session`（删 DAG 会话 + d01_session.json）、`global`（清运行时状态，**永不自动**，需显式 `scope="global"`）。删除**不可恢复**；知识库/模型/字典（kb_vectors.db/models/wordlists 等）永不进清理清单。目标侧清除只输出命令模板（`target_manual_cleanup`），不自动执行——目标侧删除属操作者授权动作。
+**痕迹清理**：`wipe_traces` 工具按粒度自动清理本机痕迹——`task`（删 workspace/tasks/<id>/ 整目录，chain REPORT 终态默认自动触发，`KALI_MCP_AUTO_WIPE=0` 关闭）、`session`（删 DAG 会话 + d01_session.json）、`global`（清运行时状态，**永不自动**，需显式 `scope="global"`）。删除**不可恢复**；知识库/模型/字典（kb_vectors.db/models/wordlists 等）永不进清理清单。目标侧清除只输出命令模板（`target_manual_cleanup`），不自动执行——目标侧删除属操作者授权动作。
 
 ### License
 
@@ -438,7 +438,7 @@ the **LLM decides in the harness** (main agent + 18 markdown sub-agents in Claud
 - **18 native sub-agents**: `coordinator` (dispatch/review/done, auto-reads ACO recommendations) + 17 specialist sub-agents (recon/web_vuln/auth/lateral/...), defined in `.claude/agents/`, `AGENTS.md`, `opencode.json`, `skills/`.
 - **Hook auto-integration**: after every scan tool call, a PostToolUse hook automatically runs `dag_apply(add_node)` + `extract_findings` (LLM-transparent — no prompt nagging required).
 - **Attack DAG + ACO**: discoveries become DAG nodes; pheromone deposits along attack paths and *recommends* — never decides — next moves (the LLM may override).
-- **Ghost-trace (雁过无痕)**: stealth by default (benign XSS marker / read-only SQLi probing / no branded UA) + `wipe_traces` three-scope cleanup.
+- **Post-test trace cleanup**: stealth by default (benign XSS marker / read-only SQLi probing / no branded UA) + `wipe_traces` three-scope cleanup.
 
 The MCP orchestration surface (the two pure-orchestration tools) and the 17-agent cluster init were **removed** — orchestration now lives in the harness-side `coordinator` subagent; the 17 Python agent classes remain as the parser source for `extract_findings` (`_parse_*_output` deterministic regexes).
 
