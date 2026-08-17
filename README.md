@@ -129,9 +129,11 @@ MCP 表面已从 192 个工具收敛为 **keep-set（约 50 个原生注册）+ 
 
 | 类别 | 工具 |
 |---|---|
-| **LLM 编排** | `agent_run`（自然语言任务 → LLM orchestrator 全流程）、`agent_status`（集群健康/调度统计）、`dag_status`（攻击 DAG 全局状态：节点/边、信息素 top 路径、前沿候选边）、`kb_search`（语义+关键词混合检索知识库） |
+| **KG/DAG 能力** | `dag_apply`（DAGService.apply 写命令：add_node/add_edge/update_node/deposit/deposit_path/evaporate，串行落库）、`dag_recommend`（ACO 候选边 P(e) 评分，只推荐不决策）、`dag_status`（攻击 DAG 全局状态：节点/边、信息素 top 路径、前沿候选边）、`kb_search`（语义+关键词混合检索知识库） |
+| **证据提炼** | `extract_findings`（复用 17 个 Python agent 的确定性正则解析器，工具输出 → 结构化 Finding，LLM 透明） |
+| **痕迹清理** | `wipe_traces`（三粒度：task 删 workspace/tasks/<id>/ 整目录 / session 删 DAG 会话+d01_session.json / global 清运行时状态；目标侧清除只出命令模板） |
 | **任务板** | `start_task`、`task_status`、`run_surface_chain`、`verify_finding`、`task_create`、`task_claim`、`task_complete`、`task_renew`、`task_list`、`board_snapshot` |
-| **fastsec 扫描** | `fastsec_scan`（dir/cms/inject/xss/brute/osint/fingerprint/crack/kerberos/template 等全能力，见下节） |
+| **fastsec 扫描** | **23 个独立能力工具**（fastsec 二进制全模式）：`fastsec_port_scan`、`fastsec_dir_scan`、`fastsec_cms_scan`、`fastsec_sqli_scan`（`danger_level` 默认 0 只读）、`fastsec_xss_scan`（`xss_benign` 默认无害 marker）、`fastsec_brute`、`fastsec_osint`、`fastsec_fingerprint`、`fastsec_template_scan`、`fastsec_crack`、`fastsec_kerberos`、`fastsec_diff`、`fastsec_soceng`（社工字典）、`fastsec_orchestrate`（编排扫描）、`fastsec_seq`（状态化序列）、`fastsec_audit`（静态审计）、`fastsec_file`（取证分析）、`fastsec_user`（用户名搜索）、`fastsec_shell`（payload 生成）、`fastsec_sam`（SAM 提取）、`fastsec_smb`（SMB 横向）、`fastsec_dump`（数据提取，需 `danger_level>=1`）、`fastsec_kb`（本地知识库）；`fastsec_scan`（旧 kali_run 回退名） |
 | **端口/服务** | `nmap_scan`、`rustscan_scan`、`naabu_scan`、`comprehensive_recon`、`server_health` |
 | **口令/域渗透** | `john_crack`、`hashcat_crack`、`kerbrute_attack`、`GetNPUsers_scan`、`GetUserSPNs_scan`、`nxc_attack`、`evil_winrm_attack`、`secretsdump_scan`、`psexec_attack`、`smbexec_attack` |
 | **利用** | `metasploit_run`、`quick_pwn_check` |
@@ -145,25 +147,32 @@ MCP 表面已从 192 个工具收敛为 **keep-set（约 50 个原生注册）+ 
 
 `tools/fastsec/` 是 Go 单二进制引擎（含 `data/` 内置字典：`dns/` 子域字典 63MB、`brute/` 口令字典 40MB 含 263 万 top 口令、`knowledge/` 经验库 2.5MB），核心能力：
 
-| 能力 | 参数 |
+| 能力 | 参数（MCP 工具） |
 |---|---|
-| 目录枚举 | `-dir <url>` / `-w <wordlist>` |
-| CMS 识别 | `-cms <url>` |
-| SQL 注入检测 | `-inject <param,...>` |
-| XSS 反射检测 | `-xss <param,...>`（auto = 从 URL 自动发现参数） |
-| 登录爆破 | `-brute <host>`、`-service http-form\|tcp-banner`、`-U/-P` 字典、`-form-*` 表单配置 |
+| 目录枚举 | `fastsec_dir_scan`（`-dir <url>` / `-w <wordlist>`） |
+| CMS 识别 | `fastsec_cms_scan`（`-cms <url>`） |
+| SQL 注入检测 | `fastsec_sqli_scan`（`-inject <param,...>`，`danger_level` 0=只读默认） |
+| XSS 反射检测 | `fastsec_xss_scan`（`-xss <param,...>`，`xss_benign` 默认无害 marker） |
+| 登录爆破 | `fastsec_brute`（`-brute <host>`、`-service http-form\|tcp-banner`、`-U/-P` 字典、`-form-*` 表单配置） |
 | 口令字典生成 | `-soceng <name>`（社工字典） |
-| Kerberos | `-kerberos <kdc>`、`-domain`、`-kusers`（AS-REP / Kerberoast）、`-kpass` |
-| 服务指纹 | `-fingerprint <host>` / `-fp-ports` |
-| 模板扫描 | `-t <file>` / `-d <dir>`（nuclei 风格模板） |
-| 行为差异 | `-diff <params>` |
-| OSINT | `-osint <domain>` |
-| 哈希破解 | `-crack md5:<hash>` / `-crack-wordlist` |
-| 反连 shell | `-shell <lang>` / `-s-host` / `-s-port` / `-s-enc` |
-| 凭据提取 | `-sam <hive>` |
-| 用户名检索 | `-user <name>` |
-| 端口扫描 | `-scan <target>` |
-| 编排扫描 | `-orchestrate <target>` |
+| Kerberos | `fastsec_kerberos`（`-kerberos <kdc>`、`-domain`、`-kusers`（AS-REP / Kerberoast）、`-kpass`） |
+| 服务指纹 | `fastsec_fingerprint`（`-fingerprint <host>` / `-fp-ports`） |
+| 模板扫描 | `fastsec_template_scan`（`-t <file>` / `-d <dir>`，nuclei 风格模板） |
+| 行为差异 | `fastsec_diff`（`-diff <params>`） |
+| OSINT | `fastsec_osint`（`-osint <domain>`） |
+| 哈希破解 | `fastsec_crack`（`-crack md5:<hash>` / `-crack-wordlist`） |
+| 端口扫描 | `fastsec_port_scan`（`-scan <target>` / `-scan-range`） |
+| 社工字典 | `fastsec_soceng`（`-soceng <name>`，本地生成） |
+| 编排扫描 | `fastsec_orchestrate`（`-orchestrate <target>`） |
+| 状态化序列 | `fastsec_seq`（`-seq <yaml>`） |
+| 静态审计 | `fastsec_audit`（`-audit <path>`，SAST） |
+| 取证分析 | `fastsec_file`（`-file <path>`，替代 binwalk） |
+| 用户名搜索 | `fastsec_user`（`-user <name>`，替代 sherlock） |
+| 反连 payload | `fastsec_shell`（`-shell <lang>` / `-s-host` / `-s-port` / `-s-enc`，只生成不执行） |
+| SAM 提取 | `fastsec_sam`（`-sam <hive>` / `-system <hive>`） |
+| SMB 横向 | `fastsec_smb`（`-smb <host>` / `-smb-cmd` / `-smb-user` / `-smb-pass`） |
+| 数据提取 | `fastsec_dump`（`-dump <url>` / `-dump-param`，需 `danger_level>=1` 显式授权） |
+| 知识库查询 | `fastsec_kb`（`-kb <query>`，内置 knowledge.json，非扫描） |
 
 ### 快速开始
 
@@ -180,18 +189,32 @@ pip install -r requirements.txt
 - **知识库索引已随仓库提供**：`data/kb_vectors.db`（sqlite-vec 单文件）。
 - fastsec 引擎需要 Go 工具链时自行 `cd tools/fastsec && go build -o fastsec ./cmd/fastsec`（或直接用仓库内已构建产物；扫描也可完全走 `nmap_scan` 等 keep-set 工具，不强制 fastsec）。
 
-#### 2. MCP 接入（Claude Code / Codex / OpenCode / Pi）
+#### 2. MCP 接入（Claude Code / Codex / OpenCode / Pi）—— 原生子代理为主路径
 
-Kali MCP 是标准 **stdio MCP 服务器**，任何支持 MCP 的 harness 都能接入。核心要点：
+Kali MCP 是标准 **stdio MCP 服务器**。当前架构 = **能力层 MCP + 18 个原生 markdown 子代理 + hooks 自动集成**：
 
-- 入口：`python mcp_server.py --tool-profile harness`
-- 工具档位 `harness`：只暴露编排与观测工具面（agent_run/agent_status/dag_status/kb_search + 任务板 + fastsec + 扫描工具），让主 LLM 只看到编排 API；
-- **LLM 自主多智能体集群**需额外开两个开关：`K4_LEGACY_CLUSTER=1`（初始化 17-agent 集群）+ `KALI_MCP_FORCE_ENABLE_MODULES=multi_agent`（harness 档默认禁用 multi_agent 模块，需强制启用）；
-- **LLM key**（二选一）：`ANTHROPIC_API_KEY`（Claude）或 `OPENAI_API_KEY`（OpenAI/Codex）——有 key 走 LLM 自主决策路径；无 key 自动降级 legacy 确定性路径，集群照常可用。
+- **能力层 MCP**（服务端）：`python mcp_server.py --tool-profile harness` 暴露纯能力工具——扫描/枚举（fastsec_scan/nmap_scan/kali_run 等）+ **DAG/ACO 读写与观测**（`dag_apply`/`dag_recommend`/`dag_status`）+ **知识库检索**（`kb_search`）+ **证据提炼**（`extract_findings`，复用 17 个 Python agent 的确定性解析器）+ 任务板 + 痕迹清理（`wipe_traces`）。MCP 编排面（两个 pure-orchestration 工具）与 17-agent 集群初始化已**移除**——编排移入 harness 侧 coordinator 子代理。
+- **18 个原生子代理**（仓库已生成，见下表）：`coordinator`（派发/评审/done，自动读 DAG/ACO 推荐）+ 17 个专业子代理（recon/web_vuln/auth 等）。每个正文含角色目标、工具面、决策 JSON 协议、**自动集成约束**（扫描后必调 extract_findings + dag_apply，LLM 透明）、协作协议（dag_status/dag_recommend 参考，ACO 只推荐不决策）与速率纪律。
+- **hooks 自动触发**：`.claude/settings.json` 的 PostToolUse hook（其余 harness 见 `scripts/hooks/README.md`）在子代理每次扫描工具调用后**自动** `dag_apply` 建节点 + `extract_findings` 提炼——治"靠提示才调 DAG"的根因。
+
+| harness | 子代理文件 | hook 落点 |
+|---|---|---|
+| Claude Code | `.claude/agents/*.md` ×18 | `.claude/settings.json`（已配） |
+| Codex | `AGENTS.md`（`## Role:` ×18） | `~/.codex/config.toml`（示例见 `scripts/hooks/README.md`） |
+| OpenCode | `opencode.json` 的 `"agent"` 节 ×18 | `plugin`/`tool.execute.after`（示例见 hooks README） |
+| Pi（omp） | `skills/kali-*.md` ×18 | omp hook 等价机制（示例见 hooks README） |
+
+接入后直接说：
+
+```
+对 http://target/ 做一次完整渗透：先侦察，再扫 Web 漏洞，验证后给出利用建议
+```
+
+主 agent 发起 → `coordinator` 子代理派发 → 专业子代理调能力工具 → hook 自动建 DAG/提炼证据 → coordinator 读 `dag_recommend` 决定下一步。
 
 ##### Claude Code
 
-项目级配置：仓库根目录 `.mcp.json`（与 Claude Code 共享，Claude Desktop 也可用）：
+项目级配置 `.mcp.json`（MCP 能力层）：
 
 ```json
 {
@@ -200,26 +223,13 @@ Kali MCP 是标准 **stdio MCP 服务器**，任何支持 MCP 的 harness 都能
       "command": "python",
       "args": ["mcp_server.py", "--tool-profile", "harness"],
       "cwd": ".",
-      "env": {
-        "KALI_MCP_TOOL_PROFILE": "harness",
-        "K4_LEGACY_CLUSTER": "1",
-        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
-        "ANTHROPIC_API_KEY": "sk-ant-...",
-        "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
-      }
+      "env": { "KALI_MCP_TOOL_PROFILE": "harness" }
     }
   }
 }
 ```
 
-或用户级（对全部项目生效）：
-
-```bash
-claude mcp add kali -- python mcp_server.py --tool-profile harness
-claude mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULES=multi_agent
-```
-
-> Claude Code 自带 Bash 子代理能力。安全评估任务建议配合 `Task` 工具并行派发多个独立子代理（多目标侦察 / 扫描 / 代码审计并行），主对话只做汇总决策。
+子代理自动加载：`.claude/agents/`（18 个已生成）；hooks 自动集成：`.claude/settings.json`（已配 PostToolUse → `scripts/kali_auto_dag_hook.py`）。
 
 ##### Codex（OpenAI Codex CLI）
 
@@ -229,27 +239,14 @@ claude mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULE
 [mcp_servers.kali]
 command = "python"
 args = ["mcp_server.py", "--tool-profile", "harness"]
-env = {
-  KALI_MCP_TOOL_PROFILE = "harness",
-  K4_LEGACY_CLUSTER = "1",
-  KALI_MCP_FORCE_ENABLE_MODULES = "multi_agent",
-  OPENAI_API_KEY = "sk-...",
-  OPENAI_MODEL = "gpt-4o",
-}
+env = { KALI_MCP_TOOL_PROFILE = "harness" }
 ```
 
-或命令行注册：
-
-```bash
-codex mcp add kali -- python mcp_server.py --tool-profile harness
-codex mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULES=multi_agent
-```
-
-> Codex 场景下 LLM 决策循环建议走 OpenAI provider（`OPENAI_API_KEY` / `OPENAI_MODEL`），与 Codex 自身同源。
+子代理定义在仓库根 `AGENTS.md`（`## Role:` 分节 ×18）；tool-use 后 hook 见 `scripts/hooks/README.md`。
 
 ##### OpenCode
 
-项目级 `opencode.json`（或用户级 `~/.config/opencode/opencode.json`）：
+项目级 `opencode.json`（本仓库已生成：18 个 `"agent"` 定义 + `"mcp.kali"` 并存）：
 
 ```json
 {
@@ -258,22 +255,19 @@ codex mcp add kali --env K4_LEGACY_CLUSTER=1 --env KALI_MCP_FORCE_ENABLE_MODULES
     "kali": {
       "type": "local",
       "command": ["python", "mcp_server.py", "--tool-profile", "harness"],
-      "environment": {
-        "KALI_MCP_TOOL_PROFILE": "harness",
-        "K4_LEGACY_CLUSTER": "1",
-        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
-        "OPENAI_API_KEY": "sk-...",
-        "OPENAI_MODEL": "gpt-4o"
-      },
+      "environment": { "KALI_MCP_TOOL_PROFILE": "harness" },
       "enabled": true
     }
-  }
+  },
+  "agent": { }
 }
 ```
 
+`"agent"` 节的 18 个定义已生成在仓库根 `opencode.json`；hook（`tool.execute.after`）示例见 `scripts/hooks/README.md`。
+
 ##### Pi / Oh My Pi
 
-Pi（omp）读取仓库根目录标准 `.mcp.json`（与 Claude Code 同一格式），在项目根放：
+Pi（omp）读取仓库根目录标准 `.mcp.json`（与 Claude Code 同一格式）：
 
 ```json
 {
@@ -282,26 +276,15 @@ Pi（omp）读取仓库根目录标准 `.mcp.json`（与 Claude Code 同一格�
       "command": "python",
       "args": ["mcp_server.py", "--tool-profile", "harness"],
       "cwd": ".",
-      "env": {
-        "KALI_MCP_TOOL_PROFILE": "harness",
-        "K4_LEGACY_CLUSTER": "1",
-        "KALI_MCP_FORCE_ENABLE_MODULES": "multi_agent",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
-      }
+      "env": { "KALI_MCP_TOOL_PROFILE": "harness" }
     }
   }
 }
 ```
 
-> 注意：`command` 里把 `python` 换成你机器上的解释器绝对路径（Windows 常见 `C:\Windows\py.exe -3` 或 `.venv\Scripts\python.exe`）；`cwd` 指向仓库根目录，保证 `mcp_server.py`、`data/`、`tools/fastsec/` 相对路径正确。仓库自带的 `.mcp.json` 即此格式的部署实例。
+子代理定义在 `skills/kali-*.md` ×18（frontmatter name/description + 正文 5 节）；主 agent 用 task 调度 coordinator 或直接派专业子代理。hook 等价机制示例见 `scripts/hooks/README.md`。
 
-接入后在任意 harness 里直接说：
-
-```
-对 http://target/ 做一次完整渗透：先侦察，再扫 Web 漏洞，验证后给出利用建议
-```
-
-即会触发 `agent_run` → LLM orchestrator 全流程。
+> 注意：`command` 里把 `python` 换成你机器上的解释器绝对路径（Windows 常见 `C:\Windows\py.exe -3` 或 `.venv\Scripts\python.exe`）；`cwd` 指向仓库根目录，保证 `mcp_server.py`、`data/`、`tools/fastsec/` 相对路径正确。
 
 #### 3. CLI 实时可视化（不接 harness）
 
@@ -386,6 +369,8 @@ python scripts/build_kb_index.py
 | `K4_LEGACY_CLUSTER` | — | `1` 时初始化 17-agent 多智能体集群（LLM orchestrator 入口） |
 | `K4_LEGACY_PLAYBOOKS` | — | `1` 时注册 legacy playbook 工具（过渡期兼容） |
 | `KALI_MCP_WORKSPACE` | `workspace/` | 任务工作区（扫描产物/证据/报告落盘） |
+| `KALI_MCP_AUTO_WIPE` | `1` | chain REPORT 终态自动清理 task 痕迹；`0` 关闭 |
+| `KALI_MCP_KEEP_REPORT` | 未设 | `1` 时 task 级清理保留 `report/` 子目录 |
 | `KALI_MCP_ENGAGEMENT_JSON` / `KALI_MCP_ENGAGEMENT_FILE` | — | 授权范围声明（目标 scope），工具执行前校验 |
 | `KALI_MCP_REQUIRE_ENGAGEMENT_CONTEXT` | — | `1` 时强制要求授权上下文 |
 | `LLM_PROVIDER` | 自动探测 | `anthropic` / `openai` |
@@ -436,6 +421,10 @@ pytest -k "kb or dag or aco or orchestrator or llm"   # 关键子系统
 ### 合规声明
 
 本项目仅用于**已获书面授权**的渗透测试、CTF 竞赛、安全研究与防御性评估。使用前通过 `set_engagement_context`（或 `KALI_MCP_ENGAGEMENT_JSON/FILE`）声明授权范围；越权扫描、破坏性操作、未授权攻击严格禁止。使用者须自行确保对目标的所有操作均符合适用法律法规。
+
+**Stealth & Rate Discipline**：XSS 等检测默认无害 marker 单请求验证（`-xss-benign`，不向生产打 alert(1) 集）；SQLi 默认 `-danger-level 0` 只读探测（写操作需显式 `-danger-level 2` 授权）；所有外发请求 UA 为真实浏览器随机 UA（品牌 UA 已移除）；速率纪律见 `RATE_DISCIPLINE`（`kali_mcp/core/playbooks/stealth.py`），机械兜底 = fastsec 内建节流（-c 20 / delay 300-800ms）。
+
+**痕迹清理（雁过无痕）**：`wipe_traces` 工具按粒度自动清理本机痕迹——`task`（删 workspace/tasks/<id>/ 整目录，chain REPORT 终态默认自动触发，`KALI_MCP_AUTO_WIPE=0` 关闭）、`session`（删 DAG 会话 + d01_session.json）、`global`（清运行时状态，**永不自动**，需显式 `scope="global"`）。删除**不可恢复**；知识库/模型/字典（kb_vectors.db/models/wordlists 等）永不进清理清单。目标侧清除只输出命令模板（`target_manual_cleanup`），不自动执行——目标侧删除属操作者授权动作。
 
 ### License
 
@@ -606,7 +595,9 @@ flowchart TB
 
 | Category | Tools |
 |---|---|
-| **LLM orchestration** | `agent_run`, `agent_status`, `dag_status`, `kb_search` |
+| **KG/DAG capability** | `dag_apply` (DAGService.apply writes), `dag_recommend` (ACO top-k, recommend-only), `dag_status`, `kb_search` |
+| **Evidence extraction** | `extract_findings` (deterministic parsers from the 17 Python agents) |
+| **Trace wiping** | `wipe_traces` (task/session/global; target cleanup = templates only) |
 | **Task board** | `start_task`, `task_status`, `run_surface_chain`, `verify_finding`, `task_create/claim/complete/renew/list`, `board_snapshot` |
 | **fastsec** | `fastsec_scan` (dir/cms/inject/xss/brute/osint/fingerprint/crack/kerberos/template) |
 | **Port/service** | `nmap_scan`, `rustscan_scan`, `naabu_scan`, `comprehensive_recon`, `server_health` |
@@ -615,6 +606,8 @@ flowchart TB
 | **Session / workflow** | `start_attack_session`, `list_attack_sessions`, `wf_init/transition/record_result/record_issue/status/pack_turn` |
 | **Async scan** | `scan_start/collect/wait/jobs` |
 | **Meta fallback** | `kali_run` (any registry tool by name) |
+
+> Orchestration (the two pure-orchestration tools) was removed from the MCP surface — orchestration now lives in the harness-side `coordinator` subagent (see `.claude/agents/coordinator.md`).
 
 ### Environment Variables
 

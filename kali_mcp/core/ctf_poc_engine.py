@@ -415,9 +415,14 @@ class POCExecutor:
             from urllib.parse import urlencode
             full_url = f"{full_url}?{urlencode(query)}"
 
-        # 设置默认headers
+        # 设置默认headers（真实浏览器 UA 随机，消除 KaliMCP 品牌指纹）
+        try:
+            from kali_mcp.core.playbooks.stealth import _random_ua
+            _ua = _random_ua()
+        except Exception:  # noqa: BLE001 —— stealth 不可用时兜底为通用浏览器 UA
+            _ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
         default_headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; KaliMCP-POCScanner/1.0)",
+            "User-Agent": _ua,
             "Accept": "*/*",
             "Connection": "close"
         }

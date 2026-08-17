@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""P4 观测工具单测（ARCH_DESIGN §9 / §11.3 P4）。
+"""KG/DAG 观测工具单测（原生子代理架构：kg_dag_tools 独立构造服务）。
 
 覆盖：
-- dag_status：节点/边数、信息素 top 路径、前沿候选边；容错（coordinator/DAG
-  缺失、读取异常、空 DAG）不抛异常；
+- dag_status：节点/边数、信息素 top 路径、前沿候选边；容错（服务不可用、读取
+  异常、空 DAG）不抛异常；
 - kb_search：调用 KnowledgeRetriever.retrieve 的命中序列化与 filters 透传；
   容错（无 retriever、检索异常、空库）返回空结构 + 提示；
-- 注册面：dag_status/kb_search 注册进 MCP（register_multi_agent_tools）；
+- 注册面：dag_apply/dag_recommend/dag_status/kb_search 经 register_kg_dag_tools
+  注册进 MCP；编排面（两个 pure-orchestration 工具）已从 K1 keep-set 移除；
 - playbooks 摘除：run_playbook/run_surface_chain 默认不注册，
   K4_LEGACY_PLAYBOOKS=1 时恢复（run_surface_chain_multi 不受影响）。
 """
@@ -18,7 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kali_mcp.mcp_tools.multi_agent_tools import _dag_status, _kb_search
+from kali_mcp.mcp_tools.kg_dag_tools import _dag_status_impl, _kb_search_impl
 from kali_mcp.reasoning.knowledge_retriever import KbHit
 
 
@@ -54,13 +55,6 @@ def _mock_dag(node_count: int = 3, edge_count: int = 2, frontier=None):
     return dag
 
 
-def _mock_coordinator(dag=None, retriever=None):
-    coord = MagicMock()
-    coord.dag_service = dag
-    coord.retriever = retriever
-    return coord
-
-
 def _recording_mcp():
     """与 test_p0_harness 同构的录制型 mcp 装饰器。"""
     mcp = MagicMock()
@@ -82,9 +76,9 @@ def _recording_mcp():
 class TestDagStatus:
     def test_returns_dag_global_state(self):
         dag = _mock_dag(node_count=5, edge_count=4)
-        coord = _mock_coordinator(dag=dag)
 
-        out = _dag_status(coord, session_id="s1")
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=dag):
+            out = _dag_status_impl("s1")
 
         assert out["initialized"] is True
         assert out["session_id"] == "s1"
@@ -103,36 +97,30 @@ class TestDagStatus:
         dag.get_frontier.assert_called_once_with(max_hypotheses=10, session_id="s1")
 
     def test_empty_dag_gets_hint(self):
-        coord = _mock_coordinator(dag=_mock_dag(node_count=0, edge_count=0))
+        dag = _mock_dag(node_count=0, edge_count=0)
 
-        out = _dag_status(coord, session_id="s-empty")
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=dag):
+            out = _dag_status_impl("s-empty")
 
         assert out["initialized"] is True
         assert out["nodes"] == 0
         assert "message" in out  # 空 DAG 提示，不抛异常
 
-    def test_coordinator_none_is_tolerant(self):
-        out = _dag_status(None, session_id="s-x")
+    def test_service_none_is_tolerant(self):
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=None):
+            out = _dag_status_impl("s-x")
 
         assert out["initialized"] is False
         assert out["nodes"] == 0
         assert out["frontier_candidates"] == []
         assert "message" in out
 
-    def test_coordinator_without_dag_is_tolerant(self):
-        coord = _mock_coordinator(dag=None)
-
-        out = _dag_status(coord)
-
-        assert out["initialized"] is False
-        assert "message" in out
-
     def test_dag_read_error_is_tolerant(self):
         dag = _mock_dag()
         dag.node_count.side_effect = RuntimeError("boom")
-        coord = _mock_coordinator(dag=dag)
 
-        out = _dag_status(coord)
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=dag):
+            out = _dag_status_impl("")
 
         assert out["initialized"] is True
         assert out["nodes"] == 0
@@ -141,9 +129,9 @@ class TestDagStatus:
 
     def test_frontier_item_without_to_dict_is_skipped(self):
         dag = _mock_dag(frontier=[object()])  # 无 to_dict 的裸对象
-        coord = _mock_coordinator(dag=dag)
 
-        out = _dag_status(coord)
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=dag):
+            out = _dag_status_impl("")
 
         assert out["frontier_candidates"] == []
 
@@ -161,9 +149,9 @@ class TestKbSearch:
     def test_returns_retrieved_hits(self):
         retriever = MagicMock()
         retriever.retrieve.return_value = self._hits()
-        coord = _mock_coordinator(retriever=retriever)
 
-        out = _kb_search(coord, "目录枚举 参数", top_k=5)
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            out = _kb_search_impl("目录枚举 参数", top_k=5)
 
         assert out["initialized"] is True
         assert out["hit_count"] == 1
@@ -177,10 +165,10 @@ class TestKbSearch:
     def test_filters_forwarded(self):
         retriever = MagicMock()
         retriever.retrieve.return_value = []
-        coord = _mock_coordinator(retriever=retriever)
         filters = {"category": "credentials", "tool": "fastsec"}
 
-        _kb_search(coord, "弱口令字典", top_k=3, filters=filters)
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            _kb_search_impl("弱口令字典", top_k=3, filters=filters)
 
         retriever.retrieve.assert_called_once_with(
             "弱口令字典", top_k=3, filters=filters
@@ -189,36 +177,28 @@ class TestKbSearch:
     def test_top_k_clamped_positive(self):
         retriever = MagicMock()
         retriever.retrieve.return_value = []
-        coord = _mock_coordinator(retriever=retriever)
 
-        _kb_search(coord, "q", top_k=0)
-        _kb_search(coord, "q", top_k=-3)
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            _kb_search_impl("q", top_k=0)
+            _kb_search_impl("q", top_k=-3)
 
         assert retriever.retrieve.call_args_list[0].kwargs["top_k"] == 1
         assert retriever.retrieve.call_args_list[1].kwargs["top_k"] == 1
 
-    def test_coordinator_none_is_tolerant(self):
-        out = _kb_search(None, "sql 注入")
+    def test_retriever_none_is_tolerant(self):
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=None):
+            out = _kb_search_impl("sql 注入")
 
         assert out["initialized"] is False
         assert out["hits"] == []
         assert "message" in out
 
-    def test_no_retriever_is_tolerant(self):
-        coord = _mock_coordinator(retriever=None)
-
-        out = _kb_search(coord, "sql 注入")
-
-        assert out["initialized"] is False
-        assert out["hit_count"] == 0
-        assert "message" in out
-
     def test_retrieve_error_is_tolerant(self):
         retriever = MagicMock()
         retriever.retrieve.side_effect = RuntimeError("index corrupt")
-        coord = _mock_coordinator(retriever=retriever)
 
-        out = _kb_search(coord, "sql 注入")
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            out = _kb_search_impl("sql 注入")
 
         assert out["initialized"] is True
         assert out["hits"] == []
@@ -228,9 +208,9 @@ class TestKbSearch:
     def test_empty_kb_gets_hint(self):
         retriever = MagicMock()
         retriever.retrieve.return_value = []
-        coord = _mock_coordinator(retriever=retriever)
 
-        out = _kb_search(coord, "不存在的内容")
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            out = _kb_search_impl("不存在的内容")
 
         assert out["initialized"] is True
         assert out["hit_count"] == 0
@@ -240,19 +220,30 @@ class TestKbSearch:
 # ---------------- 注册面 ----------------
 
 class TestObservabilityToolsRegistration:
-    def test_dag_status_and_kb_search_registered(self):
-        from kali_mcp.mcp_tools.multi_agent_tools import register_multi_agent_tools
+    def test_kg_dag_tools_registered(self):
+        from kali_mcp.mcp_tools.kg_dag_tools import register_kg_dag_tools
 
         mcp, calls = _recording_mcp()
-        register_multi_agent_tools(mcp, MagicMock(), MagicMock())
+        register_kg_dag_tools(mcp, MagicMock())
 
-        assert "agent_run" in calls
-        assert "agent_status" in calls
+        assert "dag_apply" in calls
+        assert "dag_recommend" in calls
         assert "dag_status" in calls
         assert "kb_search" in calls
 
+    def test_orchestration_removed_from_keep_set(self):
+        from kali_mcp.mcp_tools.meta_tools import K1_KEEP_TOOLS
+
+        # 编排面（两个 pure-orchestration 工具）已从 MCP surface 移除
+        assert "agent_run" not in K1_KEEP_TOOLS
+        assert "agent_status" not in K1_KEEP_TOOLS
+        # 能力工具在 keep-set 内（注册后不被 K1 裁剪）
+        for t in ("dag_apply", "dag_recommend", "dag_status", "kb_search",
+                  "extract_findings", "wipe_traces"):
+            assert t in K1_KEEP_TOOLS
+
     def test_registered_kb_search_end_to_end(self):
-        from kali_mcp.mcp_tools.multi_agent_tools import register_multi_agent_tools
+        from kali_mcp.mcp_tools.kg_dag_tools import register_kg_dag_tools
 
         mcp, calls = _recording_mcp()
         retriever = MagicMock()
@@ -260,10 +251,10 @@ class TestObservabilityToolsRegistration:
             KbHit(chunk_id=1, source="docs/kb/sqli.md", section="sqli",
                   text="SQL 注入检测", score=3.0, meta={"category": "writeup"}),
         ]
-        coord = _mock_coordinator(retriever=retriever)
-        register_multi_agent_tools(mcp, coord, MagicMock())
+        register_kg_dag_tools(mcp, MagicMock())
 
-        out = calls["kb_search"]("sql 注入", top_k=2, filters={"category": "writeup"})
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._retriever", return_value=retriever):
+            out = calls["kb_search"]("sql 注入", top_k=2, filters={"category": "writeup"})
 
         assert out["initialized"] is True
         assert out["hit_count"] == 1
@@ -273,13 +264,14 @@ class TestObservabilityToolsRegistration:
         )
 
     def test_registered_dag_status_end_to_end(self):
-        from kali_mcp.mcp_tools.multi_agent_tools import register_multi_agent_tools
+        from kali_mcp.mcp_tools.kg_dag_tools import register_kg_dag_tools
 
         mcp, calls = _recording_mcp()
-        coord = _mock_coordinator(dag=_mock_dag(node_count=3, edge_count=2))
-        register_multi_agent_tools(mcp, coord, MagicMock())
+        dag = _mock_dag(node_count=3, edge_count=2)
+        register_kg_dag_tools(mcp, MagicMock())
 
-        out = calls["dag_status"]("s-obs")
+        with patch("kali_mcp.mcp_tools.kg_dag_tools._dag_service", return_value=dag):
+            out = calls["dag_status"]("s-obs")
 
         assert out["initialized"] is True
         assert out["nodes"] == 3

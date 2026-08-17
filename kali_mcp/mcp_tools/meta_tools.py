@@ -60,13 +60,25 @@ K1_KEEP_TOOLS = frozenset({
     "evil_winrm_attack", "GetUserSPNs_scan", "secretsdump_scan",
     "psexec_attack", "smbexec_attack", "GetNPUsers_scan",
     "fastsec_scan",
+    # fastsec 全能力独立工具面（24 个模式，薄包装 execute_tool_with_data("fastsec")）
+    "fastsec_port_scan", "fastsec_dir_scan", "fastsec_cms_scan",
+    "fastsec_sqli_scan", "fastsec_xss_scan", "fastsec_brute",
+    "fastsec_osint", "fastsec_fingerprint", "fastsec_template_scan",
+    "fastsec_crack", "fastsec_kerberos", "fastsec_diff",
+    "fastsec_soceng", "fastsec_orchestrate", "fastsec_seq",
+    "fastsec_audit", "fastsec_file", "fastsec_user",
+    "fastsec_shell", "fastsec_sam", "fastsec_smb",
+    "fastsec_dump", "fastsec_kb",
     # K3 orchestrate workflow
     "wf_init", "wf_transition", "wf_record_result", "wf_record_issue",
     "wf_status", "wf_pack_turn",
-    # 多智能体集群入口
-    "agent_run", "agent_status",
-    # 向量库检索 + 蚁群 DAG 观测（P4，暴露到 MCP surface）
-    "kb_search", "dag_status",
+    # 多智能体集群入口（原生子代理架构：编排移入 harness 侧，MCP 不再暴露）
+    # 向量库检索 + 蚁群 DAG 读写/观测（能力工具，独立构造服务）
+    "kb_search", "dag_status", "dag_apply", "dag_recommend",
+    # 证据提炼（复用 17 agent 确定性解析器）
+    "extract_findings",
+    # 痕迹清理（三粒度：task/session/global，雁过无痕）
+    "wipe_traces",
 })
 
 # ---------------------------------------------------------------------------

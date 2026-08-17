@@ -43,6 +43,16 @@ AI_FINGERPRINTS = [
     "httpx",
 ]
 
+# 统一速率与痕迹纪律（口头限定：prompt 级纪律条款，机械兜底 = fastsec 内建节流）。
+# 供 agent 提示词 / harness 子代理定义复用（web_vuln_agent ROLE_PROMPT 等注入点）。
+RATE_DISCIPLINE = """## 速率与痕迹纪律（每次工具调用前必读）
+1. 任何扫描/爆破工具调用前，先评估目标业务影响：优先用低并发与默认节流（fastsec 默认 -c 20 / delay 300-800ms 已内建，不要用 -c 覆盖超过默认）。
+2. 不需要 -c 50 类激进并发；多目标时用 -c/-delay 参数（fastsec -c 8 --delay-min 500）。
+3. 不向生产目标发送对业务有影响的 payload：XSS 用无害 marker（-xss-benign 默认），不跑 alert(1) 集除非显式授权。
+4. 验证用最小请求（基线+marker），不留扫描特征参数。
+5. 所有请求 UA 用真实浏览器 UA，禁止任何 KaliMCP 品牌 UA（POCScanner/probe 旧标识）。
+6. 验证即停，不自动推进：利用到 shell/PoC 存在即回传，不自动后渗透；SQLi/XSS 默认 -danger-level 0（只读探测），写操作（INSERT/UPDATE/DELETE/DROP/--dump）需显式授权与 -danger-level 2。"""
+
 
 def _random_ua() -> str:
     return random.choice(UA_POOL)
@@ -102,6 +112,16 @@ def build_stealth_command(tool: str, target: str, extra_args: str = "",
             proxy = os.environ.get("PENTEST_PROXY", "")
             if proxy:
                 parts.append(f"--proxy={proxy}")
+    elif tool in ("fastsec", "fastsec_scan"):
+        # fastsec 分支：UA 由 stealth.Client 内建随机真实浏览器 UA（无需 -A）；
+        # 这里只加温和节流（不覆盖内建默认的激进并发）
+        parts.append("--delay-min 500")
+        parts.append("--delay-max 1500")
+        parts.append("-c 8")
+        if use_proxy:
+            proxy = os.environ.get("PENTEST_PROXY", "")
+            if proxy:
+                parts.append(f"--proxy {proxy}")
 
     parts.append(target)
     if extra_args:
@@ -169,3 +189,32 @@ def check_ai_fingerprint(executor, target: str) -> Dict[str, Any]:
         "fingerprint_probe": results,
         "note": "不同 UA 的 HTTP 状态码差异可提示目标是否做 UA 指纹检测",
     }
+
+
+def check_brand_ua_clean() -> List[str]:
+    """回归测试钩子：扫描本仓库代码面，确认无品牌 UA/特征参数残留。
+
+    返回仍含品牌指纹的文件路径列表（空 = 干净）。
+    品牌字符串以拼接形式书写，避免本函数自身被指纹扫描命中。
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    patterns = [
+        re.compile("KaliMCP-" + "POCScanner" + r"|kali-mcp" + r"-probe|fastsec" + r"-ai"),
+        re.compile("__fastsec" + "_baseline_probe__" + r"|__dir" + r"_probe_404__"),
+    ]
+    hits = []
+    for p in root.rglob("*.py"):
+        if "__pycache__" in str(p) or ".venv" in str(p):
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for pat in patterns:
+            if pat.search(text):
+                hits.append(str(p.relative_to(root)))
+                break
+    return sorted(set(hits))

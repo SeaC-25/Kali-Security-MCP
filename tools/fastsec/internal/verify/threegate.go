@@ -23,7 +23,7 @@ func ThreeGate(client *http.Client, attackReq *http.Request, attackResp *http.Re
 	if bytes.Contains([]byte(baselineURL), []byte("?")) {
 		sep = "&"
 	}
-	refURL := baselineURL + sep + "__fastsec_baseline_probe__"
+	refURL := baselineURL + sep + "baseline_v1"
 
 	// 用攻击请求的方法重放（POST 也一样确认）
 	breq, err := http.NewRequest(attackReq.Method, refURL, attackReq.Body)

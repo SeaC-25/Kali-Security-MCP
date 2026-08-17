@@ -293,11 +293,11 @@ class WebReconAgent(LLMAgentBase):
         findings = []
 
         # 解析目录枚举输出（fastsec -dir 格式 "[+] 200 /admin (11B)"）
-        if tool_name in ["gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan", "wfuzz_scan"]:
+        if tool_name in ["gobuster_scan", "dirb_scan", "ffuf_scan", "feroxbuster_scan", "wfuzz_scan", "fastsec_dir_scan"]:
             findings.extend(self._parse_directory_enum_output(output, target))
 
         # 解析技术识别输出（fastsec -cms）
-        elif tool_name in ["whatweb_scan", "whatweb_identify", "fastsec_scan"]:
+        elif tool_name in ["whatweb_scan", "whatweb_identify", "fastsec_scan", "fastsec_cms_scan"]:
             findings.extend(self._parse_tech_detect_output(output, target))
 
         # 解析WAF检测输出

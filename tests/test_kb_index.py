@@ -37,7 +37,7 @@ from kali_mcp.reasoning.knowledge_retriever import (  # noqa: E402
     tokenize,
 )
 
-REAL_SOURCES = 17  # scripts/kb_sources.yaml 展开的真实文件数
+REAL_SOURCES = 18  # scripts/kb_sources.yaml 展开的真实文件数（wordlists 1 + runbook 1 + capability 1 + writeups 2 + plans 1 + recipes 3 + playbooks 8 + attack_chains 1）
 
 
 def _token_embed(text: str) -> list:

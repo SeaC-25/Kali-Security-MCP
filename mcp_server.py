@@ -55,46 +55,11 @@ except ImportError as e:
     VULN_TOOL_COUNT = 0
     logger.warning(f"⚠️ vuln_db 模块加载失败: {e}")
 
-# 多智能体集群系统模块导入 (v4.0)
-# 注意: agents 通过 executor(ssh 后端) 做确定性编排+真实工具调用，不依赖 LLM key。
-# LLM key 仅影响深度推理增强（llm_brain 等），缺失时降级提示，不再硬性禁掉整个集群。
-if not _llm_api_key_available():
-    logger.info("multi_agent: no LLM API key — 深度推理增强降级，确定性编排照常")
-try:
-    from kali_mcp.core.agent_registry import AgentRegistry
-    from kali_mcp.core.agent_coordinator import CoordinatorAgent
-    from kali_mcp.agents.information_gathering.recon_agent import ReconAgent
-    from kali_mcp.agents.information_gathering.subdomain_agent import SubdomainAgent
-    from kali_mcp.agents.information_gathering.web_recon_agent import WebReconAgent
-    from kali_mcp.agents.vulnerability_discovery.vuln_scanner_agent import VulnScannerAgent
-    from kali_mcp.agents.vulnerability_discovery.web_vuln_agent import WebVulnAgent
-    from kali_mcp.agents.vulnerability_discovery.auth_agent import AuthAgent
-    from kali_mcp.agents.vulnerability_discovery.network_vuln_agent import NetworkVulnAgent
-    from kali_mcp.agents.vulnerability_discovery.vuln_verifier_agent import VulnVerifierAgent
-    from kali_mcp.agents.exploitation.exploit_agent import ExploitAgent
-    from kali_mcp.agents.exploitation.privilege_agent import PrivilegeAgent
-    from kali_mcp.agents.exploitation.lateral_agent import LateralAgent
-    from kali_mcp.agents.specialized.pwn_agent import PwnAgent
-    from kali_mcp.agents.specialized.crypto_agent import CryptoAgent
-    from kali_mcp.agents.specialized.forensics_agent import ForensicsAgent
-    from kali_mcp.agents.specialized.code_audit_agent import CodeAuditAgent
-    from kali_mcp.agents.specialized.source_code_agent import SourceCodeAgent
-    from kali_mcp.agents.specialized.code_analyze_agent import CodeAnalyzeAgent
-    MULTI_AGENT_SYSTEM_AVAILABLE = True
-    logger.info("✅ 多智能体集群系统模块加载成功 - v4.0 架构")
-except ImportError as e:
-    MULTI_AGENT_SYSTEM_AVAILABLE = False
-    logger.warning(f"⚠️ 多智能体集群系统模块加载失败: {e}")
-
-
-# 多智能体系统全局状态存储（用于MCP工具访问）
-# 使用全局字典而不是闭包，确保FastMCP工具可以访问
-MULTI_AGENT_STATE = {
-    "agent_registry": None,
-    "multi_agent_coordinator": None,
-    "message_bus": None,
-    "initialized": False
-}
+# 多智能体集群系统模块导入（v4.0）—— 已移除
+# 原生子代理架构（harness 侧 18 markdown 子代理）下，17 Python agent 保留为
+# 解析器来源（extract_findings 复用 _parse_*_output），不再由 MCP 构造/调度；
+# 编排面（agent_run/agent_status）与集群初始化块已删除。DAG/ACO/kb 能力工具
+# 见 kg_dag_tools.py（独立构造服务，不依赖 coordinator）。
 
 
 # 深度测试引擎导入 (v2.1 - Burp Suite级别交互能力)
@@ -294,8 +259,11 @@ def setup_mcp_server(
     except Exception as e:
         logger.warning(f"⚠️ 事件总线初始化失败: {e}")
 
-    # 声明使用全局的多智能体系统标志
+    # 声明使用全局的多智能体系统标志（已移除集群初始化，仅保留 agent_adapter=None
+    # 占位：pwn 工具注册依赖该参数，原生子代理架构下恒为 None——无 coordinator 协作）
     global MULTI_AGENT_SYSTEM_AVAILABLE
+    MULTI_AGENT_SYSTEM_AVAILABLE = False
+    agent_adapter = None
 
     mcp = FastMCP(
         "kali-mcp",
@@ -337,109 +305,10 @@ def setup_mcp_server(
         return enabled
 
     # ==================== 多智能体集群系统初始化 (v4.0) ====================
-    # K4: 17-agent cluster archived to optional path; thin board is default.
-    # The agent_registry/agent_coordinator/llm_brain cluster (17 agents) is no
-    # longer constructed on the default path; the classes stay importable
-    # (module-level imports above) but idle. Construct the legacy cluster only
-    # when explicitly opted in via K4_LEGACY_CLUSTER=1. The LLM-key gate is
-    # already encoded in MULTI_AGENT_SYSTEM_AVAILABLE (K0-4).
-    global MULTI_AGENT_STATE
-
-    multi_agent_coordinator = None
-    agent_registry = None
-
-    logger.info(f"[DEBUG] 开始多智能体系统初始化, MULTI_AGENT_SYSTEM_AVAILABLE={MULTI_AGENT_SYSTEM_AVAILABLE}")
-
-    should_init_multi_agent = (
-        MULTI_AGENT_SYSTEM_AVAILABLE
-        and os.environ.get("K4_LEGACY_CLUSTER") == "1"
-        and _module_enabled("multi_agent")
-    )
-    if should_init_multi_agent:
-        try:
-            from kali_mcp.core.mesh_message_bus import MeshMessageBus
-
-            message_bus = MeshMessageBus()
-            logger.info("✅ 网状消息总线初始化成功")
-
-            agent_registry = AgentRegistry()
-            logger.info("✅ Agent注册表初始化成功")
-
-            agent_classes = [
-                (ReconAgent, "侦察智能体"),
-                (SubdomainAgent, "子域名智能体"),
-                (WebReconAgent, "Web侦察智能体"),
-                (VulnScannerAgent, "漏洞扫描智能体"),
-                (WebVulnAgent, "Web漏洞智能体"),
-                (AuthAgent, "认证攻击智能体"),
-                (NetworkVulnAgent, "网络漏洞智能体"),
-                (VulnVerifierAgent, "漏洞验证智能体"),
-                (ExploitAgent, "漏洞利用智能体"),
-                (PrivilegeAgent, "权限提升智能体"),
-                (LateralAgent, "横向移动智能体"),
-                (PwnAgent, "二进制利用智能体"),
-                (CryptoAgent, "密码学智能体"),
-                (ForensicsAgent, "取证智能体"),
-                (CodeAuditAgent, "代码审计智能体"),
-                (SourceCodeAgent, "源码获取智能体"),
-                (CodeAnalyzeAgent, "代码分析智能体"),
-            ]
-
-            agents = []
-            for agent_class, desc in agent_classes:
-                agent = agent_class(message_bus=message_bus, tool_registry=agent_registry, executor=executor)
-                agents.append(agent)
-                agent_registry.register_agent(agent)
-                logger.info(f"✅ {desc} ({agent.agent_id}) 初始化成功")
-
-            multi_agent_coordinator = CoordinatorAgent(agent_registry=agent_registry)
-
-            # 预构建向量库检索器 + 主线程预加载 embedding 模型。
-            # 原因：kb_search 首次调用若在 FastMCP worker 线程里惰性加载
-            # sentence-transformers/torch，Windows 上原生库多线程初始化会卡死。
-            # 这里在启动主线程完成加载（约 10-15s），后续检索仅前向推理，秒回。
-            try:
-                from kali_mcp.reasoning.knowledge_retriever import KnowledgeRetriever
-
-                retriever = KnowledgeRetriever()
-                retriever._embed("warmup")  # 触发 _ensure_model，在主线程完成 torch 初始化
-                multi_agent_coordinator.retriever = retriever
-                multi_agent_coordinator._retriever_attempted = True
-                logger.info("✅ 向量库检索器预加载完成（embedding 模型已就绪）")
-            except Exception as _kb_e:  # noqa: BLE001 —— 预加载失败不阻塞集群，kb_search 降级为空
-                logger.warning(f"⚠️ 向量库检索器预加载失败（kb_search 将降级为空）: {_kb_e}")
-            logger.info(f"✅ 多智能体集群系统v4.0启动完成 - {len(agents)}个专业智能体就绪")
-
-            MULTI_AGENT_STATE["agent_registry"] = agent_registry
-            MULTI_AGENT_STATE["multi_agent_coordinator"] = multi_agent_coordinator
-            MULTI_AGENT_STATE["message_bus"] = message_bus
-            MULTI_AGENT_STATE["initialized"] = True
-
-        except Exception as e:
-            logger.warning(f"⚠️ 多智能体系统初始化失败: {e}")
-            import traceback
-            logger.warning(f"[DEBUG] Traceback: {traceback.format_exc()}")
-            MULTI_AGENT_SYSTEM_AVAILABLE = False
-    else:
-        logger.info(
-            f"[DEBUG] 跳过初始化: MULTI_AGENT_SYSTEM_AVAILABLE={MULTI_AGENT_SYSTEM_AVAILABLE}, "
-            f"multi_agent_enabled={tool_profile.allows('multi_agent')}"
-        )
-
-    # ==================== 代理适配器初始化 (v5.0 架构激活) ====================
-    agent_adapter = None
-    if MULTI_AGENT_STATE.get("initialized"):
-        try:
-            from kali_mcp.core.agent_adapter import AgentAdapter
-            agent_adapter = AgentAdapter(
-                executor=executor,
-                coordinator_agent=MULTI_AGENT_STATE.get("multi_agent_coordinator"),
-                agent_registry=MULTI_AGENT_STATE.get("agent_registry")
-            )
-            logger.info("✅ 代理适配器初始化成功 - 复杂工具将通过多智能体协作执行")
-        except Exception as e:
-            logger.warning(f"⚠️ 代理适配器初始化失败: {e}")
-
+    # 已移除：原生子代理架构（harness 侧 18 markdown 子代理 + hooks 自动触发）
+    # 不再由 MCP 构造 17-agent 集群 / CoordinatorAgent / embedding 预加载。
+    # 能力层经 kg_dag_tools（dag_apply/dag_recommend/dag_status/kb_search）与
+    # extract_findings_tools 独立构造服务提供（见下方注册段）。
 
     # ==================== 按类别注册MCP工具 (v5.0 模块化) ====================
     logger.info("📦 开始注册MCP工具模块...")
@@ -472,22 +341,38 @@ def setup_mcp_server(
     # P0 harness tools (always-on orchestration surface: task/graph/playbook/verify/chain)
     _safe_register("harness", "P0 Harness编排工具", register_harness_tools, mcp, executor)
 
-    # 多智能体集群入口（K4 legacy cluster，经 K4_LEGACY_CLUSTER=1 启用）
-    # agent_run/agent_status 直接暴露 CoordinatorAgent，harness 档位也可见。
-    if MULTI_AGENT_STATE.get("initialized"):
-        try:
-            from kali_mcp.mcp_tools.multi_agent_tools import register_multi_agent_tools
+    # 痕迹清理工具（三粒度 task/session/global；chain REPORT 终态自动触发 task 级）
+    try:
+        from kali_mcp.mcp_tools.wipe_tools import register_wipe_tools
 
-            _safe_register(
-                "harness",
-                "多智能体集群工具",
-                register_multi_agent_tools,
-                mcp,
-                MULTI_AGENT_STATE.get("multi_agent_coordinator"),
-                MULTI_AGENT_STATE.get("agent_registry"),
-            )
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"  ⚠️ 多智能体集群工具注册失败: {e}")
+        _safe_register("harness", "痕迹清理工具", register_wipe_tools, mcp, executor)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  ⚠️ 痕迹清理工具注册失败: {e}")
+
+    # KG/DAG 能力工具（原生子代理架构：dag_apply/dag_recommend/dag_status/kb_search，
+    # 独立构造 DAGService/ACOCore/KnowledgeRetriever，不依赖 coordinator）
+    try:
+        from kali_mcp.mcp_tools.kg_dag_tools import register_kg_dag_tools
+
+        _safe_register("harness", "KG/DAG 工具", register_kg_dag_tools, mcp, executor)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  ⚠️ KG/DAG 工具注册失败: {e}")
+
+    # 证据提炼工具（复用 17 agent 确定性解析器：_parse_*_output → Finding）
+    try:
+        from kali_mcp.mcp_tools.extract_findings_tools import register_extract_findings_tools
+
+        _safe_register("harness", "证据提取工具", register_extract_findings_tools, mcp, executor)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  ⚠️ 证据提取工具注册失败: {e}")
+
+    # fastsec 全能力工具面（12 个独立 MCP 工具，替代 kali_run 元回退）
+    try:
+        from kali_mcp.mcp_tools.fastsec_tools import register_fastsec_tools
+
+        _safe_register("harness", "fastsec 能力工具", register_fastsec_tools, mcp, executor)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  ⚠️ fastsec 能力工具注册失败: {e}")
 
     if VULN_DB_TOOLS_AVAILABLE and _module_enabled("vuln_db"):
         try:

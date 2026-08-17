@@ -45,7 +45,7 @@ def build_template(url: str, param: str, severity: str, reason: str, out_dir: Pa
 
 info:
   name: Behavioral diff probe for {param} ({reason})
-  author: fastsec-ai
+  author: community
   severity: {severity}
 
 http:

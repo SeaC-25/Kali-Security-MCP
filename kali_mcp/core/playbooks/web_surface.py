@@ -266,7 +266,12 @@ def _run_web_surface_body(
 
     # 1) live / http probe — httpx 在 Kali 上可能是 Python CLI (无 -u)，统一用 curl 探测
     if profile.get("httpx"):
-        _step("curl", {"url": url, "target": url, "headers": {"User-Agent": "kali-mcp-probe"}, "timeout": 8}, "RECON")
+        try:
+            from kali_mcp.core.playbooks.stealth import _random_ua
+            probe_ua = _random_ua()
+        except Exception:  # noqa: BLE001
+            probe_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+        _step("curl", {"url": url, "target": url, "headers": {"User-Agent": probe_ua}, "timeout": 8}, "RECON")
     else:
         _step("whatweb", {"target": url, "url": url}, "RECON")
 

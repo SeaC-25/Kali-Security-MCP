@@ -288,8 +288,8 @@ class ForensicsAgent(LLMAgentBase):
         elif tool_name == "memory_forensics":
             findings.extend(self._parse_memory_output(output, target))
 
-        # 解析全面取证分析输出
-        elif tool_name == "forensics_full_analysis":
+        # 解析全面取证分析输出（fastsec -file 取证文件分析同格式）
+        elif tool_name in ("forensics_full_analysis", "fastsec_file", "fastsec_sam"):
             findings.extend(self._parse_forensics_analysis_output(output, target))
 
         return findings

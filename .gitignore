@@ -85,3 +85,13 @@ data/models/.locks/
 
 # Windows/MSYS redirect artifact (2> nul creates a real file — never a delivery item)
 nul
+
+# 一次性调试/侦察脚本（非交付物，防止误提交）
+_run_*.py
+_subdns_probe*.py
+_sy_audit_*.js
+_test_*.py
+_test_*.ps1
+
+# fastsec 编译产物（源码入库，二进制按需本地构建）
+tools/fastsec/*.exe

@@ -813,6 +813,53 @@ class DAGService:
             },
         }
 
+    def wipe_session(self, session_id: str) -> Dict[str, int]:
+        """删除某会话的全部节点/边/信息素（痕迹清理，会话级）。
+
+        - 同时清理内存态（_nodes/_edges/_out_edges/_in_edges）与 sqlite 镜像
+          （nodes/edges/pheromone 三表 DELETE WHERE session_id=?）。
+        - 与 _load/_persist 走同一存储路径；幂等：不存在的 session 返回 0。
+        - 返回 {nodes, edges, pheromone} 各删除行数。
+        """
+        sid = session_id or self.session_id
+        counts = {"nodes": 0, "edges": 0, "pheromone": 0}
+
+        # 1) 内存态
+        node_ids = [nid for nid, n in self._nodes.items() if n.session_id == sid]
+        edge_ids = [eid for eid, e in self._edges.items() if e.session_id == sid]
+        for eid in edge_ids:
+            self._out_edges.pop(eid, None)
+            self._in_edges.pop(eid, None)
+        for eid in edge_ids:
+            self._edges.pop(eid, None)
+            # 邻接表里可能残留对已删边的引用（防御性清理）
+            for lst in list(self._out_edges.values()):
+                if eid in lst:
+                    lst.remove(eid)
+            for lst in list(self._in_edges.values()):
+                if eid in lst:
+                    lst.remove(eid)
+        for nid in node_ids:
+            self._nodes.pop(nid, None)
+            self._out_edges.pop(nid, None)
+            self._in_edges.pop(nid, None)
+        counts["nodes"] = len(node_ids)
+        counts["edges"] = len(edge_ids)
+
+        # 2) sqlite 镜像（best-effort；内存态已清，落库失败不阻断）
+        if self._db is not None:
+            try:
+                for table in ("nodes", "edges", "pheromone"):
+                    cur = self._db.execute(
+                        f"DELETE FROM {table} WHERE session_id=?", (sid,)
+                    )
+                    counts[table] = int(cur.rowcount)
+                self._db.commit()
+            except Exception as e:  # noqa: BLE001 —— 清理失败仅记录
+                logger.warning("[DAGService] wipe_session %s 落库失败: %s", sid, e)
+
+        return counts
+
     def node_count(self, session_id: Optional[str] = None) -> int:
         sid = session_id or self.session_id
         return sum(1 for n in self._nodes.values() if n.session_id == sid)
