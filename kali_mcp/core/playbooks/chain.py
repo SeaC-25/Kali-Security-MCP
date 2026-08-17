@@ -396,6 +396,7 @@ def run_surface_chain(
             summary["next_actions"] = g_clear.next_actions(limit=15, include_insights=True)
         except Exception as _ex:
             logger.debug("Graph final cleanup for %s: %s", ws.task_id, _ex)
+
     # refresh handoff after terminal meta so continue does not reload stale phase
     try:
         handoff2 = compile_handoff(ws.task_id)
@@ -403,6 +404,39 @@ def run_surface_chain(
         summary["progress_md"] = handoff2.get("progress_md")
     except Exception as _ex3:
         logger.debug("Handoff compile for %s after terminal: %s", ws.task_id, _ex3)
+
+    # 终态自动清理（task 级）：REPORT 阶段完成后自动删除 workspace 痕迹。
+    # 默认开启；KALI_MCP_AUTO_WIPE=0 关闭；KALI_MCP_KEEP_REPORT=1 保留 report/。
+    # 清理前已导出任务摘要（report/chain_summary.json + summary 返回字段），
+    # 调用方（harness/agent）从返回值取摘要，workspace 本身删除不可恢复。
+    if all_ok and not aborted and os.environ.get("KALI_MCP_AUTO_WIPE") != "0":
+        try:
+            from kali_mcp.core.trace_wipe import wipe_task_traces
+
+            wipe = wipe_task_traces(ws.task_id)
+            summary["auto_wipe"] = {
+                "enabled": True,
+                "scope": "task",
+                "task_id": ws.task_id,
+                "deleted": wipe.get("deleted", []),
+                "size_freed": wipe.get("size_freed", 0),
+                "kept_report": wipe.get("kept_report", False),
+                "error": wipe.get("error"),
+            }
+            logger.info(
+                "[chain] 终态自动清理 task %s 完成（freed=%sB）",
+                ws.task_id, wipe.get("size_freed", 0),
+            )
+        except Exception as _wipe_ex:  # noqa: BLE001 —— 清理失败不阻断返回
+            logger.warning("[chain] 终态自动清理 %s 失败: %s", ws.task_id, _wipe_ex)
+            summary["auto_wipe"] = {
+                "enabled": True,
+                "scope": "task",
+                "task_id": ws.task_id,
+                "error": str(_wipe_ex)[:200],
+            }
+    else:
+        summary["auto_wipe"] = {"enabled": False, "reason": "not terminal or KALI_MCP_AUTO_WIPE=0"}
     summary["report_path"] = str(report)
     summary["status"] = status
     summary["phase"] = final_phase

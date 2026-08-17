@@ -118,7 +118,7 @@ func Scan(baseURL string, wordlist []string, cli *stealth.Client, maxPaths int) 
 	}
 
 	// D2: 3-gate 基线（404 默认）
-	baseStatus, baseLen := probe(strings.TrimSuffix(baseURL, "/")+"/__dir_probe_404__", cli)
+	baseStatus, baseLen := probe(strings.TrimSuffix(baseURL, "/")+"/probe_404", cli)
 	fmt.Printf("[dir] 基线(404): status=%d len=%d\n", baseStatus, baseLen)
 
 	var mu sync.Mutex

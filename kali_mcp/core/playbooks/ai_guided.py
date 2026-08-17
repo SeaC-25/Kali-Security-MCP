@@ -198,7 +198,7 @@ def run_ai_guided(executor, target: str, depth: str = "standard", **kwargs) -> D
                 tpl = (
                     f"id: diff-{pname}\n\n"
                     f"info:\n  name: Behavioral diff probe for {pname}\n"
-                    f"  author: fastsec-ai\n  severity: {sev}\n\n"
+                    f"  author: community\n  severity: {sev}\n\n"
                     f"http:\n  - method: GET\n    path:\n{paths}\n"
                     f"    matchers:\n      - type: status\n        status:\n          - 200\n          - 403\n"
                 )

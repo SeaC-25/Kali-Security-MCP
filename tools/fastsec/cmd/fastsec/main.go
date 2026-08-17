@@ -44,11 +44,11 @@ import (
 )
 
 // wafDetect: WAF 检测（调用 injector 完整指纹库）
-func wafDetect(url, param string, cli *stealth.Client) struct {
+func wafDetect(url, param string, dangerLevel int, cli *stealth.Client) struct {
 	WAFDetected bool
 	WAFName     string
 } {
-	d := injector.DetectWAF(url, param, cli)
+	d := injector.DetectWAF(url, param, dangerLevel, cli)
 	return struct {
 		WAFDetected bool
 		WAFName     string
@@ -89,6 +89,8 @@ func main() {
 	diffParams := flag.String("diff", "", "behavioral diff params (comma list)")
 	injectParams := flag.String("inject", "", "SQL injection scan params (comma list, e.g. id,user); XSS 检测用 -xss")
 	xssParam := flag.String("xss", "", "XSS reflection scan param (comma list; auto = discover from URL query, requires -u)")
+	xssBenign := flag.Bool("xss-benign", true, "XSS 无害 marker 单请求验证（默认 on，不向生产打 alert(1) 集；=false 跑完整 payload 集）")
+	dangerLevel := flag.Int("danger-level", 0, "SQLi 危险级别: 0=只读探测(默认,安全) 1=+时间盲注(SLEEP≤1s) 2=+完整 payload 集(仅显式授权)")
 	bruteTarget := flag.String("brute", "", "brute-force target (host or http://url)")
 	bruteService := flag.String("service", "http-form", "brute service: http-form|tcp-banner")
 	brutePort := flag.Int("port", 0, "brute port (tcp-banner)")
@@ -363,7 +365,7 @@ func main() {
 		return
 	}
 
-	// XSS 反射检测模式（injector.ScanXSS：payload 未转义回显）
+	// XSS 反射检测模式（injector.ScanXSS：默认无害 marker 单请求，-xss-benign=false 跑完整集）
 	if *xssParam != "" {
 		if *url == "" {
 			fmt.Fprintln(os.Stderr, "错误: -xss 需要 -u 目标 URL")
@@ -374,7 +376,7 @@ func main() {
 		if p := strings.TrimSpace(*xssParam); p != "" && strings.ToLower(p) != "auto" {
 			params = strings.Split(p, ",")
 		}
-		res := injector.ScanXSS(*url, params, cli)
+		res := injector.ScanXSS(*url, params, *xssBenign, cli)
 		fmt.Print(injector.FormatXSS(res))
 		return
 	}
@@ -385,7 +387,7 @@ func main() {
 		cli := stealth.NewClient(*proxy, stealth.NewThrottle(*minDelay, *maxDelay), *concurrency)
 
 		// 1) WAF 检测（先于注入检测——WAF 会拦截 payload 导致误判 clean）
-		wafDet := wafDetect(*url, params[0], cli)
+		wafDet := wafDetect(*url, params[0], *dangerLevel, cli)
 		if wafDet.WAFDetected {
 			fmt.Printf("[injector] 检测到 WAF (%s) → 先绕过再检测\n", wafDet.WAFName)
 			// 2) 绕过：找穿透 payload
@@ -399,8 +401,8 @@ func main() {
 				fmt.Printf("[injector] 全部绕过层被拦\n")
 			}
 		} else {
-			// 无 WAF，直接检测
-			res := injector.Scan(*url, params, "", true, cli)
+			// 无 WAF，直接检测（danger-level 默认 0 = 只读探测）
+			res := injector.Scan(*url, params, "", true, *dangerLevel, cli)
 			fmt.Print(injector.Format(res))
 		}
 		return

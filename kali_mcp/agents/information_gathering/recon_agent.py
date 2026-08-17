@@ -280,11 +280,11 @@ class ReconAgent(LLMAgentBase):
         findings = []
 
         # 解析nmap输出（fastsec -scan 端口扫描同格式兜底）
-        if tool_name in ("nmap_scan", "masscan_fast_scan", "masscan_scan", "fastsec_scan"):
+        if tool_name in ("nmap_scan", "masscan_fast_scan", "masscan_scan", "fastsec_scan", "fastsec_port_scan"):
             findings.extend(self._parse_port_scan_output(output, target))
 
         # 解析whatweb输出（fastsec -cms / -fingerprint 技术识别兜底）
-        if tool_name in ("whatweb_scan", "whatweb_identify", "httpx_probe", "fastsec_scan"):
+        if tool_name in ("whatweb_scan", "whatweb_identify", "httpx_probe", "fastsec_scan", "fastsec_fingerprint"):
             findings.extend(self._parse_tech_detect_output(output, target))
 
         # 解析arp扫描输出

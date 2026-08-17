@@ -8,10 +8,10 @@
         "--tool-profile",
         "harness"
       ],
-      "cwd": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main",
+      "cwd": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main",
       "env": {
         "KALI_MCP_TOOL_PROFILE": "harness",
-        "KALI_MCP_WORKSPACE": "F:\\model\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace"
+        "KALI_MCP_WORKSPACE": "F:\\springInFer-skill\\Kali-Security-MCP-main\\Kali-Security-MCP-main\\workspace"
       }
     },
     "sequential-thinking": {

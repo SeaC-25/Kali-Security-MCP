@@ -228,7 +228,7 @@ class TestP0Harness(unittest.TestCase):
         def _fake_pb(name, task_id, target, executor, depth="quick"):
             return {"ok": True, "playbook": name, "depth": depth}
 
-        with patch(
+        with patch.dict(os.environ, {"KALI_MCP_AUTO_WIPE": "0"}, clear=False), patch(
             "kali_mcp.core.playbooks.list_playbooks",
             return_value=["web_surface", "api_surface"],
         ):
@@ -505,7 +505,7 @@ class TestP0Harness(unittest.TestCase):
         def _pb(name, task_id, target, executor, depth="quick", **kwargs):
             return {"ok": True, "playbook": name}
 
-        with patch("kali_mcp.core.playbooks.run_playbook", side_effect=_pb), patch(
+        with patch.dict(os.environ, {"KALI_MCP_AUTO_WIPE": "0"}, clear=False), patch("kali_mcp.core.playbooks.run_playbook", side_effect=_pb), patch(
             "kali_mcp.core.playbooks.list_playbooks",
             return_value=["web_surface"],
         ), patch(
@@ -907,7 +907,7 @@ class TestP0Harness(unittest.TestCase):
             calls.append({"name": name, "depth": depth, "target": target, "task_id": task_id})
             return {"ok": True, "playbook": name, "depth": depth}
 
-        with patch("kali_mcp.core.playbooks.run_playbook", side_effect=_fake_run):
+        with patch.dict(os.environ, {"KALI_MCP_AUTO_WIPE": "0"}, clear=False), patch("kali_mcp.core.playbooks.run_playbook", side_effect=_fake_run):
             out = run_surface_chain(
                 task_id="chain_mock1",
                 target="http://lab.local/",
@@ -1233,7 +1233,9 @@ class TestP0Harness(unittest.TestCase):
             "return_code": 0,
             "command": "httpx -u http://cache.lab/",
         }
-        with patch.object(ex, "execute_command", return_value=dict(real)) as mock_run:
+        # execute_tool_with_data 内部走 _run_tool_command（→ execute_command）；
+        # patch 真实执行路径，避免本机 httpx CLI 被真实调用（-u 不支持）。
+        with patch.object(ex, "_run_tool_command", return_value=dict(real)) as mock_run:
             with patch.object(ex, "_build_tool_command", return_value="httpx -u http://cache.lab/"):
                 r1 = ex.execute_tool_with_data("httpx", dict(data))
                 r2 = ex.execute_tool_with_data("httpx", dict(data))
@@ -1244,7 +1246,7 @@ class TestP0Harness(unittest.TestCase):
         self.assertTrue(r2.get("cached"))
         self.assertEqual(mock_run.call_count, 1)
         # no_cache bypass
-        with patch.object(ex, "execute_command", return_value=dict(real)) as mock_run2:
+        with patch.object(ex, "_run_tool_command", return_value=dict(real)) as mock_run2:
             with patch.object(ex, "_build_tool_command", return_value="httpx -u http://cache.lab/"):
                 r3 = ex.execute_tool_with_data(
                     "httpx", {**data, "no_cache": True}

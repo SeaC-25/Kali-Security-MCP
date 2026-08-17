@@ -301,7 +301,7 @@ class SubdomainAgent(LLMAgentBase):
             findings.extend(self._parse_theharvester_output(output, target))
 
         # 解析fastsec -osint 聚合输出
-        elif tool_name == "fastsec_scan":
+        elif tool_name in ("fastsec_scan", "fastsec_osint"):
             findings.extend(self._parse_fastsec_osint_output(output, target))
 
         return findings
