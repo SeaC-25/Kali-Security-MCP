@@ -34,19 +34,31 @@ class AgentAdapter:
         # 使用 ToolRouter 作为单一来源，覆盖所有34个复杂工具
         return ToolRouter.get_route(tool_name, data) == "agent"
 
-    def _run_async(self, coro):
-        """在同步上下文中运行异步协程"""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # 已有事件循环（如在 FastAPI/MCP 中），用 run_coroutine_threadsafe
-                import concurrent.futures
-                future = asyncio.run_coroutine_threadsafe(coro, loop)
-                return future.result(timeout=300)
-            else:
-                return loop.run_until_complete(coro)
-        except RuntimeError:
-            return asyncio.run(coro)
+    def _run_async(self, coro, timeout: float = 300.0):
+        """在同步上下文中运行异步协程。
+
+        在独立线程的独立事件循环里运行协程，避免在事件循环线程上
+        用 run_coroutine_threadsafe + future.result() 造成的自锁
+        （loop 等待协程、协程又只能由 loop 执行）。
+        """
+        import threading
+
+        box: Dict[str, Any] = {}
+
+        def _runner() -> None:
+            try:
+                box["result"] = asyncio.run(coro)
+            except BaseException as exc:  # noqa: BLE001 —— 透传给调用方
+                box["error"] = exc
+
+        t = threading.Thread(target=_runner, daemon=True)
+        t.start()
+        t.join(timeout)
+        if t.is_alive():
+            raise TimeoutError(f"agent task timed out after {timeout:.0f}s")
+        if "error" in box:
+            raise box["error"]
+        return box["result"]
 
     def execute_via_agent(self, tool_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """通过代理系统执行"""

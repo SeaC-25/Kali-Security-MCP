@@ -188,7 +188,7 @@ def register_multi_agent_tools(mcp, coordinator, agent_registry):
     """注册多智能体集群 MCP 工具。coordinator/agent_registry 为 None 时降级提示。"""
 
     @mcp.tool()
-    def agent_run(
+    async def agent_run(
         task_description: str,
         target: str = "",
         session_id: str = "",
@@ -226,9 +226,7 @@ def register_multi_agent_tools(mcp, coordinator, agent_registry):
 
         logger.info("[agent_run] 提交集群(LLM orchestrator): %s", user_input)
         try:
-            session = _run_async(
-                coordinator.process_request(user_input, session_id=session_id or None)
-            )
+            session = await coordinator.process_request(user_input, session_id=session_id or None)
             res = _extract_session_result(session)
             res["success"] = res["state"] == "completed"
             res["via_agent"] = True
